@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendPushToAll } from "@/lib/webpush";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest) {
         message: message.trim(),
       },
     });
+
+    sendPushToAll('New Lead!', `${name} (${email}) submitted a contact form`, '/admin/leads').catch(() => {})
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { sendPushToAll } from '@/lib/webpush';
 
 interface RouteContext { params: Promise<{ slug: string }> }
 
@@ -28,5 +29,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       notes: note?.trim() || null,
     },
   });
+
+  sendPushToAll('File Submitted', `Client submitted: ${title.trim()}`, `/admin/reports/${report.id}`).catch(() => {})
+
   return NextResponse.json(doc, { status: 201 });
 }

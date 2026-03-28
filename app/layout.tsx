@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AnalyticsScripts } from "./components/AnalyticsScripts";
+import { TawkChat } from "./components/TawkChat";
+import { ExitIntentPopup } from "./components/ExitIntentPopup";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://rachnabuilds.com'),
   title: "Rachna Builds — Shopify & E-Commerce Developer",
   description:
     "Rachna Jain — Shopify, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
@@ -13,6 +17,26 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
+  },
+  openGraph: {
+    title: "Rachna Builds — Shopify & E-Commerce Developer",
+    description:
+      "Rachna Jain — Shopify, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
+    url: "https://rachnabuilds.com",
+    siteName: "Rachna Builds",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Rachna Builds — Shopify & E-Commerce Developer",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    creator: "@rachnabuilds",
   },
 };
 
@@ -37,7 +61,12 @@ export default function RootLayout({
         <meta name="theme-color" content="#06D6A0" />
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <AnalyticsScripts />
+        <TawkChat />
+        <ExitIntentPopup />
+      </body>
     </html>
   );
 }

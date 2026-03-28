@@ -14,6 +14,18 @@ interface PricingTier {
   ctaText: string;
 }
 
+type TabId = 'general' | 'stats' | 'hero' | 'services' | 'pricing' | 'process' | 'marquee';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'general', label: 'General' },
+  { id: 'stats', label: 'Stats' },
+  { id: 'hero', label: 'Hero' },
+  { id: 'services', label: 'Services' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'process', label: 'Process' },
+  { id: 'marquee', label: 'Marquee' },
+];
+
 function Toggle({
   value,
   onChange,
@@ -56,6 +68,7 @@ function Toggle({
 }
 
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>('general');
   const [settings, setSettings] = useState<Settings>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -233,378 +246,406 @@ export default function SettingsPage() {
 
       {loadError && <div className="admin-alert admin-alert-error" style={{ marginBottom: 20 }}>{loadError}</div>}
 
+      {/* ── TAB BAR ── */}
+      <div className="settings-tabs">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`settings-tab${activeTab === tab.id ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── GENERAL ── */}
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div className="admin-card-title" style={{ marginBottom: 20 }}>General</div>
+      {activeTab === 'general' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 20 }}>General</div>
 
-        <div className="admin-field">
-          <label className="admin-label">Availability Status</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['available', 'busy', 'unavailable'] as const).map(status => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => set('availability_status', status)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  border: '1px solid',
-                  borderColor: availability === status ? 'var(--accent)' : 'var(--border)',
-                  background: availability === status ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                  color: availability === status ? 'var(--accent)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  transition: 'all 0.15s',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {status === 'available' && '🟢 '}
-                {status === 'busy' && '🟡 '}
-                {status === 'unavailable' && '🔴 '}
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
-          <div className="admin-slug-hint">Shown on your website as a badge</div>
-        </div>
-
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="whatsapp">WhatsApp Number</label>
-          <input
-            id="whatsapp"
-            type="text"
-            className="admin-input"
-            placeholder="919404643510"
-            value={get('whatsapp_number', '919404643510')}
-            onChange={e => set('whatsapp_number', e.target.value)}
-          />
-          <div className="admin-slug-hint">Include country code, no + or spaces (e.g. 919404643510)</div>
-        </div>
-
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="contactEmail">Contact Email</label>
-          <input
-            id="contactEmail"
-            type="email"
-            className="admin-input"
-            placeholder="hello@rachnabuilds.com"
-            value={get('contact_email')}
-            onChange={e => set('contact_email', e.target.value)}
-          />
-        </div>
-
-        {generalStatus && (
-          <div className={`admin-alert ${generalStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {generalStatus.msg}
-          </div>
-        )}
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          onClick={handleSaveGeneral}
-          disabled={generalSaving}
-        >
-          {generalSaving ? 'Saving...' : 'Save General Settings'}
-        </button>
-      </div>
-
-      {/* ── STATS ── */}
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div className="admin-card-title" style={{ marginBottom: 20 }}>Stats (Homepage Counters)</div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="admin-field">
-            <label className="admin-label" htmlFor="statStores">Stores Launched</label>
+            <label className="admin-label">Availability Status</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(['available', 'busy', 'unavailable'] as const).map(status => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => set('availability_status', status)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: '1px solid',
+                    borderColor: availability === status ? 'var(--accent)' : 'var(--border)',
+                    background: availability === status ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                    color: availability === status ? 'var(--accent)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    transition: 'all 0.15s',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {status === 'available' && '🟢 '}
+                  {status === 'busy' && '🟡 '}
+                  {status === 'unavailable' && '🔴 '}
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="admin-slug-hint">Shown on your website as a badge</div>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="whatsapp">WhatsApp Number</label>
             <input
-              id="statStores"
-              type="number"
+              id="whatsapp"
+              type="text"
               className="admin-input"
-              placeholder="50"
-              value={get('stat_stores', '50')}
-              onChange={e => set('stat_stores', e.target.value)}
+              placeholder="919404643510"
+              value={get('whatsapp_number', '919404643510')}
+              onChange={e => set('whatsapp_number', e.target.value)}
+            />
+            <div className="admin-slug-hint">Include country code, no + or spaces (e.g. 919404643510)</div>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="contactEmail">Contact Email</label>
+            <input
+              id="contactEmail"
+              type="email"
+              className="admin-input"
+              placeholder="hello@rachnabuilds.com"
+              value={get('contact_email')}
+              onChange={e => set('contact_email', e.target.value)}
             />
           </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="statDelivery">Avg. Delivery Days</label>
-            <input
-              id="statDelivery"
-              type="number"
-              className="admin-input"
-              placeholder="7"
-              value={get('stat_delivery', '7')}
-              onChange={e => set('stat_delivery', e.target.value)}
-            />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="statCountries">Countries Served</label>
-            <input
-              id="statCountries"
-              type="number"
-              className="admin-input"
-              placeholder="12"
-              value={get('stat_countries', '12')}
-              onChange={e => set('stat_countries', e.target.value)}
-            />
-          </div>
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="statPagespeed">Avg. PageSpeed Score</label>
-            <input
-              id="statPagespeed"
-              type="number"
-              className="admin-input"
-              placeholder="90"
-              value={get('stat_pagespeed', '90')}
-              onChange={e => set('stat_pagespeed', e.target.value)}
-            />
-          </div>
-        </div>
 
-        {statsStatus && (
-          <div className={`admin-alert ${statsStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {statsStatus.msg}
-          </div>
-        )}
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          onClick={handleSaveStats}
-          disabled={statsSaving}
-          style={{ marginTop: 4 }}
-        >
-          {statsSaving ? 'Saving...' : 'Save Stats'}
-        </button>
-      </div>
-
-      {/* ── HERO ── */}
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div className="admin-card-title" style={{ marginBottom: 20 }}>Hero Section</div>
-
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="heroHeadline">Hero Headline</label>
-          <input
-            id="heroHeadline"
-            type="text"
-            className="admin-input"
-            placeholder="I Build Shopify Stores That..."
-            value={get('hero_headline')}
-            onChange={e => set('hero_headline', e.target.value)}
-          />
-        </div>
-
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="heroSubtext">Hero Typewriter / Subtext</label>
-          <textarea
-            id="heroSubtext"
-            className="admin-textarea"
-            placeholder="The description text shown below the headline..."
-            value={get('hero_subtext')}
-            onChange={e => set('hero_subtext', e.target.value)}
-            style={{ minHeight: 100 }}
-          />
-        </div>
-
-        {heroStatus && (
-          <div className={`admin-alert ${heroStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {heroStatus.msg}
-          </div>
-        )}
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          onClick={handleSaveHero}
-          disabled={heroSaving}
-        >
-          {heroSaving ? 'Saving...' : 'Save Hero Settings'}
-        </button>
-      </div>
-
-      {/* ── SERVICES ── */}
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div className="admin-card-title" style={{ marginBottom: 8 }}>Services</div>
-        <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
-          JSON array. Each item: <code>{`{ "iconKey", "title", "description", "tags": [], "featured": true/false }`}</code><br />
-          iconKeys: <code>shopify</code>, <code>wordpress</code>, <code>webflow</code>, <code>speed</code>, <code>email</code>, <code>ai</code>
-        </div>
-
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="servicesJson">Services (JSON array)</label>
-          <textarea
-            id="servicesJson"
-            className="admin-textarea"
-            value={get('services')}
-            onChange={e => set('services', e.target.value)}
-            style={{ minHeight: 260, fontFamily: 'monospace', fontSize: 12 }}
-          />
-        </div>
-
-        {servicesStatus && (
-          <div className={`admin-alert ${servicesStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {servicesStatus.msg}
-          </div>
-        )}
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          onClick={handleSaveServices}
-          disabled={servicesSaving}
-        >
-          {servicesSaving ? 'Saving...' : 'Save Services'}
-        </button>
-      </div>
-
-      {/* ── PROCESS STEPS ── */}
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div className="admin-card-title" style={{ marginBottom: 8 }}>Process Steps</div>
-        <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
-          JSON array. Each item: <code>{`{ "num", "day", "title", "desc" }`}</code>
-        </div>
-
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="processJson">Process Steps (JSON array)</label>
-          <textarea
-            id="processJson"
-            className="admin-textarea"
-            value={get('process_steps')}
-            onChange={e => set('process_steps', e.target.value)}
-            style={{ minHeight: 200, fontFamily: 'monospace', fontSize: 12 }}
-          />
-        </div>
-
-        {processStatus && (
-          <div className={`admin-alert ${processStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {processStatus.msg}
-          </div>
-        )}
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          onClick={handleSaveProcess}
-          disabled={processSaving}
-        >
-          {processSaving ? 'Saving...' : 'Save Process Steps'}
-        </button>
-      </div>
-
-      {/* ── PRICING TIERS ── */}
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div className="admin-card-title">Pricing Tiers</div>
-          <button type="button" className="admin-btn admin-btn-secondary" onClick={addTier} style={{ fontSize: 12 }}>
-            + Add Tier
+          {generalStatus && (
+            <div className={`admin-alert ${generalStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {generalStatus.msg}
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={handleSaveGeneral}
+            disabled={generalSaving}
+          >
+            {generalSaving ? 'Saving...' : 'Save General Settings'}
           </button>
         </div>
+      )}
 
-        {pricingTiers.map((tier, ti) => (
-          <div key={ti} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16, background: tier.featured ? 'var(--accent-dim)' : 'var(--bg-elevated)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Tier {ti + 1}</span>
-                {tier.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: '#0B0F1A', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
-              </div>
-              <button type="button" onClick={() => removeTier(ti)} style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
-                Remove
-              </button>
+      {/* ── STATS ── */}
+      {activeTab === 'stats' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 20 }}>Stats (Homepage Counters)</div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="admin-field">
+              <label className="admin-label" htmlFor="statStores">Stores Launched</label>
+              <input
+                id="statStores"
+                type="number"
+                className="admin-input"
+                placeholder="50"
+                value={get('stat_stores', '50')}
+                onChange={e => set('stat_stores', e.target.value)}
+              />
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div className="admin-field" style={{ margin: 0 }}>
-                <label className="admin-label">Tier Name</label>
-                <input type="text" className="admin-input" value={tier.tier} onChange={e => updateTier(ti, 'tier', e.target.value)} placeholder="Starter" />
-              </div>
-              <div className="admin-field" style={{ margin: 0 }}>
-                <label className="admin-label">Amount</label>
-                <input type="text" className="admin-input" value={tier.amount} onChange={e => updateTier(ti, 'amount', e.target.value)} placeholder="$500" />
-              </div>
+            <div className="admin-field">
+              <label className="admin-label" htmlFor="statDelivery">Avg. Delivery Days</label>
+              <input
+                id="statDelivery"
+                type="number"
+                className="admin-input"
+                placeholder="7"
+                value={get('stat_delivery', '7')}
+                onChange={e => set('stat_delivery', e.target.value)}
+              />
             </div>
-
-            <div className="admin-field" style={{ marginBottom: 12 }}>
-              <label className="admin-label">Description</label>
-              <input type="text" className="admin-input" value={tier.description} onChange={e => updateTier(ti, 'description', e.target.value)} placeholder="Short description of this tier..." />
+            <div className="admin-field">
+              <label className="admin-label" htmlFor="statCountries">Countries Served</label>
+              <input
+                id="statCountries"
+                type="number"
+                className="admin-input"
+                placeholder="12"
+                value={get('stat_countries', '12')}
+                onChange={e => set('stat_countries', e.target.value)}
+              />
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div className="admin-field" style={{ margin: 0 }}>
-                <label className="admin-label">CTA Button Text</label>
-                <input type="text" className="admin-input" value={tier.ctaText} onChange={e => updateTier(ti, 'ctaText', e.target.value)} placeholder="Get started →" />
-              </div>
-              <div className="admin-field" style={{ margin: 0 }}>
-                <label className="admin-label">Popular Badge (optional)</label>
-                <input type="text" className="admin-input" value={tier.popular} onChange={e => updateTier(ti, 'popular', e.target.value)} placeholder="Most Popular" />
-              </div>
+            <div className="admin-field">
+              <label className="admin-label" htmlFor="statPagespeed">Avg. PageSpeed Score</label>
+              <input
+                id="statPagespeed"
+                type="number"
+                className="admin-input"
+                placeholder="90"
+                value={get('stat_pagespeed', '90')}
+                onChange={e => set('stat_pagespeed', e.target.value)}
+              />
             </div>
+          </div>
 
-            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
-                <Toggle value={tier.featured} onChange={v => updateTier(ti, 'featured', v)} />
-                Featured (highlighted card)
-              </label>
+          {statsStatus && (
+            <div className={`admin-alert ${statsStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {statsStatus.msg}
             </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={handleSaveStats}
+            disabled={statsSaving}
+            style={{ marginTop: 4 }}
+          >
+            {statsSaving ? 'Saving...' : 'Save Stats'}
+          </button>
+        </div>
+      )}
 
-            <div>
-              <label className="admin-label" style={{ marginBottom: 8, display: 'block' }}>Features List</label>
-              {tier.features.map((feat, fi) => (
-                <div key={fi} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                  <input
-                    type="text"
-                    className="admin-input"
-                    value={feat}
-                    onChange={e => updateFeature(ti, fi, e.target.value)}
-                    placeholder={`Feature ${fi + 1}`}
-                    style={{ flex: 1 }}
-                  />
-                  <button type="button" onClick={() => removeFeature(ti, fi)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '0 10px', cursor: 'pointer', fontSize: 16 }}>×</button>
+      {/* ── HERO ── */}
+      {activeTab === 'hero' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 20 }}>Hero Section</div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="heroHeadline">Hero Headline</label>
+            <input
+              id="heroHeadline"
+              type="text"
+              className="admin-input"
+              placeholder="I Build Shopify Stores That..."
+              value={get('hero_headline')}
+              onChange={e => set('hero_headline', e.target.value)}
+            />
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="heroSubtext">Hero Typewriter / Subtext</label>
+            <textarea
+              id="heroSubtext"
+              className="admin-textarea"
+              placeholder="The description text shown below the headline..."
+              value={get('hero_subtext')}
+              onChange={e => set('hero_subtext', e.target.value)}
+              style={{ minHeight: 100 }}
+            />
+          </div>
+
+          {heroStatus && (
+            <div className={`admin-alert ${heroStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {heroStatus.msg}
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={handleSaveHero}
+            disabled={heroSaving}
+          >
+            {heroSaving ? 'Saving...' : 'Save Hero Settings'}
+          </button>
+        </div>
+      )}
+
+      {/* ── SERVICES ── */}
+      {activeTab === 'services' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 8 }}>Services</div>
+          <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
+            JSON array. Each item: <code>{`{ "iconKey", "title", "description", "tags": [], "featured": true/false }`}</code><br />
+            iconKeys: <code>shopify</code>, <code>wordpress</code>, <code>webflow</code>, <code>speed</code>, <code>email</code>, <code>ai</code>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="servicesJson">Services (JSON array)</label>
+            <textarea
+              id="servicesJson"
+              className="admin-textarea"
+              value={get('services')}
+              onChange={e => set('services', e.target.value)}
+              style={{ minHeight: 260, fontFamily: 'monospace', fontSize: 12 }}
+            />
+          </div>
+
+          {servicesStatus && (
+            <div className={`admin-alert ${servicesStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {servicesStatus.msg}
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={handleSaveServices}
+            disabled={servicesSaving}
+          >
+            {servicesSaving ? 'Saving...' : 'Save Services'}
+          </button>
+        </div>
+      )}
+
+      {/* ── PRICING ── */}
+      {activeTab === 'pricing' && (
+        <div className="admin-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="admin-card-title">Pricing Tiers</div>
+            <button type="button" className="admin-btn admin-btn-secondary" onClick={addTier} style={{ fontSize: 12 }}>
+              + Add Tier
+            </button>
+          </div>
+
+          {pricingTiers.map((tier, ti) => (
+            <div key={ti} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16, background: tier.featured ? 'var(--accent-dim)' : 'var(--bg-elevated)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Tier {ti + 1}</span>
+                  {tier.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: '#0B0F1A', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
                 </div>
-              ))}
-              <button type="button" onClick={() => addFeature(ti)} style={{ background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, marginTop: 4 }}>
-                + Add feature
-              </button>
+                <button type="button" onClick={() => removeTier(ti)} style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+                  Remove
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div className="admin-field" style={{ margin: 0 }}>
+                  <label className="admin-label">Tier Name</label>
+                  <input type="text" className="admin-input" value={tier.tier} onChange={e => updateTier(ti, 'tier', e.target.value)} placeholder="Starter" />
+                </div>
+                <div className="admin-field" style={{ margin: 0 }}>
+                  <label className="admin-label">Amount</label>
+                  <input type="text" className="admin-input" value={tier.amount} onChange={e => updateTier(ti, 'amount', e.target.value)} placeholder="$500" />
+                </div>
+              </div>
+
+              <div className="admin-field" style={{ marginBottom: 12 }}>
+                <label className="admin-label">Description</label>
+                <input type="text" className="admin-input" value={tier.description} onChange={e => updateTier(ti, 'description', e.target.value)} placeholder="Short description of this tier..." />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div className="admin-field" style={{ margin: 0 }}>
+                  <label className="admin-label">CTA Button Text</label>
+                  <input type="text" className="admin-input" value={tier.ctaText} onChange={e => updateTier(ti, 'ctaText', e.target.value)} placeholder="Get started →" />
+                </div>
+                <div className="admin-field" style={{ margin: 0 }}>
+                  <label className="admin-label">Popular Badge (optional)</label>
+                  <input type="text" className="admin-input" value={tier.popular} onChange={e => updateTier(ti, 'popular', e.target.value)} placeholder="Most Popular" />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  <Toggle value={tier.featured} onChange={v => updateTier(ti, 'featured', v)} />
+                  Featured (highlighted card)
+                </label>
+              </div>
+
+              <div>
+                <label className="admin-label" style={{ marginBottom: 8, display: 'block' }}>Features List</label>
+                {tier.features.map((feat, fi) => (
+                  <div key={fi} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={feat}
+                      onChange={e => updateFeature(ti, fi, e.target.value)}
+                      placeholder={`Feature ${fi + 1}`}
+                      style={{ flex: 1 }}
+                    />
+                    <button type="button" onClick={() => removeFeature(ti, fi)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '0 10px', cursor: 'pointer', fontSize: 16 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addFeature(ti)} style={{ background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, marginTop: 4 }}>
+                  + Add feature
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {pricingStatus && (
-          <div className={`admin-alert ${pricingStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {pricingStatus.msg}
-          </div>
-        )}
-        <button type="button" className="admin-btn admin-btn-primary" onClick={handleSavePricing} disabled={pricingSaving}>
-          {pricingSaving ? 'Saving...' : 'Save Pricing Tiers'}
-        </button>
-      </div>
-
-      {/* ── MARQUEE TAGS ── */}
-      <div className="admin-card">
-        <div className="admin-card-title" style={{ marginBottom: 8 }}>Marquee Tags</div>
-        <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
-          JSON array of strings — e.g. <code>{`["Shopify Expert","Custom Themes","WooCommerce"]`}</code>
+          {pricingStatus && (
+            <div className={`admin-alert ${pricingStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {pricingStatus.msg}
+            </div>
+          )}
+          <button type="button" className="admin-btn admin-btn-primary" onClick={handleSavePricing} disabled={pricingSaving}>
+            {pricingSaving ? 'Saving...' : 'Save Pricing Tiers'}
+          </button>
         </div>
+      )}
 
-        <div className="admin-field">
-          <label className="admin-label" htmlFor="marqueeJson">Marquee Tags (JSON array of strings)</label>
-          <textarea
-            id="marqueeJson"
-            className="admin-textarea"
-            value={get('marquee_tags')}
-            onChange={e => set('marquee_tags', e.target.value)}
-            style={{ minHeight: 80, fontFamily: 'monospace', fontSize: 12 }}
-          />
-        </div>
-
-        {marqueeStatus && (
-          <div className={`admin-alert ${marqueeStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
-            {marqueeStatus.msg}
+      {/* ── PROCESS ── */}
+      {activeTab === 'process' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 8 }}>Process Steps</div>
+          <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
+            JSON array. Each item: <code>{`{ "num", "day", "title", "desc" }`}</code>
           </div>
-        )}
-        <button
-          type="button"
-          className="admin-btn admin-btn-primary"
-          onClick={handleSaveMarquee}
-          disabled={marqueeSaving}
-        >
-          {marqueeSaving ? 'Saving...' : 'Save Marquee Tags'}
-        </button>
-      </div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="processJson">Process Steps (JSON array)</label>
+            <textarea
+              id="processJson"
+              className="admin-textarea"
+              value={get('process_steps')}
+              onChange={e => set('process_steps', e.target.value)}
+              style={{ minHeight: 200, fontFamily: 'monospace', fontSize: 12 }}
+            />
+          </div>
+
+          {processStatus && (
+            <div className={`admin-alert ${processStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {processStatus.msg}
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={handleSaveProcess}
+            disabled={processSaving}
+          >
+            {processSaving ? 'Saving...' : 'Save Process Steps'}
+          </button>
+        </div>
+      )}
+
+      {/* ── MARQUEE ── */}
+      {activeTab === 'marquee' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 8 }}>Marquee Tags</div>
+          <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
+            JSON array of strings — e.g. <code>{`["Shopify Expert","Custom Themes","WooCommerce"]`}</code>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-label" htmlFor="marqueeJson">Marquee Tags (JSON array of strings)</label>
+            <textarea
+              id="marqueeJson"
+              className="admin-textarea"
+              value={get('marquee_tags')}
+              onChange={e => set('marquee_tags', e.target.value)}
+              style={{ minHeight: 80, fontFamily: 'monospace', fontSize: 12 }}
+            />
+          </div>
+
+          {marqueeStatus && (
+            <div className={`admin-alert ${marqueeStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+              {marqueeStatus.msg}
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            onClick={handleSaveMarquee}
+            disabled={marqueeSaving}
+          >
+            {marqueeSaving ? 'Saving...' : 'Save Marquee Tags'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { sendPushToAll } from '@/lib/webpush';
 
 interface RouteContext { params: Promise<{ slug: string }> }
 
@@ -41,5 +42,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const comment = await prisma.portalComment.create({
     data: { id: randomBytes(12).toString('hex'), reportId: report.id, context, author: author.trim(), text: text.trim() },
   });
+
+  sendPushToAll('New Comment', `${author.trim()}: ${text.trim().slice(0, 80)}`, `/admin/reports/${report.id}`).catch(() => {})
+
   return NextResponse.json(comment, { status: 201 });
 }

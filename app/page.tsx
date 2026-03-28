@@ -154,17 +154,38 @@ export default async function Home() {
     publishedAt: b.publishedAt,
   }));
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfessionalService',
+    name: 'Rachna Builds',
+    description: 'Shopify & E-Commerce Developer — Fast, conversion-optimised Shopify stores.',
+    url: 'https://rachnabuilds.com',
+    email: 'rachnajain2103@gmail.com',
+    areaServed: 'Worldwide',
+    serviceType: ['Shopify Development', 'E-commerce Development', 'Store Optimization'],
+    sameAs: [
+      'https://linkedin.com/in/rachnabuilds',
+      'https://instagram.com/rachnabuilds',
+    ],
+  };
+
   return (
-    <HomepageClient
-      projects={projects}
-      testimonials={testimonials}
-      faqs={faqs}
-      stats={stats}
-      services={services}
-      processSteps={processSteps}
-      marqueeTags={marqueeTags}
-      pricingTiers={pricingTiers}
-      blogPosts={blogPosts}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <HomepageClient
+        projects={projects}
+        testimonials={testimonials}
+        faqs={faqs}
+        stats={stats}
+        services={services}
+        processSteps={processSteps}
+        marqueeTags={marqueeTags}
+        pricingTiers={pricingTiers}
+        blogPosts={blogPosts}
+      />
+    </>
   );
 }

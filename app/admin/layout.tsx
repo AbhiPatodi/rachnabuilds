@@ -3,6 +3,7 @@ import Link from 'next/link';
 import LogoutButton from './LogoutButton';
 import AdminNav from './AdminNav';
 import AdminMobileNav from './AdminMobileNav';
+import { PushSubscribeButton } from '@/app/components/PushSubscribeButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <AdminNav />
 
         <div className="admin-sidebar-footer">
+          <div style={{ padding: '0 0 12px 0' }}>
+            <PushSubscribeButton />
+          </div>
           <LogoutButton />
         </div>
       </aside>

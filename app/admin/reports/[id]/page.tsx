@@ -43,6 +43,21 @@ interface Document {
   notes?: string | null;
 }
 
+interface PortalEvent {
+  id: string;
+  eventType: string;
+  meta: unknown;
+  createdAt: string;
+}
+
+interface PortalComment {
+  id: string;
+  author: string;
+  context: string;
+  text: string;
+  createdAt: string;
+}
+
 interface Report {
   id: string;
   slug: string;
@@ -54,6 +69,10 @@ interface Report {
   createdAt: string;
   sections: Section[];
   documents: Document[];
+  analytics?: {
+    commentCount: number;
+    eventCounts: { eventType: string; _count: { eventType: number } }[];
+  };
 }
 
 export default function ReportManagePage() {
@@ -93,6 +112,23 @@ export default function ReportManagePage() {
 
   const [copied, setCopied] = useState(false);
 
+  // Portal Activity state
+  const [activity, setActivity] = useState<{ events: PortalEvent[]; comments: PortalComment[] } | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+
+  const loadActivity = async () => {
+    setActivityLoading(true);
+    try {
+      const res = await fetch(`/api/admin/reports/${id}/events`);
+      const data = await res.json();
+      setActivity(data);
+    } catch {
+      // silently fail — activity is non-critical
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
   const fetchReport = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/reports/${id}`);
@@ -108,6 +144,8 @@ export default function ReportManagePage() {
 
   useEffect(() => {
     fetchReport();
+    loadActivity();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchReport]);
 
   const toggleActive = async () => {
@@ -233,6 +271,29 @@ export default function ReportManagePage() {
     await fetch(`/api/admin/reports/${id}`, { method: 'DELETE' });
     router.push('/admin/dashboard');
   };
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  };
+
+  const eventIcon: Record<string, string> = {
+    tab_view: '👁',
+    doc_open: '📄',
+    comment_add: '💬',
+    file_submit: '📤',
+    login: '🔑',
+  };
+
+  const getEventCount = (type: string) =>
+    report?.analytics?.eventCounts.find(e => e.eventType === type)?._count.eventType ?? 0;
 
   if (loading) {
     return (
@@ -430,7 +491,7 @@ export default function ReportManagePage() {
       </div>
 
       {/* ─── DOCUMENTS ─── */}
-      <div className="admin-card">
+      <div className="admin-card" style={{ marginBottom: 20 }}>
         <div className="admin-card-title">
           <div className="admin-section-label">
             Client Documents
@@ -562,6 +623,82 @@ export default function ReportManagePage() {
               )}
             </div>
           ))
+        )}
+      </div>
+      {/* ─── PORTAL ACTIVITY ─── */}
+      <div className="admin-card portal-activity">
+        <div className="admin-card-title">
+          <div className="admin-section-label">Portal Activity</div>
+          <button className="admin-btn admin-btn-ghost" onClick={loadActivity} style={{ fontSize: 12 }} disabled={activityLoading}>
+            {activityLoading ? 'Loading…' : '↻ Refresh'}
+          </button>
+        </div>
+
+        {/* Stats row */}
+        <div className="activity-stats">
+          <div className="activity-stat">
+            <div className="activity-stat-num">{getEventCount('tab_view')}</div>
+            <div className="activity-stat-label">👁 Tab Views</div>
+          </div>
+          <div className="activity-stat">
+            <div className="activity-stat-num">{getEventCount('doc_open')}</div>
+            <div className="activity-stat-label">📄 Doc Opens</div>
+          </div>
+          <div className="activity-stat">
+            <div className="activity-stat-num">{report?.analytics?.commentCount ?? 0}</div>
+            <div className="activity-stat-label">💬 Comments</div>
+          </div>
+          <div className="activity-stat">
+            <div className="activity-stat-num">{getEventCount('file_submit')}</div>
+            <div className="activity-stat-label">📤 Submissions</div>
+          </div>
+        </div>
+
+        {/* Recent Events */}
+        {activityLoading ? (
+          <div className="admin-empty" style={{ padding: '20px 0' }}>Loading activity…</div>
+        ) : !activity || activity.events.length === 0 ? (
+          <div className="admin-empty">No portal activity yet.</div>
+        ) : (
+          <>
+            <h3 style={{ color: '#e2e8f0', fontSize: 14, marginBottom: 10, fontWeight: 600 }}>Recent Events</h3>
+            <div className="activity-timeline">
+              {activity.events.slice(0, 20).map(ev => {
+                const icon = eventIcon[ev.eventType] ?? '•';
+                const meta = ev.meta && typeof ev.meta === 'object'
+                  ? Object.entries(ev.meta as Record<string, unknown>)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(', ')
+                  : '';
+                return (
+                  <div key={ev.id} className="activity-event">
+                    <span>{icon}</span>
+                    <span className="activity-event-type">{ev.eventType.replace(/_/g, ' ')}</span>
+                    {meta && <span style={{ color: '#64748b', fontSize: 12 }}>— {meta}</span>}
+                    <span className="activity-event-time">{timeAgo(ev.createdAt)}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Comments */}
+            {activity.comments.length > 0 && (
+              <>
+                <h3 style={{ color: '#e2e8f0', fontSize: 14, margin: '20px 0 10px', fontWeight: 600 }}>Comments</h3>
+                <div className="activity-comments">
+                  {activity.comments.slice(0, 10).map(c => (
+                    <div key={c.id} className="activity-comment">
+                      <div className="activity-comment-author">{c.author}</div>
+                      <div className="activity-comment-text">{c.text}</div>
+                      <div className="activity-comment-meta">
+                        in {c.context} · {timeAgo(c.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { sendPushToAll } from '@/lib/webpush';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,6 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
   const secret = process.env.ADMIN_PASSWORD || 'secret';
   const token = crypto.createHmac('sha256', secret).update(slug).digest('hex');
+
+  sendPushToAll('Client Login', `${report.clientName} just logged into their portal`, `/admin/reports/${report.id}`).catch(() => {})
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(`rp_${slug}`, token, { httpOnly: true, maxAge: 86400, path: '/' });

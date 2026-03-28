@@ -684,7 +684,7 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
   const statusSections     = report.sections.filter(s => STATUS_TYPES.includes(s.sectionType));
 
   return (
-    <div className="portal-root" data-theme={theme}>
+    <div className="portal-root" data-theme={theme} suppressHydrationWarning>
 
       {/* Header */}
       <header className="portal-header">
