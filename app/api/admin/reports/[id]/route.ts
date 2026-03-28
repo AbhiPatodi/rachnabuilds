@@ -15,7 +15,13 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     },
   });
   if (!report) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(report);
+
+  const [commentCount, eventCounts] = await Promise.all([
+    prisma.portalComment.count({ where: { reportId: id } }),
+    prisma.portalEvent.groupBy({ by: ['eventType'], where: { reportId: id }, _count: { eventType: true } }),
+  ]);
+
+  return NextResponse.json({ ...report, analytics: { commentCount, eventCounts } });
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {

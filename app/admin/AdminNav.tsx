@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 export default function AdminNav() {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href || (href === '/admin/dashboard' && pathname === '/admin');
+  const isActive = (href: string) =>
+    pathname === href || (href === '/admin/dashboard' && pathname === '/admin');
 
   return (
     <nav className="admin-nav">

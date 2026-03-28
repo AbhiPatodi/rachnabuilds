@@ -2,6 +2,7 @@ import './admin.css';
 import Link from 'next/link';
 import LogoutButton from './LogoutButton';
 import AdminNav from './AdminNav';
+import AdminMobileNav from './AdminMobileNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ const LogoSVG = () => (
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="admin-layout">
+      {/* Desktop sidebar — hidden on mobile via CSS */}
       <aside className="admin-sidebar">
         <Link href="/admin/dashboard" className="admin-sidebar-logo">
           <span className="admin-sidebar-logo-mark">
@@ -39,6 +41,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main className="admin-main">
         {children}
       </main>
+
+      {/* Mobile bottom nav — rendered outside aside so display:none on aside doesn't suppress it */}
+      <AdminMobileNav />
     </div>
   );
 }

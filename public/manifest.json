@@ -1,0 +1,19 @@
+{
+  "name": "Rachna Builds Admin",
+  "short_name": "RB Admin",
+  "description": "Rachna Builds - Admin Command Center",
+  "start_url": "/admin/dashboard",
+  "display": "standalone",
+  "background_color": "#0B0F1A",
+  "theme_color": "#06D6A0",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}
