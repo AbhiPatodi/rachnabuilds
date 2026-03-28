@@ -25,6 +25,22 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   return NextResponse.json(doc, { status: 201 });
 }
 
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  await params;
+  const { docId, docType, title, url, notes } = await req.json();
+  if (!docId) return NextResponse.json({ error: 'docId is required' }, { status: 400 });
+  const updated = await prisma.clientDocument.update({
+    where: { id: docId },
+    data: {
+      ...(docType !== undefined && { docType }),
+      ...(title   !== undefined && { title }),
+      ...(url     !== undefined && { url }),
+      ...(notes   !== undefined && { notes: notes || null }),
+    },
+  });
+  return NextResponse.json(updated);
+}
+
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
   await params; // consume params
   const { searchParams } = new URL(req.url);

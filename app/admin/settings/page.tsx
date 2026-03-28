@@ -4,6 +4,16 @@ import { useState, useEffect, useCallback } from 'react';
 
 type Settings = Record<string, string>;
 
+interface PricingTier {
+  tier: string;
+  amount: string;
+  description: string;
+  features: string[];
+  featured: boolean;
+  popular: string;
+  ctaText: string;
+}
+
 function Toggle({
   value,
   onChange,
@@ -63,6 +73,15 @@ export default function SettingsPage() {
   const [servicesSaving, setServicesSaving] = useState(false);
   const [processSaving, setProcessSaving] = useState(false);
   const [marqueeSaving, setMarqueeSaving] = useState(false);
+  const [pricingStatus, setPricingStatus] = useState<{ ok?: boolean; msg: string } | null>(null);
+  const [pricingSaving, setPricingSaving] = useState(false);
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+
+  const DEFAULT_PRICING: PricingTier[] = [
+    { tier: 'Starter', amount: '$500', description: 'Clean, fast Shopify store for new brands and product launches.', features: ['Custom theme setup & configuration','Up to 3 page templates','Mobile-optimised design','Payment gateway setup','3 revision rounds','7-day post-launch support'], featured: false, popular: '', ctaText: 'Get started →' },
+    { tier: 'Professional', amount: '$1,500', description: 'Full custom build for brands serious about conversion and growth.', features: ['Everything in Starter','Custom Liquid theme development','Speed optimisation (90+ PageSpeed)','Klaviyo abandoned cart setup','Analytics & Meta Pixel','14-day post-launch support'], featured: true, popular: 'Most Popular', ctaText: 'Get started →' },
+    { tier: 'Enterprise', amount: '$3,000', description: 'Complex builds, migrations, and Shopify Plus solutions.', features: ['Everything in Professional','Platform migrations (WooCommerce / Webflow)','Custom app integrations','Multi-currency & international','Shopify Plus features','Priority support & retainer options'], featured: false, popular: '', ctaText: "Let's discuss →" },
+  ];
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -70,11 +89,16 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('Failed to fetch');
       const data: Settings = await res.json();
       setSettings(data);
+      try {
+        if (data['pricing_tiers']) setPricingTiers(JSON.parse(data['pricing_tiers']));
+        else setPricingTiers(DEFAULT_PRICING);
+      } catch { setPricingTiers(DEFAULT_PRICING); }
     } catch {
       setLoadError('Failed to load settings');
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -153,6 +177,39 @@ export default function SettingsPage() {
 
   const handleSaveMarquee = () => {
     saveBulk({ marquee_tags: get('marquee_tags') }, setMarqueeSaving, setMarqueeStatus);
+  };
+
+  const handleSavePricing = () => {
+    saveBulk({ pricing_tiers: JSON.stringify(pricingTiers) }, setPricingSaving, setPricingStatus);
+  };
+
+  const updateTier = (idx: number, field: keyof PricingTier, value: string | boolean | string[]) => {
+    setPricingTiers(prev => prev.map((t, i) => i === idx ? { ...t, [field]: value } : t));
+  };
+
+  const updateFeature = (tierIdx: number, featIdx: number, value: string) => {
+    setPricingTiers(prev => prev.map((t, i) => {
+      if (i !== tierIdx) return t;
+      const features = [...t.features];
+      features[featIdx] = value;
+      return { ...t, features };
+    }));
+  };
+
+  const addFeature = (tierIdx: number) => {
+    setPricingTiers(prev => prev.map((t, i) => i === tierIdx ? { ...t, features: [...t.features, ''] } : t));
+  };
+
+  const removeFeature = (tierIdx: number, featIdx: number) => {
+    setPricingTiers(prev => prev.map((t, i) => i === tierIdx ? { ...t, features: t.features.filter((_, fi) => fi !== featIdx) } : t));
+  };
+
+  const addTier = () => {
+    setPricingTiers(prev => [...prev, { tier: 'New Tier', amount: '$0', description: '', features: [], featured: false, popular: '', ctaText: 'Get started →' }]);
+  };
+
+  const removeTier = (idx: number) => {
+    setPricingTiers(prev => prev.filter((_, i) => i !== idx));
   };
 
   if (loading) {
@@ -426,6 +483,93 @@ export default function SettingsPage() {
           disabled={processSaving}
         >
           {processSaving ? 'Saving...' : 'Save Process Steps'}
+        </button>
+      </div>
+
+      {/* ── PRICING TIERS ── */}
+      <div className="admin-card" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div className="admin-card-title">Pricing Tiers</div>
+          <button type="button" className="admin-btn admin-btn-secondary" onClick={addTier} style={{ fontSize: 12 }}>
+            + Add Tier
+          </button>
+        </div>
+
+        {pricingTiers.map((tier, ti) => (
+          <div key={ti} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16, background: tier.featured ? 'var(--accent-dim)' : 'var(--bg-elevated)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Tier {ti + 1}</span>
+                {tier.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: '#0B0F1A', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
+              </div>
+              <button type="button" onClick={() => removeTier(ti)} style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+                Remove
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div className="admin-field" style={{ margin: 0 }}>
+                <label className="admin-label">Tier Name</label>
+                <input type="text" className="admin-input" value={tier.tier} onChange={e => updateTier(ti, 'tier', e.target.value)} placeholder="Starter" />
+              </div>
+              <div className="admin-field" style={{ margin: 0 }}>
+                <label className="admin-label">Amount</label>
+                <input type="text" className="admin-input" value={tier.amount} onChange={e => updateTier(ti, 'amount', e.target.value)} placeholder="$500" />
+              </div>
+            </div>
+
+            <div className="admin-field" style={{ marginBottom: 12 }}>
+              <label className="admin-label">Description</label>
+              <input type="text" className="admin-input" value={tier.description} onChange={e => updateTier(ti, 'description', e.target.value)} placeholder="Short description of this tier..." />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div className="admin-field" style={{ margin: 0 }}>
+                <label className="admin-label">CTA Button Text</label>
+                <input type="text" className="admin-input" value={tier.ctaText} onChange={e => updateTier(ti, 'ctaText', e.target.value)} placeholder="Get started →" />
+              </div>
+              <div className="admin-field" style={{ margin: 0 }}>
+                <label className="admin-label">Popular Badge (optional)</label>
+                <input type="text" className="admin-input" value={tier.popular} onChange={e => updateTier(ti, 'popular', e.target.value)} placeholder="Most Popular" />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
+                <Toggle value={tier.featured} onChange={v => updateTier(ti, 'featured', v)} />
+                Featured (highlighted card)
+              </label>
+            </div>
+
+            <div>
+              <label className="admin-label" style={{ marginBottom: 8, display: 'block' }}>Features List</label>
+              {tier.features.map((feat, fi) => (
+                <div key={fi} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                  <input
+                    type="text"
+                    className="admin-input"
+                    value={feat}
+                    onChange={e => updateFeature(ti, fi, e.target.value)}
+                    placeholder={`Feature ${fi + 1}`}
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" onClick={() => removeFeature(ti, fi)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '0 10px', cursor: 'pointer', fontSize: 16 }}>×</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => addFeature(ti)} style={{ background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, marginTop: 4 }}>
+                + Add feature
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {pricingStatus && (
+          <div className={`admin-alert ${pricingStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>
+            {pricingStatus.msg}
+          </div>
+        )}
+        <button type="button" className="admin-btn admin-btn-primary" onClick={handleSavePricing} disabled={pricingSaving}>
+          {pricingSaving ? 'Saving...' : 'Save Pricing Tiers'}
         </button>
       </div>
 

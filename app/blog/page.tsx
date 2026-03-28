@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import BlogListClient from "./BlogListClient";
+import SiteNav from "@/app/components/SiteNav";
+import SiteFooter from "@/app/components/SiteFooter";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,7 @@ export default async function BlogPage() {
 
   return (
     <>
+      <SiteNav />
       <style>{`
         .blog-page {
           min-height: 100vh;
@@ -85,6 +88,7 @@ export default async function BlogPage() {
           <BlogListClient posts={posts} />
         </div>
       </div>
+      <SiteFooter />
     </>
   );
 }

@@ -74,7 +74,7 @@ export default function ReportManagePage() {
   const [sectionLoading, setSectionLoading] = useState(false);
   const [sectionError, setSectionError] = useState('');
 
-  // Document form
+  // Document form (add)
   const [showDocForm, setShowDocForm] = useState(false);
   const [docType, setDocType] = useState('rfp');
   const [docTitle, setDocTitle] = useState('');
@@ -82,6 +82,14 @@ export default function ReportManagePage() {
   const [docNotes, setDocNotes] = useState('');
   const [docLoading, setDocLoading] = useState(false);
   const [docError, setDocError] = useState('');
+
+  // Document inline edit
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editDocType, setEditDocType] = useState('rfp');
+  const [editDocTitle, setEditDocTitle] = useState('');
+  const [editDocUrl, setEditDocUrl] = useState('');
+  const [editDocNotes, setEditDocNotes] = useState('');
+  const [editDocLoading, setEditDocLoading] = useState(false);
 
   const [copied, setCopied] = useState(false);
 
@@ -195,6 +203,28 @@ export default function ReportManagePage() {
   const handleDeleteDocument = async (docId: string) => {
     if (!confirm('Delete this document?')) return;
     await fetch(`/api/admin/reports/${id}/documents?docId=${docId}`, { method: 'DELETE' });
+    fetchReport();
+  };
+
+  const startEditDoc = (doc: Document) => {
+    setEditingDocId(doc.id);
+    setEditDocType(doc.docType);
+    setEditDocTitle(doc.title);
+    setEditDocUrl(doc.url);
+    setEditDocNotes(doc.notes ?? '');
+  };
+
+  const cancelEditDoc = () => setEditingDocId(null);
+
+  const handleSaveDocEdit = async (docId: string) => {
+    setEditDocLoading(true);
+    await fetch(`/api/admin/reports/${id}/documents`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docId, docType: editDocType, title: editDocTitle, url: editDocUrl, notes: editDocNotes }),
+    });
+    setEditDocLoading(false);
+    setEditingDocId(null);
     fetchReport();
   };
 
@@ -475,26 +505,61 @@ export default function ReportManagePage() {
           <div className="admin-empty">No documents yet. Add your first document above.</div>
         ) : (
           report.documents.map(doc => (
-            <div key={doc.id} className="admin-section-item">
-              <div className="admin-section-item-info">
-                <div className="admin-section-item-title">{doc.title}</div>
-                <div className="admin-section-item-meta">
-                  {DOC_TYPES.find(t => t.value === doc.docType)?.label || doc.docType}
-                  {doc.notes && ` · ${doc.notes}`}
+            <div key={doc.id}>
+              {editingDocId === doc.id ? (
+                <div className="admin-add-form-wrapper" style={{ marginBottom: 12 }}>
+                  <div className="admin-add-form-title">Edit Document</div>
+                  <div className="admin-form">
+                    <div className="admin-form-row">
+                      <div className="admin-field">
+                        <label className="admin-label">Doc Type</label>
+                        <select className="admin-select" value={editDocType} onChange={e => setEditDocType(e.target.value)}>
+                          {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="admin-field">
+                        <label className="admin-label">Title</label>
+                        <input type="text" className="admin-input" value={editDocTitle} onChange={e => setEditDocTitle(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="admin-field">
+                      <label className="admin-label">URL</label>
+                      <input type="url" className="admin-input" value={editDocUrl} onChange={e => setEditDocUrl(e.target.value)} />
+                    </div>
+                    <div className="admin-field">
+                      <label className="admin-label">Notes</label>
+                      <textarea className="admin-textarea" value={editDocNotes} onChange={e => setEditDocNotes(e.target.value)} style={{ minHeight: 60 }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} onClick={() => handleSaveDocEdit(doc.id)} disabled={editDocLoading}>
+                        {editDocLoading ? 'Saving…' : 'Save'}
+                      </button>
+                      <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={cancelEditDoc}>Cancel</button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="admin-section-item-actions">
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
-                  Open ↗
-                </a>
-                <button
-                  className="admin-btn admin-btn-danger admin-btn-icon"
-                  onClick={() => handleDeleteDocument(doc.id)}
-                  style={{ fontSize: 12 }}
-                >
-                  Delete
-                </button>
-              </div>
+              ) : (
+                <div className="admin-section-item">
+                  <div className="admin-section-item-info">
+                    <div className="admin-section-item-title">{doc.title}</div>
+                    <div className="admin-section-item-meta">
+                      {DOC_TYPES.find(t => t.value === doc.docType)?.label || doc.docType}
+                      {doc.notes && ` · ${doc.notes}`}
+                    </div>
+                  </div>
+                  <div className="admin-section-item-actions">
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                      Open ↗
+                    </a>
+                    <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDoc(doc)}>
+                      Edit
+                    </button>
+                    <button className="admin-btn admin-btn-danger admin-btn-icon" style={{ fontSize: 12 }} onClick={() => handleDeleteDocument(doc.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}

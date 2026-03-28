@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0B0F1A"/>
+      <stop offset="100%" style="stop-color:#0f1420"/>
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06D6A0;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#A78BFA;stop-opacity:0.06"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Grid -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="90" x2="1200" y2="90"/><line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="330" x2="1200" y2="330"/><line x1="0" y1="450" x2="1200" y2="450"/>
+    <line x1="0" y1="570" x2="1200" y2="570"/>
+    <line x1="150" y1="0" x2="150" y2="630"/><line x1="500" y1="0" x2="500" y2="630"/>
+    <line x1="850" y1="0" x2="850" y2="630"/><line x1="1100" y1="0" x2="1100" y2="630"/>
+  </g>
+
+  <!-- Glow -->
+  <ellipse cx="850" cy="300" rx="400" ry="300" fill="url(#accentGlow)"/>
+
+  <!-- ── 7-DAY TIMELINE (right side) ── -->
+  <g transform="translate(560, 55)">
+    <!-- Container -->
+    <rect x="0" y="0" width="590" height="510" rx="20" fill="#0d1220" stroke="#1e2640" stroke-width="1"/>
+    <text x="295" y="40" font-family="monospace" font-size="12" fill="#4a5568" text-anchor="middle" letter-spacing="2">BUILD TIMELINE</text>
+
+    <!-- Timeline line -->
+    <line x1="48" y1="68" x2="48" y2="460" stroke="#1e2640" stroke-width="2"/>
+
+    <!-- Day rows -->
+    <!-- Day 0: Discovery -->
+    <circle cx="48" cy="82" r="14" fill="rgba(6,214,160,0.2)" stroke="#06D6A0" stroke-width="1.5"/>
+    <text x="48" y="87" font-family="monospace" font-size="10" fill="#06D6A0" text-anchor="middle" font-weight="700">0</text>
+    <text x="80" y="78" font-family="monospace" font-size="11" fill="#4a5568">DAY 0</text>
+    <text x="80" y="95" font-family="Georgia,serif" font-size="15" fill="#E8ECF4" font-weight="700">Discovery Call</text>
+    <rect x="295" y="68" width="100" height="22" rx="11" fill="rgba(6,214,160,0.1)" stroke="rgba(6,214,160,0.2)" stroke-width="1"/>
+    <text x="345" y="83" font-family="monospace" font-size="10" fill="#06D6A0" text-anchor="middle">30 min</text>
+
+    <!-- Day 1-2: Design -->
+    <circle cx="48" cy="154" r="14" fill="rgba(6,214,160,0.2)" stroke="#06D6A0" stroke-width="1.5"/>
+    <text x="48" y="159" font-family="monospace" font-size="9" fill="#06D6A0" text-anchor="middle" font-weight="700">1-2</text>
+    <text x="80" y="150" font-family="monospace" font-size="11" fill="#4a5568">DAYS 1-2</text>
+    <text x="80" y="167" font-family="Georgia,serif" font-size="15" fill="#E8ECF4" font-weight="700">Figma Design</text>
+    <rect x="295" y="140" width="130" height="22" rx="11" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.2)" stroke-width="1"/>
+    <text x="360" y="155" font-family="monospace" font-size="10" fill="#A78BFA" text-anchor="middle">You approve</text>
+
+    <!-- Day 3-5: Build -->
+    <circle cx="48" cy="228" r="14" fill="rgba(6,214,160,0.2)" stroke="#06D6A0" stroke-width="1.5"/>
+    <text x="48" y="233" font-family="monospace" font-size="9" fill="#06D6A0" text-anchor="middle" font-weight="700">3-5</text>
+    <text x="80" y="224" font-family="monospace" font-size="11" fill="#4a5568">DAYS 3-5</text>
+    <text x="80" y="241" font-family="Georgia,serif" font-size="15" fill="#E8ECF4" font-weight="700">Development</text>
+    <rect x="295" y="214" width="120" height="22" rx="11" fill="rgba(251,191,36,0.1)" stroke="rgba(251,191,36,0.2)" stroke-width="1"/>
+    <text x="355" y="229" font-family="monospace" font-size="10" fill="#FBBf24" text-anchor="middle">Daily updates</text>
+
+    <!-- Day 6: Review -->
+    <circle cx="48" cy="302" r="14" fill="rgba(6,214,160,0.2)" stroke="#06D6A0" stroke-width="1.5"/>
+    <text x="48" y="307" font-family="monospace" font-size="10" fill="#06D6A0" text-anchor="middle" font-weight="700">6</text>
+    <text x="80" y="298" font-family="monospace" font-size="11" fill="#4a5568">DAY 6</text>
+    <text x="80" y="315" font-family="Georgia,serif" font-size="15" fill="#E8ECF4" font-weight="700">Revisions</text>
+    <rect x="295" y="288" width="110" height="22" rx="11" fill="rgba(6,214,160,0.1)" stroke="rgba(6,214,160,0.2)" stroke-width="1"/>
+    <text x="350" y="303" font-family="monospace" font-size="10" fill="#06D6A0" text-anchor="middle">Your feedback</text>
+
+    <!-- Day 7: Launch -->
+    <circle cx="48" cy="388" r="20" fill="rgba(6,214,160,0.25)" stroke="#06D6A0" stroke-width="2" filter="url(#glow)"/>
+    <text x="48" y="394" font-family="monospace" font-size="11" fill="#06D6A0" text-anchor="middle" font-weight="700">7</text>
+    <text x="80" y="378" font-family="monospace" font-size="11" fill="#06D6A0" font-weight="700">DAY 7 ✓</text>
+    <text x="80" y="400" font-family="Georgia,serif" font-size="18" fill="#06D6A0" font-weight="700" filter="url(#glow)">LAUNCH 🚀</text>
+    <rect x="295" y="370" width="160" height="28" rx="14" fill="rgba(6,214,160,0.15)" stroke="#06D6A0" stroke-width="1"/>
+    <text x="375" y="388" font-family="monospace" font-size="11" fill="#06D6A0" text-anchor="middle" font-weight="700">Live + tested</text>
+
+    <!-- Support badge -->
+    <rect x="60" y="430" width="450" height="52" rx="12" fill="rgba(6,214,160,0.06)" stroke="rgba(6,214,160,0.15)" stroke-width="1"/>
+    <text x="285" y="451" font-family="monospace" font-size="11" fill="#4a5568" text-anchor="middle">INCLUDED</text>
+    <text x="285" y="471" font-family="monospace" font-size="13" fill="#06D6A0" text-anchor="middle" font-weight="700">7-day post-launch support</text>
+  </g>
+
+  <!-- ── LEFT CONTENT ── -->
+  <!-- Category pill -->
+  <rect x="60" y="80" width="130" height="30" rx="15" fill="rgba(6,214,160,0.12)" stroke="rgba(6,214,160,0.3)" stroke-width="1"/>
+  <text x="125" y="100" font-family="monospace" font-size="11" fill="#06D6A0" font-weight="700" letter-spacing="1.5" text-anchor="middle">PROCESS</text>
+
+  <!-- Big 7 -->
+  <text x="50" y="310" font-family="Georgia,serif" font-size="260" fill="#06D6A0" font-weight="700" opacity="0.06" letter-spacing="-10">7</text>
+
+  <!-- Headline -->
+  <text x="60" y="185" font-family="Georgia,serif" font-size="62" fill="#E8ECF4" font-weight="700" letter-spacing="-2">The 7-Day</text>
+  <text x="60" y="255" font-family="Georgia,serif" font-size="62" fill="#E8ECF4" font-weight="700" letter-spacing="-2">Shopify</text>
+  <text x="60" y="325" font-family="Georgia,serif" font-size="62" fill="#06D6A0" font-weight="700" letter-spacing="-2">Store Build</text>
+
+  <!-- Divider -->
+  <line x1="60" y1="360" x2="220" y2="360" stroke="#06D6A0" stroke-width="2" opacity="0.5"/>
+
+  <!-- Subtext -->
+  <text x="60" y="395" font-family="monospace" font-size="15" fill="#8b95a8">How I deliver a complete</text>
+  <text x="60" y="418" font-family="monospace" font-size="15" fill="#8b95a8">Shopify store in one week.</text>
+
+  <!-- Author -->
+  <text x="60" y="545" font-family="monospace" font-size="13" fill="#4a5568" letter-spacing="1">RACHNA BUILDS · BUILD PROCESS</text>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="626" width="560" height="4" fill="#06D6A0" opacity="0.5"/>
+  <rect x="560" y="626" width="640" height="4" fill="#A78BFA" opacity="0.3"/>
+</svg>

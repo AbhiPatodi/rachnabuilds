@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0B0F1A"/>
+      <stop offset="100%" style="stop-color:#0f1420"/>
+    </linearGradient>
+    <linearGradient id="leftGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A78BFA;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#A78BFA;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="rightGlow" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#06D6A0;stop-opacity:0.12"/>
+      <stop offset="100%" style="stop-color:#06D6A0;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Grid -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="90" x2="1200" y2="90"/><line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="330" x2="1200" y2="330"/><line x1="0" y1="450" x2="1200" y2="450"/>
+    <line x1="0" y1="570" x2="1200" y2="570"/>
+    <line x1="150" y1="0" x2="150" y2="630"/><line x1="450" y1="0" x2="450" y2="630"/>
+    <line x1="750" y1="0" x2="750" y2="630"/><line x1="1050" y1="0" x2="1050" y2="630"/>
+  </g>
+
+  <!-- Left glow (WooCommerce side) -->
+  <ellipse cx="300" cy="315" rx="320" ry="280" fill="url(#leftGlow)"/>
+  <!-- Right glow (Shopify side) -->
+  <ellipse cx="900" cy="315" rx="320" ry="280" fill="url(#rightGlow)"/>
+
+  <!-- Center VS divider -->
+  <line x1="600" y1="60" x2="600" y2="570" stroke="#1e2640" stroke-width="2" stroke-dasharray="8,6"/>
+  <circle cx="600" cy="315" r="44" fill="#0B0F1A" stroke="#1e2640" stroke-width="2"/>
+  <text x="600" y="326" font-family="Georgia,serif" font-size="26" fill="#E8ECF4" font-weight="700" text-anchor="middle">VS</text>
+
+  <!-- ── LEFT: WooCommerce ── -->
+  <!-- Badge -->
+  <rect x="60" y="80" width="160" height="30" rx="15" fill="rgba(167,139,250,0.12)" stroke="rgba(167,139,250,0.3)" stroke-width="1"/>
+  <text x="140" y="100" font-family="monospace" font-size="11" fill="#A78BFA" font-weight="700" letter-spacing="1.5" text-anchor="middle">WOOCOMMERCE</text>
+
+  <!-- WC Logo shape -->
+  <g transform="translate(60, 150)">
+    <rect x="0" y="0" width="72" height="72" rx="16" fill="rgba(167,139,250,0.15)" stroke="rgba(167,139,250,0.3)" stroke-width="1.5"/>
+    <text x="36" y="48" font-size="36" text-anchor="middle" fill="#A78BFA">W</text>
+  </g>
+
+  <text x="60" y="270" font-family="Georgia,serif" font-size="52" fill="#E8ECF4" font-weight="700" letter-spacing="-1.5">Woo</text>
+  <text x="60" y="330" font-family="Georgia,serif" font-size="52" fill="#A78BFA" font-weight="700" letter-spacing="-1.5">Commerce</text>
+
+  <!-- WC pros -->
+  <g transform="translate(60, 365)">
+    <circle cx="8" cy="8" r="5" fill="rgba(167,139,250,0.3)"/>
+    <text x="24" y="13" font-family="monospace" font-size="13" fill="#8b95a8">Open source &amp; flexible</text>
+    <circle cx="8" cy="36" r="5" fill="rgba(167,139,250,0.3)"/>
+    <text x="24" y="41" font-family="monospace" font-size="13" fill="#8b95a8">WordPress ecosystem</text>
+    <circle cx="8" cy="64" r="5" fill="rgba(167,139,250,0.3)"/>
+    <text x="24" y="69" font-family="monospace" font-size="13" fill="#8b95a8">Requires hosting</text>
+  </g>
+
+  <!-- ── RIGHT: Shopify ── -->
+  <!-- Badge -->
+  <rect x="660" y="80" width="120" height="30" rx="15" fill="rgba(6,214,160,0.12)" stroke="rgba(6,214,160,0.3)" stroke-width="1"/>
+  <text x="720" y="100" font-family="monospace" font-size="11" fill="#06D6A0" font-weight="700" letter-spacing="1.5" text-anchor="middle">SHOPIFY</text>
+
+  <!-- S Logo shape -->
+  <g transform="translate(660, 150)">
+    <rect x="0" y="0" width="72" height="72" rx="16" fill="rgba(6,214,160,0.15)" stroke="rgba(6,214,160,0.3)" stroke-width="1.5"/>
+    <text x="36" y="48" font-size="36" text-anchor="middle" fill="#06D6A0">S</text>
+  </g>
+
+  <text x="660" y="270" font-family="Georgia,serif" font-size="52" fill="#E8ECF4" font-weight="700" letter-spacing="-1.5">Shopify</text>
+  <text x="660" y="330" font-family="Georgia,serif" font-size="52" fill="#06D6A0" font-weight="700" letter-spacing="-1.5">2026</text>
+
+  <!-- Shopify pros -->
+  <g transform="translate(660, 365)">
+    <circle cx="8" cy="8" r="5" fill="rgba(6,214,160,0.3)"/>
+    <text x="24" y="13" font-family="monospace" font-size="13" fill="#8b95a8">Hosted, no maintenance</text>
+    <circle cx="8" cy="36" r="5" fill="rgba(6,214,160,0.3)"/>
+    <text x="24" y="41" font-family="monospace" font-size="13" fill="#8b95a8">Built-in payments &amp; apps</text>
+    <circle cx="8" cy="64" r="5" fill="rgba(6,214,160,0.3)"/>
+    <text x="24" y="69" font-family="monospace" font-size="13" fill="#8b95a8">Scales with your store</text>
+  </g>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="570" width="1200" height="60" fill="rgba(0,0,0,0.3)"/>
+  <text x="600" y="605" font-family="monospace" font-size="13" fill="#4a5568" text-anchor="middle" letter-spacing="2">RACHNA BUILDS · PLATFORM GUIDE · 2026</text>
+  <rect x="0" y="626" width="600" height="4" fill="#A78BFA" opacity="0.5"/>
+  <rect x="600" y="626" width="600" height="4" fill="#06D6A0" opacity="0.5"/>
+</svg>

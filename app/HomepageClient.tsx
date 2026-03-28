@@ -59,6 +59,25 @@ export interface HomepageProcessStep {
   desc: string;
 }
 
+export interface HomepagePricingTier {
+  tier: string;
+  amount: string;
+  description: string;
+  features: string[];
+  featured?: boolean;
+  popular?: string;
+  ctaText?: string;
+}
+
+export interface HomepageBlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  tags: string[];
+  publishedAt: Date | null;
+}
+
 interface Props {
   projects: HomepageProject[];
   testimonials: HomepageTestimonial[];
@@ -67,6 +86,8 @@ interface Props {
   services: HomepageService[];
   processSteps: HomepageProcessStep[];
   marqueeTags: string[];
+  pricingTiers: HomepagePricingTier[];
+  blogPosts: HomepageBlogPost[];
 }
 
 // Map displayOrder index to bento layout classes (matches original hardcoded layout)
@@ -149,7 +170,7 @@ const SERVICE_ICONS: Record<string, React.ReactNode> = {
 
 const SVC_DELAY_CLASSES = ["rv-d1", "rv-d2", "rv-d3", "rv-d1", "rv-d2", "rv-d3"];
 
-export default function HomepageClient({ projects, testimonials, faqs, stats, services, processSteps, marqueeTags }: Props) {
+export default function HomepageClient({ projects, testimonials, faqs, stats, services, processSteps, marqueeTags, pricingTiers, blogPosts }: Props) {
   useEffect(() => {
     // ── Theme toggle ──
     const html = document.documentElement;
@@ -463,6 +484,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
             <a href="#pricing">Pricing</a>
             <a href="#process">Process</a>
             <a href="#testimonials">Testimonials</a>
+            <a href="/blog">Blog</a>
             <a href="#contact">Contact</a>
           </div>
           <div className="nav-actions">
@@ -489,6 +511,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
         <a href="#pricing" className="ml">Pricing</a>
         <a href="#process" className="ml">Process</a>
         <a href="#testimonials" className="ml">Testimonials</a>
+        <a href="/blog" className="ml">Blog</a>
         <a href="#contact" className="ml">Contact</a>
         <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener" className="ml">Let&apos;s Talk</a>
       </div>
@@ -727,52 +750,24 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
             <p className="sec-desc rv">Fixed-price projects only. You know the cost before work begins.</p>
           </div>
           <div className="pricing-grid">
-            <div className="price-card rv rv-d1">
-              <div className="price-tier">Starter</div>
-              <div className="price-from">From</div>
-              <div className="price-amount">$500</div>
-              <div className="price-desc">Clean, fast Shopify store for new brands and product launches.</div>
-              <ul className="price-list">
-                <li>Custom theme setup &amp; configuration</li>
-                <li>Up to 3 page templates</li>
-                <li>Mobile-optimised design</li>
-                <li>Payment gateway setup</li>
-                <li>3 revision rounds</li>
-                <li>7-day post-launch support</li>
-              </ul>
-              <a href="#contact" className="price-cta">Get started →</a>
-            </div>
-            <div className="price-card featured rv rv-d2">
-              <div className="price-popular">Most Popular</div>
-              <div className="price-tier">Professional</div>
-              <div className="price-from">From</div>
-              <div className="price-amount">$1,500</div>
-              <div className="price-desc">Full custom build for brands serious about conversion and growth.</div>
-              <ul className="price-list">
-                <li>Everything in Starter</li>
-                <li>Custom Liquid theme development</li>
-                <li>Speed optimisation (90+ PageSpeed)</li>
-                <li>Klaviyo abandoned cart setup</li>
-                <li>Analytics &amp; Meta Pixel</li>
-                <li>14-day post-launch support</li>
-              </ul>
-              <a href="#contact" className="price-cta">Get started →</a>
-            </div>
-            <div className="price-card rv rv-d3">
-              <div className="price-tier">Enterprise</div>
-              <div className="price-from">From</div>
-              <div className="price-amount">$3,000</div>
-              <div className="price-desc">Complex builds, migrations, and Shopify Plus solutions.</div>
-              <ul className="price-list">
-                <li>Everything in Professional</li>
-                <li>Platform migrations (WooCommerce / Webflow)</li>
-                <li>Custom app integrations</li>
-                <li>Multi-currency &amp; international</li>
-                <li>Shopify Plus features</li>
-                <li>Priority support &amp; retainer options</li>
-              </ul>
-              <a href="#contact" className="price-cta">Let&apos;s discuss →</a>
-            </div>
+            {(Array.isArray(pricingTiers) ? pricingTiers : []).map((p, i) => {
+              const delay = `rv-d${(i % 3) + 1}`;
+              return (
+                <div key={i} className={`price-card${p.featured ? ' featured' : ''} rv ${delay}`}>
+                  {p.popular && <div className="price-popular">{p.popular}</div>}
+                  <div className="price-tier">{p.tier}</div>
+                  <div className="price-from">From</div>
+                  <div className="price-amount">{p.amount}</div>
+                  <div className="price-desc">{p.description}</div>
+                  <ul className="price-list">
+                    {(Array.isArray(p.features) ? p.features : []).map((f, fi) => (
+                      <li key={fi}>{f}</li>
+                    ))}
+                  </ul>
+                  <a href="#contact" className="price-cta">{p.ctaText ?? 'Get started →'}</a>
+                </div>
+              );
+            })}
           </div>
           <p className="pricing-note rv">Not sure which fits your project? <a href="#contact">Tell me about it</a> — I&apos;ll recommend the right scope.</p>
         </div>
@@ -902,6 +897,43 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
           </div>
         </div>
       </section>
+
+      {/* BLOG PREVIEW */}
+      {Array.isArray(blogPosts) && blogPosts.length > 0 && (
+        <section className="sec" id="blog">
+          <div className="sec-inner">
+            <div className="sec-head">
+              <div className="sec-label rv">From the Blog</div>
+              <h2 className="sec-title rv">Shopify insights &amp;<br />e-commerce strategy.</h2>
+              <p className="sec-desc rv">Practical guides from 4+ years of building stores.</p>
+            </div>
+            <div className="blog-preview-grid">
+              {blogPosts.map((post, i) => {
+                const BLOG_GRADIENTS = [
+                  "linear-gradient(135deg,rgba(6,214,160,.12) 0%,rgba(167,139,250,.08) 100%)",
+                  "linear-gradient(135deg,rgba(255,107,107,.1) 0%,rgba(251,191,36,.07) 100%)",
+                  "linear-gradient(135deg,rgba(167,139,250,.12) 0%,rgba(6,214,160,.07) 100%)",
+                ];
+                return (
+                  <a key={post.id} href={`/blog/${post.slug}`} className={`blog-prev-card rv rv-d${(i % 3) + 1}`} style={{ background: BLOG_GRADIENTS[i % 3] }}>
+                    <div className="blog-prev-tags">
+                      {post.tags.slice(0, 2).map((t) => (
+                        <span key={t} className="blog-prev-tag">{t}</span>
+                      ))}
+                    </div>
+                    <h3 className="blog-prev-title">{post.title}</h3>
+                    {post.excerpt && <p className="blog-prev-excerpt">{post.excerpt}</p>}
+                    <span className="blog-prev-read">Read article →</span>
+                  </a>
+                );
+              })}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 40 }}>
+              <a href="/blog" className="btn-ghost rv">View all articles →</a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="cta-band">

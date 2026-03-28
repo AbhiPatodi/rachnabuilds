@@ -7,12 +7,14 @@ import HomepageClient, {
   type ProjectStat,
   type HomepageService,
   type HomepageProcessStep,
+  type HomepagePricingTier,
+  type HomepageBlogPost,
 } from "./HomepageClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [projectRows, testimonialRows, faqRows, settingRows] = await Promise.all([
+  const [projectRows, testimonialRows, faqRows, settingRows, blogRows] = await Promise.all([
     prisma.project.findMany({
       where: { isVisible: true },
       orderBy: { displayOrder: "asc" },
@@ -26,6 +28,12 @@ export default async function Home() {
       orderBy: { displayOrder: "asc" },
     }),
     prisma.setting.findMany(),
+    prisma.blogPost.findMany({
+      where: { isPublished: true },
+      orderBy: { publishedAt: "desc" },
+      take: 3,
+      select: { id: true, title: true, slug: true, excerpt: true, tags: true, publishedAt: true },
+    }),
   ]);
 
   // Build settings map
@@ -93,9 +101,36 @@ export default async function Home() {
 
   const DEFAULT_MARQUEE = ["Shopify Expert","Custom Themes","WooCommerce","Webflow","Figma to Code","Speed Optimization","Klaviyo","AI-Enhanced","Shopify Plus","CRO Specialist"];
 
+  const DEFAULT_PRICING: HomepagePricingTier[] = [
+    {
+      tier: "Starter",
+      amount: "$500",
+      description: "Clean, fast Shopify store for new brands and product launches.",
+      features: ["Custom theme setup & configuration","Up to 3 page templates","Mobile-optimised design","Payment gateway setup","3 revision rounds","7-day post-launch support"],
+      ctaText: "Get started →",
+    },
+    {
+      tier: "Professional",
+      amount: "$1,500",
+      description: "Full custom build for brands serious about conversion and growth.",
+      features: ["Everything in Starter","Custom Liquid theme development","Speed optimisation (90+ PageSpeed)","Klaviyo abandoned cart setup","Analytics & Meta Pixel","14-day post-launch support"],
+      featured: true,
+      popular: "Most Popular",
+      ctaText: "Get started →",
+    },
+    {
+      tier: "Enterprise",
+      amount: "$3,000",
+      description: "Complex builds, migrations, and Shopify Plus solutions.",
+      features: ["Everything in Professional","Platform migrations (WooCommerce / Webflow)","Custom app integrations","Multi-currency & international","Shopify Plus features","Priority support & retainer options"],
+      ctaText: "Let's discuss →",
+    },
+  ];
+
   let services: HomepageService[] = DEFAULT_SERVICES;
   let processSteps: HomepageProcessStep[] = DEFAULT_PROCESS;
   let marqueeTags: string[] = DEFAULT_MARQUEE;
+  let pricingTiers: HomepagePricingTier[] = DEFAULT_PRICING;
 
   try {
     if (settingsMap["services"]) services = JSON.parse(settingsMap["services"]);
@@ -106,6 +141,18 @@ export default async function Home() {
   try {
     if (settingsMap["marquee_tags"]) marqueeTags = JSON.parse(settingsMap["marquee_tags"]);
   } catch {}
+  try {
+    if (settingsMap["pricing_tiers"]) pricingTiers = JSON.parse(settingsMap["pricing_tiers"]);
+  } catch {}
+
+  const blogPosts: HomepageBlogPost[] = blogRows.map((b) => ({
+    id: b.id,
+    title: b.title,
+    slug: b.slug,
+    excerpt: b.excerpt,
+    tags: b.tags,
+    publishedAt: b.publishedAt,
+  }));
 
   return (
     <HomepageClient
@@ -116,6 +163,8 @@ export default async function Home() {
       services={services}
       processSteps={processSteps}
       marqueeTags={marqueeTags}
+      pricingTiers={pricingTiers}
+      blogPosts={blogPosts}
     />
   );
 }

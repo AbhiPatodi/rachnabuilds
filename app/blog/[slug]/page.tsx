@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { JSX } from "react";
+import SiteNav from "@/app/components/SiteNav";
+import SiteFooter from "@/app/components/SiteFooter";
 
 function formatDate(date: Date | null): string {
   if (!date) return "";
@@ -100,6 +102,7 @@ export default async function BlogPostPage({
 
   return (
     <>
+      <SiteNav />
       <style>{`
         .post-page {
           min-height: 100vh;
@@ -346,6 +349,7 @@ export default async function BlogPostPage({
           </div>
         </div>
       </div>
+      <SiteFooter />
     </>
   );
 }
