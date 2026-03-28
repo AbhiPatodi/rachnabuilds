@@ -1,65 +1,121 @@
-import Image from "next/image";
+import { prisma } from "@/lib/prisma";
+import HomepageClient, {
+  type HomepageProject,
+  type HomepageTestimonial,
+  type HomepageFaq,
+  type HomepageStats,
+  type ProjectStat,
+  type HomepageService,
+  type HomepageProcessStep,
+} from "./HomepageClient";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [projectRows, testimonialRows, faqRows, settingRows] = await Promise.all([
+    prisma.project.findMany({
+      where: { isVisible: true },
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.testimonial.findMany({
+      where: { isVisible: true },
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.faq.findMany({
+      where: { isVisible: true },
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.setting.findMany(),
+  ]);
+
+  // Build settings map
+  const settingsMap: Record<string, string> = {};
+  for (const s of settingRows) {
+    settingsMap[s.key] = s.value;
+  }
+
+  const stats: HomepageStats = {
+    stat_stores: settingsMap["stat_stores"] ?? "50",
+    stat_delivery: settingsMap["stat_delivery"] ?? "7",
+    stat_countries: settingsMap["stat_countries"] ?? "12",
+    stat_pagespeed: settingsMap["stat_pagespeed"] ?? "90",
+    whatsapp_number: settingsMap["whatsapp_number"] ?? "919404643510",
+    contact_email: settingsMap["contact_email"] ?? "rachnajain2103@gmail.com",
+    availability_status: settingsMap["availability_status"] ?? "available",
+    hero_typewriter: settingsMap["hero_typewriter"],
+  };
+
+  // Map DB rows to typed props (stats JSON needs casting)
+  const projects: HomepageProject[] = projectRows.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    tags: p.tags,
+    liveUrl: p.liveUrl,
+    stats: p.stats as ProjectStat[] | null,
+    featured: p.featured,
+    displayOrder: p.displayOrder,
+  }));
+
+  const testimonials: HomepageTestimonial[] = testimonialRows.map((t) => ({
+    id: t.id,
+    clientName: t.clientName,
+    quote: t.quote,
+    projectName: t.projectName,
+    rating: t.rating,
+    displayOrder: t.displayOrder,
+  }));
+
+  const faqs: HomepageFaq[] = faqRows.map((f) => ({
+    id: f.id,
+    question: f.question,
+    answer: f.answer,
+    displayOrder: f.displayOrder,
+  }));
+
+  // Parse services from settings JSON (fallback to hardcoded defaults if not seeded yet)
+  const DEFAULT_SERVICES: HomepageService[] = [
+    { iconKey: "shopify", title: "Shopify Development", description: "Custom Liquid themes, store migrations, app integrations, and product pages engineered to convert. From scratch builds to Shopify Plus enterprise solutions.", tags: ["Liquid", "Shopify Plus", "Migrations", "Apps"], featured: true },
+    { iconKey: "wordpress", title: "WordPress & WooCommerce", description: "Full custom builds with clean PHP, bespoke themes, and seamless payments.", tags: ["PHP", "WooCommerce"] },
+    { iconKey: "webflow", title: "Webflow Development", description: "Pixel-perfect builds with CMS, animations, and lead-capture forms.", tags: ["Webflow", "CMS"] },
+    { iconKey: "speed", title: "Speed Optimization", description: "Core Web Vitals, LCP, CLS — measurable PageSpeed results, guaranteed.", tags: ["Core Web Vitals", "Performance"] },
+    { iconKey: "email", title: "Email Marketing", description: "Klaviyo and Mailchimp — welcome flows, abandoned cart, revenue-driving sequences.", tags: ["Klaviyo", "Flows"] },
+    { iconKey: "ai", title: "AI-Enhanced Delivery", description: "Modern AI tools mean faster builds, more iterations, higher quality.", tags: ["Claude AI", "Automation"] },
+  ];
+
+  const DEFAULT_PROCESS: HomepageProcessStep[] = [
+    { num: "01", day: "Day 0", title: "Discovery", desc: "30-min call. Goals, brand, timeline. Hard questions upfront." },
+    { num: "02", day: "Day 1-2", title: "Design", desc: "Full Figma mockup. You approve before code starts." },
+    { num: "03", day: "Day 3-5", title: "Build", desc: "AI-enhanced dev. Daily Loom updates so you're never in the dark." },
+    { num: "04", day: "Day 6", title: "Review", desc: "Your revision round. We polish every detail until 100%." },
+    { num: "05", day: "Day 7", title: "Launch", desc: "Go live. Fully tested. 7-day post-launch support included." },
+  ];
+
+  const DEFAULT_MARQUEE = ["Shopify Expert","Custom Themes","WooCommerce","Webflow","Figma to Code","Speed Optimization","Klaviyo","AI-Enhanced","Shopify Plus","CRO Specialist"];
+
+  let services: HomepageService[] = DEFAULT_SERVICES;
+  let processSteps: HomepageProcessStep[] = DEFAULT_PROCESS;
+  let marqueeTags: string[] = DEFAULT_MARQUEE;
+
+  try {
+    if (settingsMap["services"]) services = JSON.parse(settingsMap["services"]);
+  } catch {}
+  try {
+    if (settingsMap["process_steps"]) processSteps = JSON.parse(settingsMap["process_steps"]);
+  } catch {}
+  try {
+    if (settingsMap["marquee_tags"]) marqueeTags = JSON.parse(settingsMap["marquee_tags"]);
+  } catch {}
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <HomepageClient
+      projects={projects}
+      testimonials={testimonials}
+      faqs={faqs}
+      stats={stats}
+      services={services}
+      processSteps={processSteps}
+      marqueeTags={marqueeTags}
+    />
   );
 }
