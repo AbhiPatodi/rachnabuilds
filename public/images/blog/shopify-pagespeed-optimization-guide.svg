@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18" result="coloredBlur"/>
+      <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0B0F1A"/>
+
+  <!-- Subtle grid -->
+  <g opacity="0.03" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/><line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/><line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200" y1="0" x2="200" y2="630"/><line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/><line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Glow behind gauge -->
+  <circle cx="840" cy="310" r="230" fill="#06D6A0" opacity="0.03" filter="url(#softglow)"/>
+
+  <!--
+    GAUGE: 240° sweep, center (840, 320), r=210
+    Start (0):   angle 150° CW → (-182, 105)
+    Top  (50):   angle 270° CW → (0, -210)
+    End  (100):  angle 30°  CW → (182, 105)
+    Arc:  M -182 105 A 210 210 0 1 1 182 105  (large-arc=1, sweep=1=CW)
+
+    Zone endpoints (angle = 150 + p/100*240):
+      p=49: 267.6° → (-9, -210)
+      p=90: 366°   → (209, 22)
+      p=95: 378°=18° → needle tip at r=185: (176, 57)
+  -->
+  <g transform="translate(840, 320)">
+
+    <!-- Track background -->
+    <path d="M -182 105 A 210 210 0 1 1 182 105"
+          fill="none" stroke="#1a2035" stroke-width="38" stroke-linecap="round"/>
+
+    <!-- Red zone 0–49 -->
+    <path d="M -182 105 A 210 210 0 0 1 -9 -210"
+          fill="none" stroke="#FF6B6B" stroke-width="38" stroke-linecap="butt" opacity="0.55"/>
+
+    <!-- Yellow zone 50–89 -->
+    <path d="M -9 -210 A 210 210 0 0 1 209 22"
+          fill="none" stroke="#FBBF24" stroke-width="38" stroke-linecap="butt" opacity="0.55"/>
+
+    <!-- Green zone 90–100 (glowing) -->
+    <path d="M 209 22 A 210 210 0 0 1 182 105"
+          fill="none" stroke="#06D6A0" stroke-width="38" stroke-linecap="round"
+          opacity="0.95" filter="url(#glow)"/>
+
+    <!-- Zone labels (just outside arc at r=238) -->
+    <!-- 0: angle 150° → (-206, 119) -->
+    <text x="-220" y="132" font-family="monospace" font-size="14" fill="#FF6B6B"
+          font-weight="700" text-anchor="middle">0</text>
+    <!-- 50: angle 270° → (0, -238) -->
+    <text x="0" y="-228" font-family="monospace" font-size="14" fill="#FBBF24"
+          font-weight="700" text-anchor="middle">50</text>
+    <!-- 100: angle 30° → (206, 119) -->
+    <text x="222" y="132" font-family="monospace" font-size="14" fill="#06D6A0"
+          font-weight="700" text-anchor="middle">100</text>
+
+    <!-- BEFORE marker at p=45 (angle=258°): x=cos(258°)*210≈-44, y=sin(258°)*210≈-206 -->
+    <circle cx="-44" cy="-206" r="10" fill="#FF6B6B" opacity="0.75"/>
+    <text x="-44" y="-224" font-family="monospace" font-size="12" fill="#FF6B6B"
+          text-anchor="middle" opacity="0.8" font-weight="700">45</text>
+
+    <!-- Curved improvement arrow from 45→95 along arc -->
+    <!-- p=45 (258°) → p=80 (342°) → p=95 (378°=18°) -->
+    <!-- p=80: angle=150+192=342°, x=cos(342°)*170=162, y=sin(342°)*170=-52 -->
+    <path d="M -44 -206 Q 100 -230 176 57"
+          fill="none" stroke="#06D6A0" stroke-width="1.5" stroke-dasharray="6,4"
+          opacity="0.25"/>
+
+    <!-- Needle pointing to p=95 (angle=18°), tip at r=185: (176, 57) -->
+    <line x1="0" y1="0" x2="176" y2="57"
+          stroke="#06D6A0" stroke-width="7" stroke-linecap="round" filter="url(#glow)"/>
+    <!-- Needle counterweight (short tail in opposite direction) -->
+    <line x1="0" y1="0" x2="-28" y2="-9"
+          stroke="#06D6A0" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- Hub -->
+    <circle cx="0" cy="0" r="19" fill="#0d1220" stroke="#06D6A0" stroke-width="2.5" filter="url(#glow)"/>
+    <circle cx="0" cy="0" r="9" fill="#06D6A0"/>
+
+    <!-- Score card -->
+    <rect x="-68" y="26" width="136" height="72" rx="12" fill="#0d1220" stroke="#1e2640" stroke-width="1.5"/>
+    <text x="0" y="72" font-family="Georgia,serif" font-size="42" fill="#06D6A0"
+          font-weight="700" text-anchor="middle" filter="url(#glow)">95</text>
+    <text x="0" y="87" font-family="monospace" font-size="9" fill="#4a5568"
+          text-anchor="middle" letter-spacing="2">PAGESPEED</text>
+
+  </g>
+
+  <!-- ── LEFT CONTENT ── -->
+  <!-- Category pill -->
+  <rect x="60" y="72" width="165" height="30" rx="15"
+        fill="rgba(6,214,160,0.12)" stroke="rgba(6,214,160,0.3)" stroke-width="1"/>
+  <text x="142" y="92" font-family="monospace" font-size="11" fill="#06D6A0"
+        font-weight="700" letter-spacing="1.5" text-anchor="middle">PERFORMANCE</text>
+
+  <!-- Headline -->
+  <text x="60" y="180" font-family="Georgia,serif" font-size="58" fill="#E8ECF4"
+        font-weight="700" letter-spacing="-1.5">How I Take</text>
+  <text x="60" y="248" font-family="Georgia,serif" font-size="58" fill="#E8ECF4"
+        font-weight="700" letter-spacing="-1.5">a Shopify</text>
+  <text x="60" y="316" font-family="Georgia,serif" font-size="58" fill="#E8ECF4"
+        font-weight="700" letter-spacing="-1.5">Store from</text>
+
+  <!-- Score highlight -->
+  <rect x="56" y="332" width="395" height="76" rx="10"
+        fill="rgba(6,214,160,0.07)" stroke="rgba(6,214,160,0.18)" stroke-width="1"/>
+  <text x="74" y="388" font-family="Georgia,serif" font-size="65" fill="#06D6A0"
+        font-weight="700" letter-spacing="-2" filter="url(#glow)">45 → 95</text>
+
+  <!-- Divider -->
+  <line x1="60" y1="440" x2="210" y2="440" stroke="#06D6A0" stroke-width="2" opacity="0.5"/>
+
+  <!-- Core Web Vitals -->
+  <g transform="translate(60, 458)">
+    <text x="0"   y="18" font-family="monospace" font-size="12" fill="#4a5568">LCP</text>
+    <text x="34"  y="18" font-family="monospace" font-size="12" fill="#06D6A0">2.1s</text>
+    <text x="92"  y="18" font-family="monospace" font-size="12" fill="#4a5568">CLS</text>
+    <text x="126" y="18" font-family="monospace" font-size="12" fill="#06D6A0">0.02</text>
+    <text x="190" y="18" font-family="monospace" font-size="12" fill="#4a5568">FID</text>
+    <text x="220" y="18" font-family="monospace" font-size="12" fill="#06D6A0">12ms</text>
+  </g>
+
+  <!-- Author tag -->
+  <text x="60" y="548" font-family="monospace" font-size="12" fill="#4a5568" letter-spacing="1">RACHNA BUILDS · SPEED GUIDE</text>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="626" width="900" height="4" fill="#06D6A0" opacity="0.5"/>
+</svg>
