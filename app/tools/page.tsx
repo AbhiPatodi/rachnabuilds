@@ -43,23 +43,7 @@ export default function ToolsPage() {
           <div className="tools-card-cta">Request Free Audit →</div>
         </Link>
 
-        <Link href="/tools/pagespeed" className="tools-card">
-          <div className="tools-card-icon">⚡</div>
-          <h2>Speed Checker</h2>
-          <p>
-            Instantly see your Shopify store's Google PageSpeed score and the top 3 issues
-            slowing it down. Mobile and desktop analysis.
-          </p>
-          <ul className="tools-card-list">
-            <li>✓ Real Google PageSpeed data</li>
-            <li>✓ Core Web Vitals breakdown</li>
-            <li>✓ Top 3 quick wins explained</li>
-            <li>✓ Results in ~15 seconds</li>
-          </ul>
-          <div className="tools-card-cta">Check My Store Speed →</div>
-        </Link>
-
-        <Link href="/tools/cro-checklist" className="tools-card">
+<Link href="/tools/cro-checklist" className="tools-card">
           <div className="tools-card-icon">📋</div>
           <h2>CRO Checklist</h2>
           <p>
