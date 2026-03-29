@@ -55,6 +55,7 @@ export interface ReportWithSectionsAndDocs {
   viewCount: number;
   lastViewedAt: Date | null;
   clientProfile: ClientProfile | null;
+  adminProfile: ClientProfile | null;
   createdAt: Date;
   updatedAt: Date;
   sections: ReportSection[];
@@ -469,10 +470,11 @@ const PROFILE_FIELDS: { key: keyof ClientProfile; label: string; placeholder: st
   { key: 'notes',     label: 'Notes',       placeholder: 'Anything else for us…',  icon: '📝', span: true },
 ];
 
-function ProfileCard({ slug, clientName, initialProfile }: {
+function ProfileCard({ slug, clientName, initialProfile, adminProfile }: {
   slug: string;
   clientName: string;
   initialProfile: ClientProfile | null;
+  adminProfile: ClientProfile | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState<ClientProfile>(initialProfile ?? {});
@@ -520,6 +522,21 @@ function ProfileCard({ slug, clientName, initialProfile }: {
           </button>
         </div>
       </div>
+
+      {/* Admin-added fields — read-only */}
+      {adminProfile && PROFILE_FIELDS.some(f => adminProfile[f.key]) && (
+        <div className="profile-chips" style={{ marginBottom: 14 }}>
+          {PROFILE_FIELDS.filter(f => adminProfile[f.key]).map(f => (
+            <div key={f.key} className="profile-chip profile-chip-locked">
+              <span className="profile-chip-icon">{f.icon}</span>
+              <div>
+                <div className="profile-chip-label">{f.label} <span style={{ opacity: .5 }}>· from Rachna</span></div>
+                <div className="profile-chip-value">{adminProfile[f.key]}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {editing ? (
         <>
@@ -880,7 +897,7 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
 
         {activeTab === 'submissions' && (
           <>
-            <ProfileCard
+            <ProfileCard adminProfile={report.adminProfile}
               slug={report.slug}
               clientName={report.clientName}
               initialProfile={report.clientProfile}

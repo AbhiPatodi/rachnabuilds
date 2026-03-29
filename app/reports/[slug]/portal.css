@@ -1088,6 +1088,13 @@
   word-break: break-all;
 }
 
+/* Locked chip (admin-added, read-only) */
+.profile-chip-locked {
+  opacity: 0.85;
+  border-style: dashed;
+  cursor: default;
+}
+
 /* Empty state */
 .profile-empty-state {
   background: var(--bg-elevated);

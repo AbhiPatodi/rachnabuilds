@@ -78,6 +78,7 @@ interface Report {
   viewCount: number;
   lastViewedAt?: string | null;
   clientProfile?: ClientProfile | null;
+  adminProfile?: ClientProfile | null;
   clientPasswordPlain?: string | null;
   createdAt: string;
   sections: Section[];
@@ -136,6 +137,28 @@ export default function ReportManagePage() {
     setEditName(report.clientName);
     setEditEmail(report.clientEmail ?? '');
     setEditingInfo(true);
+  };
+
+  // Admin profile (contact info added by Rachna)
+  const [editingAdminProfile, setEditingAdminProfile] = useState(false);
+  const [adminDraft, setAdminDraft] = useState<ClientProfile>({});
+  const [adminSaving, setAdminSaving] = useState(false);
+
+  const startEditAdminProfile = () => {
+    setAdminDraft(report?.adminProfile ?? {});
+    setEditingAdminProfile(true);
+  };
+
+  const saveAdminProfile = async () => {
+    setAdminSaving(true);
+    await fetch(`/api/admin/reports/${id}/admin-profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(adminDraft),
+    });
+    setAdminSaving(false);
+    setEditingAdminProfile(false);
+    fetchReport();
   };
 
   const saveInfo = async () => {
@@ -742,6 +765,66 @@ export default function ReportManagePage() {
           ))
         )}
       </div>
+      {/* ─── ADMIN CONTACT INFO ─── */}
+      <div className="admin-card" style={{ marginBottom: 20 }}>
+        <div className="admin-card-title">
+          <div className="admin-section-label">Client Contact Info <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-secondary)' }}>(added by you — shown read-only in portal)</span></div>
+          <button className="admin-btn admin-btn-ghost" onClick={editingAdminProfile ? () => setEditingAdminProfile(false) : startEditAdminProfile} style={{ fontSize: 12 }}>
+            {editingAdminProfile ? '✕ Cancel' : '✏️ Edit'}
+          </button>
+        </div>
+
+        {editingAdminProfile ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12, marginBottom: 14 }}>
+              {[
+                { key: 'email', label: 'Email', icon: '✉️', type: 'email' },
+                { key: 'phone', label: 'Phone', icon: '📞' },
+                { key: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+                { key: 'website', label: 'Website', icon: '🌐' },
+                { key: 'instagram', label: 'Instagram', icon: '📸' },
+                { key: 'linkedin', label: 'LinkedIn', icon: '💼' },
+                { key: 'twitter', label: 'X / Twitter', icon: '𝕏' },
+                { key: 'notes', label: 'Notes', icon: '📝' },
+              ].map(f => (
+                <div key={f.key} className="admin-field">
+                  <label className="admin-label">{f.icon} {f.label}</label>
+                  <input
+                    className="admin-input"
+                    type={f.key === 'email' ? 'email' : 'text'}
+                    value={adminDraft[f.key as keyof ClientProfile] ?? ''}
+                    onChange={e => setAdminDraft(d => ({ ...d, [f.key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+            <button className="admin-btn admin-btn-primary" onClick={saveAdminProfile} disabled={adminSaving} style={{ fontSize: 13 }}>
+              {adminSaving ? 'Saving…' : 'Save Contact Info'}
+            </button>
+          </>
+        ) : report.adminProfile && Object.values(report.adminProfile).some(Boolean) ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {[
+              { key: 'email', label: 'Email', icon: '✉️' },
+              { key: 'phone', label: 'Phone', icon: '📞' },
+              { key: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+              { key: 'website', label: 'Website', icon: '🌐' },
+              { key: 'instagram', label: 'Instagram', icon: '📸' },
+              { key: 'linkedin', label: 'LinkedIn', icon: '💼' },
+              { key: 'twitter', label: 'X / Twitter', icon: '𝕏' },
+              { key: 'notes', label: 'Notes', icon: '📝' },
+            ].filter(f => report.adminProfile![f.key as keyof ClientProfile]).map(f => (
+              <div key={f.key} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{f.icon} {f.label}</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', wordBreak: 'break-all' }}>{report.adminProfile![f.key as keyof ClientProfile]}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="admin-empty" style={{ padding: '16px 0' }}>No contact info added yet. Click Edit to add phone, Instagram, etc.</div>
+        )}
+      </div>
+
       {/* ─── CLIENT PROFILE ─── */}
       {report.clientProfile && Object.values(report.clientProfile).some(Boolean) && (
         <div className="admin-card" style={{ marginBottom: 20 }}>
