@@ -47,6 +47,7 @@ interface PortalEvent {
   id: string;
   eventType: string;
   meta: unknown;
+  sessionId?: string;
   createdAt: string;
 }
 
@@ -56,6 +57,28 @@ interface PortalComment {
   context: string;
   text: string;
   createdAt: string;
+}
+
+interface PortalSession {
+  id: string;
+  sessionId: string;
+  ip: string | null;
+  country: string | null;
+  countryCode: string | null;
+  city: string | null;
+  device: string | null;
+  browser: string | null;
+  totalDuration: number;
+  startedAt: string;
+  lastActiveAt: string;
+  tabsViewed: string[];
+}
+
+interface SessionStats {
+  totalSessions: number;
+  returnSessions: number;
+  avgDuration: number;
+  topTab: string | null;
 }
 
 interface ClientProfile {
@@ -229,13 +252,19 @@ export default function ReportManagePage() {
   // Portal Activity state
   const [activity, setActivity] = useState<{ events: PortalEvent[]; comments: PortalComment[] } | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [sessions, setSessions] = useState<{ sessions: PortalSession[]; stats: SessionStats } | null>(null);
 
   const loadActivity = async () => {
     setActivityLoading(true);
     try {
-      const res = await fetch(`/api/admin/reports/${id}/events`);
-      const data = await res.json();
-      setActivity(data);
+      const [evRes, sessRes] = await Promise.all([
+        fetch(`/api/admin/reports/${id}/events`),
+        fetch(`/api/admin/reports/${id}/sessions`),
+      ]);
+      const evData = await evRes.json();
+      const sessData = await sessRes.json();
+      setActivity(evData);
+      setSessions(sessData);
     } catch {
       // silently fail — activity is non-critical
     } finally {
@@ -384,6 +413,16 @@ export default function ReportManagePage() {
     if (!confirm('Delete this entire report? This cannot be undone.')) return;
     await fetch(`/api/admin/reports/${id}`, { method: 'DELETE' });
     router.push('/admin/dashboard');
+  };
+
+  const fmtDuration = (secs: number) => {
+    if (secs < 60) return `${secs}s`;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    if (m < 60) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
   };
 
   const timeAgo = (dateStr: string) => {
@@ -863,8 +902,22 @@ export default function ReportManagePage() {
           </button>
         </div>
 
-        {/* Stats row */}
+        {/* ── Top stats row ── */}
         <div className="activity-stats">
+          <div className="activity-stat">
+            <div className="activity-stat-num">{sessions?.stats?.totalSessions ?? report?.viewCount ?? 0}</div>
+            <div className="activity-stat-label">👤 Sessions</div>
+          </div>
+          <div className="activity-stat">
+            <div className="activity-stat-num">{sessions?.stats?.returnSessions ?? 0}</div>
+            <div className="activity-stat-label">🔁 Returns</div>
+          </div>
+          <div className="activity-stat">
+            <div className="activity-stat-num">
+              {sessions?.stats?.avgDuration ? fmtDuration(sessions.stats.avgDuration) : '—'}
+            </div>
+            <div className="activity-stat-label">⏱ Avg Time</div>
+          </div>
           <div className="activity-stat">
             <div className="activity-stat-num">{getEventCount('tab_view')}</div>
             <div className="activity-stat-label">👁 Tab Views</div>
@@ -877,56 +930,99 @@ export default function ReportManagePage() {
             <div className="activity-stat-num">{report?.analytics?.commentCount ?? 0}</div>
             <div className="activity-stat-label">💬 Comments</div>
           </div>
-          <div className="activity-stat">
-            <div className="activity-stat-num">{getEventCount('file_submit')}</div>
-            <div className="activity-stat-label">📤 Submissions</div>
-          </div>
         </div>
 
-        {/* Recent Events */}
+        {/* Top tab badge */}
+        {sessions?.stats?.topTab && (
+          <div className="activity-top-tab">
+            🏆 Most viewed tab: <strong>{sessions.stats.topTab}</strong>
+          </div>
+        )}
+
+        {/* ── Sessions list ── */}
         {activityLoading ? (
           <div className="admin-empty" style={{ padding: '20px 0' }}>Loading activity…</div>
-        ) : !activity || activity.events.length === 0 ? (
-          <div className="admin-empty">No portal activity yet.</div>
-        ) : (
+        ) : sessions && sessions.sessions.length > 0 ? (
           <>
-            <h3 style={{ color: '#e2e8f0', fontSize: 14, marginBottom: 10, fontWeight: 600 }}>Recent Events</h3>
+            <h3 className="activity-section-heading">Visits</h3>
+            <div className="session-list">
+              {sessions.sessions.map((s, i) => (
+                <div key={s.id} className="session-row">
+                  <div className="session-row-left">
+                    <div className="session-index">{sessions.sessions.length - i}</div>
+                    <div className="session-info">
+                      <div className="session-meta-row">
+                        {s.countryCode && (
+                          <img
+                            src={`https://flagcdn.com/20x15/${s.countryCode.toLowerCase()}.png`}
+                            alt={s.country ?? ''}
+                            className="session-flag"
+                          />
+                        )}
+                        <span className="session-location">
+                          {[s.city, s.country].filter(Boolean).join(', ') || 'Unknown location'}
+                        </span>
+                        <span className="session-device-badge">{s.device === 'mobile' ? '📱' : s.device === 'tablet' ? '📱' : '💻'} {s.device ?? 'unknown'}</span>
+                        <span className="session-browser">{s.browser}</span>
+                      </div>
+                      {s.tabsViewed.length > 0 && (
+                        <div className="session-tabs-row">
+                          {s.tabsViewed.map(t => <span key={t} className="session-tab-chip">{t}</span>)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="session-row-right">
+                    <div className="session-duration">{s.totalDuration ? fmtDuration(s.totalDuration) : '< 1s'}</div>
+                    <div className="session-time">{timeAgo(s.lastActiveAt)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="admin-empty">No visits yet — share the portal link with your client.</div>
+        )}
+
+        {/* ── Recent Events ── */}
+        {activity && activity.events.length > 0 && (
+          <>
+            <h3 className="activity-section-heading" style={{ marginTop: 24 }}>Recent Events</h3>
             <div className="activity-timeline">
               {activity.events.slice(0, 20).map(ev => {
                 const icon = eventIcon[ev.eventType] ?? '•';
-                const meta = ev.meta && typeof ev.meta === 'object'
-                  ? Object.entries(ev.meta as Record<string, unknown>)
-                      .map(([k, v]) => `${k}: ${v}`)
-                      .join(', ')
-                  : '';
+                const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
+                const tab = m.tab as string | undefined;
+                const dur = m.prevTabDuration as number | undefined;
+                const scroll = m.scrollDepth as number | undefined;
                 return (
                   <div key={ev.id} className="activity-event">
                     <span>{icon}</span>
                     <span className="activity-event-type">{ev.eventType.replace(/_/g, ' ')}</span>
-                    {meta && <span style={{ color: '#64748b', fontSize: 12 }}>— {meta}</span>}
+                    {tab && <span className="activity-event-detail">→ {tab}</span>}
+                    {dur != null && dur > 0 && <span className="activity-event-duration">{fmtDuration(dur)}</span>}
+                    {scroll != null && <span className="activity-event-scroll">{scroll}% scroll</span>}
                     <span className="activity-event-time">{timeAgo(ev.createdAt)}</span>
                   </div>
                 );
               })}
             </div>
+          </>
+        )}
 
-            {/* Comments */}
-            {activity.comments.length > 0 && (
-              <>
-                <h3 style={{ color: '#e2e8f0', fontSize: 14, margin: '20px 0 10px', fontWeight: 600 }}>Comments</h3>
-                <div className="activity-comments">
-                  {activity.comments.slice(0, 10).map(c => (
-                    <div key={c.id} className="activity-comment">
-                      <div className="activity-comment-author">{c.author}</div>
-                      <div className="activity-comment-text">{c.text}</div>
-                      <div className="activity-comment-meta">
-                        in {c.context} · {timeAgo(c.createdAt)}
-                      </div>
-                    </div>
-                  ))}
+        {/* ── Comments ── */}
+        {activity && activity.comments.length > 0 && (
+          <>
+            <h3 className="activity-section-heading" style={{ marginTop: 24 }}>Comments</h3>
+            <div className="activity-comments">
+              {activity.comments.slice(0, 10).map(c => (
+                <div key={c.id} className="activity-comment">
+                  <div className="activity-comment-author">{c.author}</div>
+                  <div className="activity-comment-text">{c.text}</div>
+                  <div className="activity-comment-meta">in {c.context} · {timeAgo(c.createdAt)}</div>
                 </div>
-              </>
-            )}
+              ))}
+            </div>
           </>
         )}
       </div>

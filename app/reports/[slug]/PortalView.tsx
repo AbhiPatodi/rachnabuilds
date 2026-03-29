@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import './portal.css';
 
 const LogoSVG = () => (
@@ -786,6 +786,15 @@ function DocumentsPanel({
 
 export default function PortalView({ report }: { report: ReportWithSectionsAndDocs }) {
   const [activeTab, setActiveTab] = useState('submissions');
+
+  // ── Analytics refs ────────────────────────────────────────────────────────
+  const sessionIdRef      = useRef<string>('');
+  const tabStartTimeRef   = useRef<number>(Date.now());
+  const visStartRef       = useRef<number>(Date.now());
+  const activeTimeRef     = useRef<number>(0);   // accumulated visible seconds
+  const maxScrollRef      = useRef<number>(0);   // max scroll % for current tab
+
+  // ── Theme ─────────────────────────────────────────────────────────────────
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') return 'dark';
     // Portal-specific override → global pref → time-based auto
@@ -808,17 +817,99 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
     window.location.reload();
   };
 
+  // ── Session init ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    // Generate or restore sessionId
+    let sid = sessionStorage.getItem('portal_session_' + report.slug);
+    if (!sid) {
+      sid = ([1e7] as unknown as string + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: string) =>
+        (parseInt(c) ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (parseInt(c) / 4)))).toString(16)
+      );
+      sessionStorage.setItem('portal_session_' + report.slug, sid);
+    }
+    sessionIdRef.current = sid;
+
+    // Register session (create or mark returning)
+    fetch(`/api/reports/${report.slug}/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: sid, userAgent: navigator.userAgent }),
+    }).catch(() => {});
+
+    // Visibility / active-time tracking
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        activeTimeRef.current += (Date.now() - visStartRef.current) / 1000;
+        sendDuration();
+      } else {
+        visStartRef.current = Date.now();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Scroll depth tracking
+    const handleScroll = () => {
+      const el = document.documentElement;
+      const pct = Math.round((el.scrollTop / (el.scrollHeight - el.clientHeight || 1)) * 100);
+      if (pct > maxScrollRef.current) maxScrollRef.current = pct;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Periodic duration update (every 30s)
+    const interval = setInterval(sendDuration, 30_000);
+
+    // On unload — sendBeacon so it survives page close
+    const handleUnload = () => {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+      activeTimeRef.current += (Date.now() - visStartRef.current) / 1000;
+      navigator.sendBeacon(
+        `/api/reports/${report.slug}/session`,
+        new Blob(
+          [JSON.stringify({ sessionId: sid, duration: Math.round(activeTimeRef.current) })],
+          { type: 'application/json' }
+        )
+      );
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('beforeunload', handleUnload);
+      clearInterval(interval);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report.slug]);
+
+  const sendDuration = () => {
+    const sid = sessionIdRef.current;
+    if (!sid) return;
+    const duration = Math.round(activeTimeRef.current + (Date.now() - visStartRef.current) / 1000);
+    fetch(`/api/reports/${report.slug}/session`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: sid, duration }),
+    }).catch(() => {});
+  };
+
   const track = useCallback(async (eventType: string, meta?: Record<string, unknown>) => {
     fetch(`/api/reports/${report.slug}/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventType, meta }),
+      body: JSON.stringify({ eventType, meta, sessionId: sessionIdRef.current }),
     }).catch(() => {}); // fire-and-forget
   }, [report.slug]);
 
   const handleTabChange = (tabId: string) => {
+    const now = Date.now();
+    const tabDuration = Math.round((now - tabStartTimeRef.current) / 1000);
+    const scrollDepth = maxScrollRef.current;
+    // Track leaving the current tab with how long + how deep they scrolled
+    track('tab_view', { tab: tabId, prevTabDuration: tabDuration, scrollDepth });
+    tabStartTimeRef.current = now;
+    maxScrollRef.current = 0; // reset scroll for new tab
     setActiveTab(tabId);
-    track('tab_view', { tab: tabId });
   };
 
   const handleDocOpen = (docId: string, title: string) => {

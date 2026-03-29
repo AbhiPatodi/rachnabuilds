@@ -26,6 +26,7 @@ model Report {
   documents ClientDocument[]
   comments  PortalComment[]
   events    PortalEvent[]
+  sessions  PortalSession[]
 
   @@map("reports")
 }
@@ -49,11 +50,31 @@ model PortalEvent {
   report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
   eventType String   // "tab_view" | "doc_open" | "section_expand" | "comment_add" | "file_submit"
   meta      Json?
+  sessionId String?
   createdAt DateTime @default(now())
 
   @@index([reportId])
   @@index([eventType])
   @@map("portal_events")
+}
+
+model PortalSession {
+  id            String   @id @default(cuid())
+  reportId      String
+  report        Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  sessionId     String   @unique
+  ip            String?
+  country       String?
+  countryCode   String?
+  city          String?
+  device        String?
+  browser       String?
+  totalDuration Int      @default(0)
+  startedAt     DateTime @default(now())
+  lastActiveAt  DateTime @default(now())
+
+  @@index([reportId])
+  @@map("portal_sessions")
 }
 
 model ReportSection {
