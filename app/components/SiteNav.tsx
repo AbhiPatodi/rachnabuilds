@@ -74,14 +74,15 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
             <Link href="/#work">Work</Link>
             <Link href="/#services">Services</Link>
             <Link href="/#pricing">Pricing</Link>
+            <Link href="/tools">Free Tools</Link>
             <Link href="/blog">Blog</Link>
             <Link href="/#contact">Contact</Link>
           </div>
           <div className="nav-actions">
             <ThemeToggle className="theme-toggle" />
-            <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener" className="nav-cta">
-              Let&apos;s Talk
-            </a>
+            <Link href="/free-audit" className="nav-cta">
+              Free Audit
+            </Link>
           </div>
           <button className="burger" id="siteBurger" aria-label="Menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -95,9 +96,10 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
         <Link href="/#work" className="ml">Work</Link>
         <Link href="/#services" className="ml">Services</Link>
         <Link href="/#pricing" className="ml">Pricing</Link>
+        <Link href="/tools" className="ml">Free Tools</Link>
         <Link href="/blog" className="ml">Blog</Link>
         <Link href="/#contact" className="ml">Contact</Link>
-        <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener" className="ml">Let&apos;s Talk</a>
+        <Link href="/free-audit" className="ml">Free Audit</Link>
       </div>
     </>
   );
