@@ -117,7 +117,7 @@ export default function AdminNav() {
       <div className="admin-nav-section">Client Portal</div>
 
       <Link
-        href="/admin/dashboard"
+        href="/admin/reports"
         className={pathname.startsWith('/admin/reports') ? 'active' : ''}
       >
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
