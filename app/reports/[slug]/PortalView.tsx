@@ -895,13 +895,16 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
       {/* Content */}
       <main className="portal-content">
 
+        {/* Profile card — always visible at the top */}
+        <ProfileCard
+          adminProfile={report.adminProfile}
+          slug={report.slug}
+          clientName={report.clientName}
+          initialProfile={report.clientProfile}
+        />
+
         {activeTab === 'submissions' && (
           <>
-            <ProfileCard adminProfile={report.adminProfile}
-              slug={report.slug}
-              clientName={report.clientName}
-              initialProfile={report.clientProfile}
-            />
             <h1 className="portal-tab-heading">Your Submissions</h1>
             <p className="portal-tab-sub">Documents and files shared with us. Add a note to any document if needed.</p>
             <DocumentsPanel
