@@ -12,7 +12,8 @@ model Report {
   slug         String    @unique
   clientName   String
   clientEmail  String?
-  passwordHash String
+  passwordHash      String
+  clientPasswordPlain String?
   isActive      Boolean   @default(true)
   viewCount     Int       @default(0)
   lastViewedAt  DateTime?

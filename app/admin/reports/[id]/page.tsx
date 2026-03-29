@@ -78,6 +78,7 @@ interface Report {
   viewCount: number;
   lastViewedAt?: string | null;
   clientProfile?: ClientProfile | null;
+  clientPasswordPlain?: string | null;
   createdAt: string;
   sections: Section[];
   documents: Document[];
@@ -155,8 +156,11 @@ export default function ReportManagePage() {
   const [msgCopied, setMsgCopied] = useState(false);
 
   const openShareModal = (r: NonNullable<typeof report>) => {
-    const saved = localStorage.getItem(`share_pw_${r.slug}`) ?? '';
-    setSharePassword(saved);
+    // Priority: DB stored password → localStorage → empty
+    const pw = r.clientPasswordPlain
+      || localStorage.getItem(`share_pw_${r.slug}`)
+      || '';
+    setSharePassword(pw);
     setShowShareModal(true);
   };
 

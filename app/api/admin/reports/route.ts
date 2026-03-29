@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         slug,
         clientEmail: clientEmail || null,
         passwordHash,
+        clientPasswordPlain: password,
       },
     });
     return NextResponse.json(report, { status: 201 });
