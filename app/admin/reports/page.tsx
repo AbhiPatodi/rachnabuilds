@@ -17,7 +17,7 @@ export default async function ReportsPage() {
           <h1>Client Reports</h1>
           <p>Manage client portals and reports</p>
         </div>
-        <Link href="/admin/reports/new" className="admin-btn-primary">
+        <Link href="/admin/reports/new" className="admin-btn admin-btn-primary">
           + New Report
         </Link>
       </div>

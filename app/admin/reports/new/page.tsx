@@ -13,12 +13,18 @@ function toSlug(name: string) {
     .replace(/^-|-$/g, '');
 }
 
+function generatePassword(name: string) {
+  const prefix = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'client';
+  const suffix = Math.floor(Math.random() * 9000 + 1000);
+  return `${prefix}${suffix}`;
+}
+
 export default function NewReportPage() {
   const router = useRouter();
   const [clientName, setClientName] = useState('');
   const [slug, setSlug] = useState('');
   const [clientEmail, setClientEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(() => generatePassword(''));
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,6 +56,8 @@ export default function NewReportPage() {
         return;
       }
       const data = await res.json();
+      // Save password so Share modal pre-fills it
+      localStorage.setItem(`share_pw_${slug}`, password);
       router.push(`/admin/reports/${data.id}`);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -121,20 +129,30 @@ export default function NewReportPage() {
 
           <div className="admin-field">
             <label className="admin-label" htmlFor="password">Portal Password *</label>
-            <input
-              id="password"
-              type="text"
-              className="admin-input"
-              placeholder="Password the client will use to log in"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
-            {password && (
-              <div className="admin-slug-hint" style={{ color: 'var(--accent)' }}>
-                Client will login with: <strong>{password}</strong>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                id="password"
+                type="text"
+                className="admin-input"
+                placeholder="Auto-generated"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                style={{ flex: 1, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.5px' }}
+              />
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost"
+                onClick={() => setPassword(generatePassword(clientName))}
+                title="Generate new password"
+                style={{ flexShrink: 0, fontSize: 12 }}
+              >
+                ↻ Regenerate
+              </button>
+            </div>
+            <div className="admin-slug-hint">
+              Client will use this to log into their portal — it will be copied to your clipboard when you share.
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
