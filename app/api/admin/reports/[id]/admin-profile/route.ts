@@ -6,7 +6,7 @@ interface RouteContext { params: Promise<{ id: string }> }
 
 async function auth() {
   const store = await cookies();
-  return store.get('admin_session')?.value === 'authenticated';
+  return !!store.get('admin_session')?.value;
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
