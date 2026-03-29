@@ -124,6 +124,31 @@ export default function ReportManagePage() {
 
   const [copied, setCopied] = useState(false);
 
+  // Edit report info
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [infoSaving, setInfoSaving] = useState(false);
+
+  const startEditInfo = () => {
+    if (!report) return;
+    setEditName(report.clientName);
+    setEditEmail(report.clientEmail ?? '');
+    setEditingInfo(true);
+  };
+
+  const saveInfo = async () => {
+    setInfoSaving(true);
+    await fetch(`/api/admin/reports/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientName: editName.trim(), clientEmail: editEmail.trim() || null }),
+    });
+    setInfoSaving(false);
+    setEditingInfo(false);
+    fetchReport();
+  };
+
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharePassword, setSharePassword] = useState('');
@@ -398,38 +423,67 @@ export default function ReportManagePage() {
       <div className="admin-card" style={{ marginBottom: 20 }}>
         <div className="admin-card-title">
           Report Info
-          <button
-            className={`admin-btn admin-btn-icon ${report.isActive ? 'admin-btn-danger' : 'admin-btn-ghost'}`}
-            onClick={toggleActive}
-            style={{ fontSize: 12 }}
-          >
-            {report.isActive ? 'Deactivate' : 'Activate'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="admin-btn admin-btn-ghost admin-btn-icon"
+              onClick={editingInfo ? () => setEditingInfo(false) : startEditInfo}
+              style={{ fontSize: 12 }}
+            >
+              {editingInfo ? '✕ Cancel' : '✏️ Edit'}
+            </button>
+            <button
+              className={`admin-btn admin-btn-icon ${report.isActive ? 'admin-btn-danger' : 'admin-btn-ghost'}`}
+              onClick={toggleActive}
+              style={{ fontSize: 12 }}
+            >
+              {report.isActive ? 'Deactivate' : 'Activate'}
+            </button>
+          </div>
         </div>
 
-        <div className="admin-info-grid" style={{ marginBottom: 16 }}>
-          <div className="admin-info-item">
-            <label>Client Name</label>
-            <span>{report.clientName}</span>
+        {editingInfo ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+            <div className="admin-form-row">
+              <div className="admin-field">
+                <label className="admin-label">Client Name *</label>
+                <input className="admin-input" value={editName} onChange={e => setEditName(e.target.value)} />
+              </div>
+              <div className="admin-field">
+                <label className="admin-label">Client Email</label>
+                <input className="admin-input" type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="client@example.com" />
+              </div>
+            </div>
+            <div>
+              <button className="admin-btn admin-btn-primary" onClick={saveInfo} disabled={infoSaving || !editName.trim()} style={{ fontSize: 13 }}>
+                {infoSaving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
           </div>
-          <div className="admin-info-item">
-            <label>Client Email</label>
-            <span>{report.clientEmail || '—'}</span>
-          </div>
-          <div className="admin-info-item">
-            <label>Status</label>
-            <span>
-              <span className={`badge ${report.isActive ? 'badge-green' : 'badge-red'}`}>
-                <span className="badge-dot" />
-                {report.isActive ? 'Active' : 'Inactive'}
+        ) : (
+          <div className="admin-info-grid" style={{ marginBottom: 16 }}>
+            <div className="admin-info-item">
+              <label>Client Name</label>
+              <span>{report.clientName}</span>
+            </div>
+            <div className="admin-info-item">
+              <label>Client Email</label>
+              <span>{report.clientEmail || '—'}</span>
+            </div>
+            <div className="admin-info-item">
+              <label>Status</label>
+              <span>
+                <span className={`badge ${report.isActive ? 'badge-green' : 'badge-red'}`}>
+                  <span className="badge-dot" />
+                  {report.isActive ? 'Active' : 'Inactive'}
+                </span>
               </span>
-            </span>
+            </div>
+            <div className="admin-info-item">
+              <label>Last Viewed</label>
+              <span>{report.lastViewedAt ? new Date(report.lastViewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Never'}</span>
+            </div>
           </div>
-          <div className="admin-info-item">
-            <label>Last Viewed</label>
-            <span>{report.lastViewedAt ? new Date(report.lastViewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Never'}</span>
-          </div>
-        </div>
+        )}
 
         <div>
           <div className="admin-label" style={{ marginBottom: 6 }}>Portal Link</div>
