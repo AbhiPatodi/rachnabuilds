@@ -5,7 +5,9 @@ import { prisma } from '@/lib/prisma';
 interface RouteContext { params: Promise<{ slug: string }> }
 
 function getIp(req: NextRequest): string {
+  // x-vercel-forwarded-for is set by Vercel to the real client IP
   return (
+    req.headers.get('x-vercel-forwarded-for') ||
     req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     req.headers.get('x-real-ip') ||
     '0.0.0.0'
@@ -29,16 +31,20 @@ function parseUserAgent(ua: string): { device: string; browser: string } {
 
 async function geolocate(ip: string): Promise<{ country: string; countryCode: string; city: string }> {
   // Skip loopback / private IPs
-  if (!ip || ip === '0.0.0.0' || ip.startsWith('127.') || ip.startsWith('192.168.') || ip.startsWith('10.') || ip === '::1') {
+  if (!ip || ip === '0.0.0.0' || ip.startsWith('127.') || ip.startsWith('192.168.') || ip.startsWith('10.') || ip === '::1' || ip.startsWith('172.')) {
     return { country: '', countryCode: '', city: '' };
   }
   try {
-    const res = await fetch(`https://ipapi.co/${ip}/json/`, { next: { revalidate: 3600 } });
+    // ip-api.com: free, no auth, works from server/datacenter IPs (45 req/min)
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,city`, {
+      next: { revalidate: 3600 },
+    });
     if (!res.ok) return { country: '', countryCode: '', city: '' };
     const data = await res.json();
+    if (data.status !== 'success') return { country: '', countryCode: '', city: '' };
     return {
-      country: data.country_name || '',
-      countryCode: data.country_code || '',
+      country: data.country || '',
+      countryCode: data.countryCode || '',
       city: data.city || '',
     };
   } catch {
