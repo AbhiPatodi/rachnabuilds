@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import PageSpeedClient from './PageSpeedClient';
+import SiteNav from '@/app/components/SiteNav';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
   title: 'Free Shopify Speed Checker | Rachna Builds',
@@ -12,5 +14,11 @@ export const metadata: Metadata = {
 };
 
 export default function PageSpeedPage() {
-  return <PageSpeedClient />;
+  return (
+    <>
+      <SiteNav />
+      <PageSpeedClient />
+      <SiteFooter />
+    </>
+  );
 }

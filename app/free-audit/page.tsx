@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import FreeAuditClient from './FreeAuditClient';
+import SiteNav from '@/app/components/SiteNav';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
   title: 'Free Shopify Store Audit | Rachna Builds',
@@ -12,5 +14,11 @@ export const metadata: Metadata = {
 };
 
 export default function FreeAuditPage() {
-  return <FreeAuditClient />;
+  return (
+    <>
+      <SiteNav />
+      <FreeAuditClient />
+      <SiteFooter />
+    </>
+  );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import CROChecklistClient from './CROChecklistClient';
+import SiteNav from '@/app/components/SiteNav';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
   title: '50-Point Shopify CRO Checklist | Rachna Builds',
@@ -12,5 +14,11 @@ export const metadata: Metadata = {
 };
 
 export default function CROChecklistPage() {
-  return <CROChecklistClient />;
+  return (
+    <>
+      <SiteNav />
+      <CROChecklistClient />
+      <SiteFooter />
+    </>
+  );
 }

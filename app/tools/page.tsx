@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import './tools.css';
+import SiteNav from '@/app/components/SiteNav';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
   title: 'Free Shopify Tools | Rachna Builds',
@@ -9,6 +11,8 @@ export const metadata: Metadata = {
 
 export default function ToolsPage() {
   return (
+    <>
+      <SiteNav />
     <div className="tool-page">
       <div style={{ height: 72 }} />
 
@@ -78,5 +82,7 @@ export default function ToolsPage() {
         <Link href="/free-audit" className="tool-cta-btn">Get Free Audit →</Link>
       </div>
     </div>
+      <SiteFooter />
+    </>
   );
 }
