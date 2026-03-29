@@ -13,11 +13,12 @@ model Report {
   clientName   String
   clientEmail  String?
   passwordHash String
-  isActive     Boolean   @default(true)
-  viewCount    Int       @default(0)
-  lastViewedAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  isActive      Boolean   @default(true)
+  viewCount     Int       @default(0)
+  lastViewedAt  DateTime?
+  clientProfile Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   sections  ReportSection[]
   documents ClientDocument[]

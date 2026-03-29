@@ -35,6 +35,17 @@ interface ClientDocument {
   uploadedAt: Date;
 }
 
+export interface ClientProfile {
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  website?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  notes?: string;
+}
+
 export interface ReportWithSectionsAndDocs {
   id: string;
   slug: string;
@@ -43,6 +54,7 @@ export interface ReportWithSectionsAndDocs {
   isActive: boolean;
   viewCount: number;
   lastViewedAt: Date | null;
+  clientProfile: ClientProfile | null;
   createdAt: Date;
   updatedAt: Date;
   sections: ReportSection[];
@@ -444,6 +456,89 @@ function ComingSoonPanel({ icon, headline, sub }: { icon: string; headline: stri
   );
 }
 
+// ── Client Profile Card ────────────────────────────────────────────────────
+
+const PROFILE_FIELDS: { key: keyof ClientProfile; label: string; placeholder: string; prefix?: string }[] = [
+  { key: 'email',     label: 'Email',     placeholder: 'your@email.com' },
+  { key: 'phone',     label: 'Phone',     placeholder: '+91 98765 43210' },
+  { key: 'whatsapp',  label: 'WhatsApp',  placeholder: '+91 98765 43210' },
+  { key: 'website',   label: 'Website',   placeholder: 'https://yourstore.com' },
+  { key: 'instagram', label: 'Instagram', placeholder: '@yourhandle' },
+  { key: 'linkedin',  label: 'LinkedIn',  placeholder: 'linkedin.com/in/yourname' },
+  { key: 'twitter',   label: 'X / Twitter', placeholder: '@yourhandle' },
+  { key: 'notes',     label: 'Notes',     placeholder: 'Any extra info for us...' },
+];
+
+function ProfileCard({ slug, clientName, initialProfile }: {
+  slug: string;
+  clientName: string;
+  initialProfile: ClientProfile | null;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState<ClientProfile>(initialProfile ?? {});
+  const [draft, setDraft] = useState<ClientProfile>(initialProfile ?? {});
+  const [saving, setSaving] = useState(false);
+
+  const hasAny = PROFILE_FIELDS.some(f => profile[f.key]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/reports/${slug}/profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+      });
+      if (res.ok) { setProfile(draft); setEditing(false); }
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="profile-card">
+      <div className="profile-card-header">
+        <div className="profile-avatar">{clientName.charAt(0).toUpperCase()}</div>
+        <div>
+          <div className="profile-name">{clientName}</div>
+          <div className="profile-label">Client Profile</div>
+        </div>
+        <button className="profile-edit-btn" onClick={() => { setDraft(profile); setEditing(e => !e); }}>
+          {editing ? 'Cancel' : (hasAny ? 'Edit' : '+ Add details')}
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="profile-form">
+          {PROFILE_FIELDS.map(f => (
+            <div key={f.key} className="profile-field-row">
+              <label className="profile-field-label">{f.label}</label>
+              <input
+                className="profile-field-input"
+                placeholder={f.placeholder}
+                value={draft[f.key] ?? ''}
+                onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <button className="profile-save-btn" onClick={save} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Profile'}
+          </button>
+        </div>
+      ) : hasAny ? (
+        <div className="profile-details">
+          {PROFILE_FIELDS.filter(f => profile[f.key]).map(f => (
+            <div key={f.key} className="profile-detail-row">
+              <span className="profile-detail-label">{f.label}</span>
+              <span className="profile-detail-value">{profile[f.key]}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="profile-empty">Add your contact details so we can reach you easily.</p>
+      )}
+    </div>
+  );
+}
+
 // ── Documents panel (with client notes + file submission) ──────────────────
 
 function DocumentsPanel({
@@ -750,6 +845,11 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
 
         {activeTab === 'submissions' && (
           <>
+            <ProfileCard
+              slug={report.slug}
+              clientName={report.clientName}
+              initialProfile={report.clientProfile}
+            />
             <h1 className="portal-tab-heading">Your Submissions</h1>
             <p className="portal-tab-sub">Documents and files shared with us. Add a note to any document if needed.</p>
             <DocumentsPanel
