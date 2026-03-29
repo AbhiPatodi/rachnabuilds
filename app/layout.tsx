@@ -63,6 +63,52 @@ export default function RootLayout({
         />
         <meta name="theme-color" content="#06D6A0" />
         <link rel="apple-touch-icon" href="/icon.svg" />
+        {/* JSON-LD: Person + ProfessionalService schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Person",
+                "@id": "https://rachnabuilds.com/#person",
+                "name": "Rachna Jain",
+                "url": "https://rachnabuilds.com",
+                "image": "https://rachnabuilds.com/og-image.png",
+                "jobTitle": "Shopify & E-Commerce Developer",
+                "description": "Shopify, WooCommerce & Webflow developer with 4+ years experience and 50+ stores launched.",
+                "sameAs": [
+                  "https://www.linkedin.com/in/rachnabuilds",
+                  "https://www.instagram.com/rachnabuilds"
+                ]
+              },
+              {
+                "@type": "ProfessionalService",
+                "@id": "https://rachnabuilds.com/#service",
+                "name": "Rachna Builds",
+                "url": "https://rachnabuilds.com",
+                "image": "https://rachnabuilds.com/og-image.png",
+                "description": "Shopify store development, CRO, speed optimisation, and e-commerce consulting for global brands.",
+                "founder": { "@id": "https://rachnabuilds.com/#person" },
+                "areaServed": ["IN", "GB", "US", "AU", "FR"],
+                "serviceType": [
+                  "Shopify Development",
+                  "Shopify Plus Development",
+                  "WooCommerce Development",
+                  "E-Commerce CRO",
+                  "Shopify Speed Optimisation"
+                ],
+                "offers": {
+                  "@type": "Offer",
+                  "name": "Free Shopify Store Audit",
+                  "price": "0",
+                  "priceCurrency": "USD",
+                  "url": "https://rachnabuilds.com/free-audit"
+                }
+              }
+            ]
+          })}}
+        />
       </head>
       <body suppressHydrationWarning>
         <ThemeProvider>

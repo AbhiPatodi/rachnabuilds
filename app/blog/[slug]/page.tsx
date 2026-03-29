@@ -100,8 +100,22 @@ export default async function BlogPostPage({
 
   if (!post) notFound();
 
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.excerpt ?? '',
+    "image": post.coverImage ?? 'https://rachnabuilds.com/og-image.png',
+    "datePublished": post.publishedAt?.toISOString() ?? post.createdAt.toISOString(),
+    "dateModified": post.updatedAt.toISOString(),
+    "author": { "@type": "Person", "name": "Rachna Jain", "url": "https://rachnabuilds.com" },
+    "publisher": { "@type": "Person", "name": "Rachna Jain", "url": "https://rachnabuilds.com" },
+    "mainEntityOfPage": { "@type": "WebPage", "@id": `https://rachnabuilds.com/blog/${post.slug}` },
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <SiteNav />
       <style>{`
         .post-page {
