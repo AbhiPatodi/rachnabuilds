@@ -44,16 +44,26 @@ export function ExitIntentPopup() {
       lastScrollTime = now
     }
 
-    // Only trigger after 15 seconds on page
+    // Tab close / navigate away — show browser's native "Leave site?" dialog
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!triggered.current) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    // Only trigger popup after 5 seconds on page
     const timer = setTimeout(() => {
       document.addEventListener('mouseleave', handleMouseLeave)
       window.addEventListener('scroll', handleScroll, { passive: true })
-    }, 15000)
+    }, 5000)
 
     return () => {
       clearTimeout(timer)
       document.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [pathname])
 
