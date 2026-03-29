@@ -124,6 +124,36 @@ export default function ReportManagePage() {
 
   const [copied, setCopied] = useState(false);
 
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePassword, setSharePassword] = useState('');
+  const [msgCopied, setMsgCopied] = useState(false);
+
+  const shareMessage = (r: typeof report) => {
+    if (!r) return '';
+    const link = `https://rachnabuilds.com/reports/${r.slug}`;
+    const pw = sharePassword || '[password]';
+    return `Hi ${r.clientName}! 👋\n\nYour personalized Shopify store report is ready for review.\n\n🔗 Portal: ${link}\n🔑 Password: ${pw}\n\nLet me know if you have any questions — happy to walk you through it!\n\n— Rachna\nrachnabuilds.com`;
+  };
+
+  const copyShareMessage = async () => {
+    if (!report) return;
+    await navigator.clipboard.writeText(shareMessage(report));
+    setMsgCopied(true);
+    setTimeout(() => setMsgCopied(false), 2000);
+  };
+
+  const openWhatsApp = () => {
+    if (!report) return;
+    const text = encodeURIComponent(shareMessage(report));
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const nativeShare = async () => {
+    if (!report || !navigator.share) return;
+    await navigator.share({ text: shareMessage(report) });
+  };
+
   // Portal Activity state
   const [activity, setActivity] = useState<{ events: PortalEvent[]; comments: PortalComment[] } | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -339,12 +369,17 @@ export default function ReportManagePage() {
             {report.viewCount} view{report.viewCount !== 1 ? 's' : ''} · Created {new Date(report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        <button className="admin-btn admin-btn-danger" onClick={handleDeleteReport}>
-          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-          </svg>
-          Delete Report
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="admin-btn admin-btn-ghost" onClick={() => setShowShareModal(true)} style={{ fontSize: 13 }}>
+            📤 Share
+          </button>
+          <button className="admin-btn admin-btn-danger" onClick={handleDeleteReport}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
       </div>
 
       {/* ─── REPORT INFO ─── */}
@@ -753,6 +788,56 @@ export default function ReportManagePage() {
           </>
         )}
       </div>
+      {/* ─── SHARE MODAL ─── */}
+      {showShareModal && (
+        <div className="share-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="share-modal" onClick={e => e.stopPropagation()}>
+            <div className="share-modal-header">
+              <div className="share-modal-title">📤 Share Report</div>
+              <button className="share-modal-close" onClick={() => setShowShareModal(false)}>✕</button>
+            </div>
+
+            <div className="share-modal-body">
+              <div className="share-field">
+                <label className="share-label">Portal Link</label>
+                <div className="share-link-row">
+                  <span className="share-link-text">rachnabuilds.com/reports/{report.slug}</span>
+                </div>
+              </div>
+
+              <div className="share-field">
+                <label className="share-label">Password (type the one you set)</label>
+                <input
+                  className="share-input"
+                  type="text"
+                  placeholder="e.g. sageandveda2026"
+                  value={sharePassword}
+                  onChange={e => setSharePassword(e.target.value)}
+                />
+              </div>
+
+              <div className="share-field">
+                <label className="share-label">Message Preview</label>
+                <pre className="share-preview">{shareMessage(report)}</pre>
+              </div>
+            </div>
+
+            <div className="share-modal-actions">
+              <button className="share-btn share-btn-copy" onClick={copyShareMessage}>
+                {msgCopied ? '✓ Copied!' : '📋 Copy Message'}
+              </button>
+              <button className="share-btn share-btn-whatsapp" onClick={openWhatsApp}>
+                💬 WhatsApp
+              </button>
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <button className="share-btn share-btn-native" onClick={nativeShare}>
+                  ↗ Share
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
