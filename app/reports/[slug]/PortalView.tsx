@@ -458,15 +458,15 @@ function ComingSoonPanel({ icon, headline, sub }: { icon: string; headline: stri
 
 // ── Client Profile Card ────────────────────────────────────────────────────
 
-const PROFILE_FIELDS: { key: keyof ClientProfile; label: string; placeholder: string; prefix?: string }[] = [
-  { key: 'email',     label: 'Email',     placeholder: 'your@email.com' },
-  { key: 'phone',     label: 'Phone',     placeholder: '+91 98765 43210' },
-  { key: 'whatsapp',  label: 'WhatsApp',  placeholder: '+91 98765 43210' },
-  { key: 'website',   label: 'Website',   placeholder: 'https://yourstore.com' },
-  { key: 'instagram', label: 'Instagram', placeholder: '@yourhandle' },
-  { key: 'linkedin',  label: 'LinkedIn',  placeholder: 'linkedin.com/in/yourname' },
-  { key: 'twitter',   label: 'X / Twitter', placeholder: '@yourhandle' },
-  { key: 'notes',     label: 'Notes',     placeholder: 'Any extra info for us...' },
+const PROFILE_FIELDS: { key: keyof ClientProfile; label: string; placeholder: string; icon: string; span?: boolean }[] = [
+  { key: 'email',     label: 'Email',       placeholder: 'your@email.com',        icon: '✉️' },
+  { key: 'phone',     label: 'Phone',       placeholder: '+91 98765 43210',        icon: '📞' },
+  { key: 'whatsapp',  label: 'WhatsApp',    placeholder: '+91 98765 43210',        icon: '💬' },
+  { key: 'website',   label: 'Website',     placeholder: 'https://yourstore.com',  icon: '🌐' },
+  { key: 'instagram', label: 'Instagram',   placeholder: '@yourhandle',            icon: '📸' },
+  { key: 'linkedin',  label: 'LinkedIn',    placeholder: 'linkedin.com/in/you',    icon: '💼' },
+  { key: 'twitter',   label: 'X / Twitter', placeholder: '@yourhandle',            icon: '𝕏' },
+  { key: 'notes',     label: 'Notes',       placeholder: 'Anything else for us…',  icon: '📝', span: true },
 ];
 
 function ProfileCard({ slug, clientName, initialProfile }: {
@@ -478,6 +478,7 @@ function ProfileCard({ slug, clientName, initialProfile }: {
   const [profile, setProfile] = useState<ClientProfile>(initialProfile ?? {});
   const [draft, setDraft] = useState<ClientProfile>(initialProfile ?? {});
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const hasAny = PROFILE_FIELDS.some(f => profile[f.key]);
 
@@ -489,51 +490,79 @@ function ProfileCard({ slug, clientName, initialProfile }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(draft),
       });
-      if (res.ok) { setProfile(draft); setEditing(false); }
+      if (res.ok) {
+        setProfile(draft);
+        setEditing(false);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
     } finally { setSaving(false); }
   };
 
   return (
     <div className="profile-card">
+      {/* Header */}
       <div className="profile-card-header">
         <div className="profile-avatar">{clientName.charAt(0).toUpperCase()}</div>
-        <div>
+        <div className="profile-header-text">
           <div className="profile-name">{clientName}</div>
-          <div className="profile-label">Client Profile</div>
+          <div className="profile-label">
+            {hasAny ? `${PROFILE_FIELDS.filter(f => profile[f.key]).length} of ${PROFILE_FIELDS.length} fields filled` : 'Contact details'}
+          </div>
         </div>
-        <button className="profile-edit-btn" onClick={() => { setDraft(profile); setEditing(e => !e); }}>
-          {editing ? 'Cancel' : (hasAny ? 'Edit' : '+ Add details')}
-        </button>
+        <div className="profile-header-actions">
+          {saved && <span className="profile-saved-badge">✓ Saved</span>}
+          <button
+            className={`profile-edit-btn ${editing ? 'cancel' : ''}`}
+            onClick={() => { setDraft(profile); setEditing(e => !e); }}
+          >
+            {editing ? 'Cancel' : (hasAny ? '✏️ Edit' : '+ Add Details')}
+          </button>
+        </div>
       </div>
 
       {editing ? (
-        <div className="profile-form">
-          {PROFILE_FIELDS.map(f => (
-            <div key={f.key} className="profile-field-row">
-              <label className="profile-field-label">{f.label}</label>
-              <input
-                className="profile-field-input"
-                placeholder={f.placeholder}
-                value={draft[f.key] ?? ''}
-                onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
-              />
-            </div>
-          ))}
-          <button className="profile-save-btn" onClick={save} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </div>
+        <>
+          <div className="profile-form-grid">
+            {PROFILE_FIELDS.map(f => (
+              <div key={f.key} className={`profile-field${f.span ? ' profile-field-span' : ''}`}>
+                <label className="profile-field-label">
+                  <span className="profile-field-icon">{f.icon}</span>
+                  {f.label}
+                </label>
+                <input
+                  className="profile-field-input"
+                  placeholder={f.placeholder}
+                  value={draft[f.key] ?? ''}
+                  onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
+                  type={f.key === 'email' ? 'email' : 'text'}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="profile-form-actions">
+            <button className="profile-cancel-link" onClick={() => setEditing(false)}>Cancel</button>
+            <button className="profile-save-btn" onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : 'Save Profile'}
+            </button>
+          </div>
+        </>
       ) : hasAny ? (
-        <div className="profile-details">
+        <div className="profile-chips">
           {PROFILE_FIELDS.filter(f => profile[f.key]).map(f => (
-            <div key={f.key} className="profile-detail-row">
-              <span className="profile-detail-label">{f.label}</span>
-              <span className="profile-detail-value">{profile[f.key]}</span>
+            <div key={f.key} className="profile-chip">
+              <span className="profile-chip-icon">{f.icon}</span>
+              <div>
+                <div className="profile-chip-label">{f.label}</div>
+                <div className="profile-chip-value">{profile[f.key]}</div>
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <p className="profile-empty">Add your contact details so we can reach you easily.</p>
+        <div className="profile-empty-state">
+          <p>Add your contact details so we can reach you easily — phone, WhatsApp, social handles, and more.</p>
+        </div>
       )}
     </div>
   );

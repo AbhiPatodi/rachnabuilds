@@ -58,6 +58,17 @@ interface PortalComment {
   createdAt: string;
 }
 
+interface ClientProfile {
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  website?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  notes?: string;
+}
+
 interface Report {
   id: string;
   slug: string;
@@ -66,6 +77,7 @@ interface Report {
   isActive: boolean;
   viewCount: number;
   lastViewedAt?: string | null;
+  clientProfile?: ClientProfile | null;
   createdAt: string;
   sections: Section[];
   documents: Document[];
@@ -625,6 +637,46 @@ export default function ReportManagePage() {
           ))
         )}
       </div>
+      {/* ─── CLIENT PROFILE ─── */}
+      {report.clientProfile && Object.values(report.clientProfile).some(Boolean) && (
+        <div className="admin-card" style={{ marginBottom: 20 }}>
+          <div className="admin-card-title">
+            <div className="admin-section-label">Client Profile</div>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {Object.values(report.clientProfile).filter(Boolean).length} fields filled
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+            {[
+              { key: 'email',     label: 'Email',       icon: '✉️' },
+              { key: 'phone',     label: 'Phone',       icon: '📞' },
+              { key: 'whatsapp',  label: 'WhatsApp',    icon: '💬' },
+              { key: 'website',   label: 'Website',     icon: '🌐' },
+              { key: 'instagram', label: 'Instagram',   icon: '📸' },
+              { key: 'linkedin',  label: 'LinkedIn',    icon: '💼' },
+              { key: 'twitter',   label: 'X / Twitter', icon: '𝕏' },
+              { key: 'notes',     label: 'Notes',       icon: '📝' },
+            ]
+              .filter(f => report.clientProfile![f.key as keyof ClientProfile])
+              .map(f => (
+                <div key={f.key} style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                    {f.icon} {f.label}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                    {report.clientProfile![f.key as keyof ClientProfile]}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* ─── PORTAL ACTIVITY ─── */}
       <div className="admin-card portal-activity">
         <div className="admin-card-title">
