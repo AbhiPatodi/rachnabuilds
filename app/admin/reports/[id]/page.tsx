@@ -177,6 +177,7 @@ export default function ReportManagePage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharePassword, setSharePassword] = useState('');
   const [msgCopied, setMsgCopied] = useState(false);
+  const [pwCopied, setPwCopied] = useState(false);
 
   const openShareModal = (r: NonNullable<typeof report>) => {
     // Priority: DB stored password → localStorage → empty
@@ -216,6 +217,13 @@ export default function ReportManagePage() {
   const nativeShare = async () => {
     if (!report || !navigator.share) return;
     await navigator.share({ text: shareMessage(report) });
+  };
+
+  const copyPassword = async () => {
+    if (!sharePassword) return;
+    await navigator.clipboard.writeText(sharePassword);
+    setPwCopied(true);
+    setTimeout(() => setPwCopied(false), 2000);
   };
 
   // Portal Activity state
@@ -940,14 +948,24 @@ export default function ReportManagePage() {
               </div>
 
               <div className="share-field">
-                <label className="share-label">Password (type the one you set)</label>
-                <input
-                  className="share-input"
-                  type="text"
-                  placeholder="e.g. sageandveda2026"
-                  value={sharePassword}
-                  onChange={e => updateSharePassword(e.target.value, report.slug)}
-                />
+                <label className="share-label">Password</label>
+                <div className="share-pw-row">
+                  <input
+                    className="share-input"
+                    type="text"
+                    placeholder="e.g. sageandveda2026"
+                    value={sharePassword}
+                    onChange={e => updateSharePassword(e.target.value, report.slug)}
+                  />
+                  <button
+                    className={`share-pw-copy${pwCopied ? ' copied' : ''}`}
+                    onClick={copyPassword}
+                    disabled={!sharePassword}
+                    title="Copy password"
+                  >
+                    {pwCopied ? '✓' : '📋'}
+                  </button>
+                </div>
               </div>
 
               <div className="share-field">
