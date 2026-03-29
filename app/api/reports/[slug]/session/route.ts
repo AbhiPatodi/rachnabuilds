@@ -89,8 +89,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     Promise.resolve(parseUserAgent(userAgent)),
   ]);
 
-  await prisma.portalSession.create({
-    data: {
+  await prisma.portalSession.upsert({
+    where: { sessionId },
+    create: {
       id: crypto.randomBytes(12).toString('hex'),
       reportId: report.id,
       sessionId,
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       device: ua.device,
       browser: ua.browser,
     },
+    update: { lastActiveAt: new Date() },
   });
 
   return NextResponse.json({ ok: true, returning: false });
