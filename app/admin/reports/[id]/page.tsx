@@ -129,6 +129,18 @@ export default function ReportManagePage() {
   const [sharePassword, setSharePassword] = useState('');
   const [msgCopied, setMsgCopied] = useState(false);
 
+  const openShareModal = (r: NonNullable<typeof report>) => {
+    const saved = localStorage.getItem(`share_pw_${r.slug}`) ?? '';
+    setSharePassword(saved);
+    setShowShareModal(true);
+  };
+
+  const updateSharePassword = (val: string, slug: string) => {
+    setSharePassword(val);
+    if (val) localStorage.setItem(`share_pw_${slug}`, val);
+    else localStorage.removeItem(`share_pw_${slug}`);
+  };
+
   const shareMessage = (r: typeof report) => {
     if (!r) return '';
     const link = `https://rachnabuilds.com/reports/${r.slug}`;
@@ -370,7 +382,7 @@ export default function ReportManagePage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="admin-btn admin-btn-ghost" onClick={() => setShowShareModal(true)} style={{ fontSize: 13 }}>
+          <button className="admin-btn admin-btn-ghost" onClick={() => openShareModal(report)} style={{ fontSize: 13 }}>
             📤 Share
           </button>
           <button className="admin-btn admin-btn-danger" onClick={handleDeleteReport}>
@@ -812,7 +824,7 @@ export default function ReportManagePage() {
                   type="text"
                   placeholder="e.g. sageandveda2026"
                   value={sharePassword}
-                  onChange={e => setSharePassword(e.target.value)}
+                  onChange={e => updateSharePassword(e.target.value, report.slug)}
                 />
               </div>
 
