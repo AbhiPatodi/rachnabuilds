@@ -30,11 +30,14 @@ export async function GET(req: NextRequest) {
   }
 
   const apiKey = process.env.PAGESPEED_API_KEY || '';
-  const psiUrl = `https://www.googleapis.com/pagespeed/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=mobile${apiKey ? `&key=${apiKey}` : ''}`;
+  const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=mobile${apiKey ? `&key=${apiKey}` : ''}`;
 
   try {
     const res = await fetch(psiUrl, { next: { revalidate: 0 } });
     if (!res.ok) {
+      if (res.status === 429) {
+        return NextResponse.json({ error: 'Rate limit reached. Please wait a minute and try again, or add a Google API key.' }, { status: 429 });
+      }
       const err = await res.json().catch(() => ({}));
       return NextResponse.json({ error: err?.error?.message || 'PageSpeed API error' }, { status: 502 });
     }
