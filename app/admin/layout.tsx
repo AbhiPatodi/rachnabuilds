@@ -4,6 +4,7 @@ import LogoutButton from './LogoutButton';
 import AdminNav from './AdminNav';
 import AdminMobileNav from './AdminMobileNav';
 import { PushSubscribeButton } from '@/app/components/PushSubscribeButton';
+import { ThemeToggle } from '@/app/components/ThemeToggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +36,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <AdminNav />
 
         <div className="admin-sidebar-footer">
-          <div style={{ padding: '0 0 12px 0' }}>
+          <div style={{ padding: '0 0 8px 0' }}>
             <PushSubscribeButton />
+          </div>
+          <div style={{ padding: '0 0 8px 0' }}>
+            <ThemeToggle className="admin-theme-toggle" />
           </div>
           <LogoutButton />
         </div>

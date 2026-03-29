@@ -1027,3 +1027,47 @@
   .share-modal-actions { gap: 8px; }
   .share-btn { min-width: 0; padding: 10px 12px; font-size: 12px; }
 }
+
+/* ── Admin Theme Toggle ── */
+.admin-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 12px;
+  gap: 8px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  transition: all .2s;
+}
+.admin-theme-toggle:hover { color: var(--accent); border-color: var(--accent-dim); }
+.admin-theme-toggle svg { flex-shrink: 0; }
+
+/* ── Light mode overrides for hardcoded dark values ── */
+[data-theme="light"] .activity-stat { background: var(--bg-elevated); border-color: var(--border); }
+[data-theme="light"] .activity-stat-num { color: var(--accent); }
+[data-theme="light"] .activity-stat-label { color: var(--text-muted); }
+[data-theme="light"] .activity-event { background: var(--bg-elevated); color: var(--text-secondary); }
+[data-theme="light"] .activity-event-type { color: var(--text); }
+[data-theme="light"] .activity-event-time { color: var(--text-muted); }
+[data-theme="light"] .activity-comment { background: var(--bg-elevated); border-left-color: var(--accent); }
+[data-theme="light"] .activity-comment-author { color: var(--accent); }
+[data-theme="light"] .activity-comment-text { color: var(--text-secondary); }
+[data-theme="light"] .activity-comment-meta { color: var(--text-muted); }
+[data-theme="light"] .admin-nav-mobile { background: var(--bg-card); border-top-color: var(--border); }
+[data-theme="light"] .anm-item { color: var(--text-muted); }
+[data-theme="light"] .anm-item.active { color: var(--accent); }
+[data-theme="light"] .share-modal { background: var(--bg-card); border-color: var(--border); }
+[data-theme="light"] .share-modal-header { border-bottom-color: var(--border); }
+[data-theme="light"] .share-modal-title { color: var(--text); }
+[data-theme="light"] .share-modal-close { color: var(--text-muted); }
+[data-theme="light"] .share-link-row { background: var(--bg-elevated); border-color: var(--border); }
+[data-theme="light"] .share-input { background: var(--bg-elevated); border-color: var(--border); color: var(--text); }
+[data-theme="light"] .share-preview { background: var(--bg); border-color: var(--border); color: var(--text-secondary); }
+[data-theme="light"] .share-modal-actions { border-top-color: var(--border); }
+[data-theme="light"] .share-btn-copy { background: var(--bg-elevated); color: var(--text); border-color: var(--border); }

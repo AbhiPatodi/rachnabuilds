@@ -3,6 +3,7 @@ import "./globals.css";
 import { AnalyticsScripts } from "./components/AnalyticsScripts";
 import { TawkChat } from "./components/TawkChat";
 import { ExitIntentPopup } from "./components/ExitIntentPopup";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://rachnabuilds.com'),
@@ -46,8 +47,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Prevent flash: set theme before paint */}
+        <script dangerouslySetInnerHTML={{ __html: `try{const m=localStorage.getItem('rb_theme');const h=new Date().getHours();const auto=h>=6&&h<20?'light':'dark';document.documentElement.setAttribute('data-theme',m==='light'||m==='dark'?m:auto);}catch(e){}` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -62,10 +65,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
       <body suppressHydrationWarning>
-        {children}
-        <AnalyticsScripts />
-        <TawkChat />
-        <ExitIntentPopup />
+        <ThemeProvider>
+          {children}
+          <AnalyticsScripts />
+          <TawkChat />
+          <ExitIntentPopup />
+        </ThemeProvider>
       </body>
     </html>
   );

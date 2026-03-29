@@ -771,7 +771,13 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
   const [activeTab, setActiveTab] = useState('submissions');
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') return 'dark';
-    return (localStorage.getItem('portal_theme') as 'dark' | 'light') || 'dark';
+    // Portal-specific override → global pref → time-based auto
+    const pt = localStorage.getItem('portal_theme');
+    if (pt === 'dark' || pt === 'light') return pt;
+    const gt = localStorage.getItem('rb_theme');
+    if (gt === 'dark' || gt === 'light') return gt;
+    const h = new Date().getHours();
+    return h >= 6 && h < 20 ? 'light' : 'dark';
   });
 
   const toggleTheme = () => {

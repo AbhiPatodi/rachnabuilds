@@ -4,32 +4,10 @@ import { useEffect } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappNumber?: string }) {
   useEffect(() => {
-    // Theme toggle
-    const html = document.documentElement;
-    const toggle = document.getElementById("siteThemeToggle") as HTMLButtonElement;
-    const saved = localStorage.getItem("theme");
-    if (saved) html.setAttribute("data-theme", saved);
-    if (toggle) {
-      const updateIcon = (theme: string) => {
-        toggle.innerHTML =
-          theme === "light"
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
-      };
-      const currentTheme = html.getAttribute("data-theme") || "dark";
-      updateIcon(currentTheme);
-      toggle.addEventListener("click", () => {
-        const current = html.getAttribute("data-theme");
-        const next = current === "dark" ? "light" : "dark";
-        html.setAttribute("data-theme", next);
-        localStorage.setItem("theme", next);
-        updateIcon(next);
-      });
-    }
-
     // Nav scroll
     gsap.registerPlugin(ScrollTrigger);
     const nav = document.getElementById("siteNav");
@@ -100,11 +78,7 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
             <Link href="/#contact">Contact</Link>
           </div>
           <div className="nav-actions">
-            <button className="theme-toggle" id="siteThemeToggle" aria-label="Toggle theme">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            </button>
+            <ThemeToggle className="theme-toggle" />
             <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener" className="nav-cta">
               Let&apos;s Talk
             </a>
