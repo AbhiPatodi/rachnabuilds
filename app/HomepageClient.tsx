@@ -482,8 +482,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
             <a href="#work">Work</a>
             <a href="#services">Services</a>
             <a href="#pricing">Pricing</a>
-            <a href="#process">Process</a>
-            <a href="#testimonials">Testimonials</a>
+            <a href="/tools">Free Tools</a>
             <a href="/blog">Blog</a>
             <a href="#contact">Contact</a>
           </div>
@@ -493,8 +492,8 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             </button>
-            <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener" className="nav-cta">
-              Let&apos;s Talk
+            <a href="/free-audit" className="nav-cta">
+              Free Audit
             </a>
           </div>
           <button className="burger" id="burger" aria-label="Menu">
@@ -509,11 +508,10 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
         <a href="#work" className="ml">Work</a>
         <a href="#services" className="ml">Services</a>
         <a href="#pricing" className="ml">Pricing</a>
-        <a href="#process" className="ml">Process</a>
-        <a href="#testimonials" className="ml">Testimonials</a>
+        <a href="/tools" className="ml">Free Tools</a>
         <a href="/blog" className="ml">Blog</a>
         <a href="#contact" className="ml">Contact</a>
-        <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener" className="ml">Let&apos;s Talk</a>
+        <a href="/free-audit" className="ml">Free Audit</a>
       </div>
 
       {/* HERO */}
