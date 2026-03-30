@@ -90,6 +90,7 @@ interface ClientProfile {
   linkedin?: string;
   twitter?: string;
   notes?: string;
+  proposalVisible?: boolean;
 }
 
 interface Report {
@@ -148,6 +149,8 @@ export default function ReportManagePage() {
   const [editDocLoading, setEditDocLoading] = useState(false);
 
   const [copied, setCopied] = useState(false);
+  const [proposalVisible, setProposalVisible] = useState(false);
+  const [proposalToggling, setProposalToggling] = useState(false);
 
   // Edit report info
   const [editingInfo, setEditingInfo] = useState(false);
@@ -166,6 +169,20 @@ export default function ReportManagePage() {
   const [editingAdminProfile, setEditingAdminProfile] = useState(false);
   const [adminDraft, setAdminDraft] = useState<ClientProfile>({});
   const [adminSaving, setAdminSaving] = useState(false);
+
+  const toggleProposalVisible = async () => {
+    if (!report) return;
+    setProposalToggling(true);
+    const next = !proposalVisible;
+    await fetch(`/api/admin/reports/${id}/admin-profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...report.adminProfile, proposalVisible: next }),
+    });
+    setProposalVisible(next);
+    setReport(r => r ? { ...r, adminProfile: { ...r.adminProfile, proposalVisible: next } as ClientProfile } : r);
+    setProposalToggling(false);
+  };
 
   const startEditAdminProfile = () => {
     setAdminDraft(report?.adminProfile ?? {});
@@ -278,6 +295,7 @@ export default function ReportManagePage() {
       if (!res.ok) { setError('Report not found'); return; }
       const data = await res.json();
       setReport(data);
+      setProposalVisible(!!(data.adminProfile as Record<string,unknown>)?.proposalVisible);
     } catch {
       setError('Failed to load report');
     } finally {
@@ -480,7 +498,24 @@ export default function ReportManagePage() {
             {report.viewCount} view{report.viewCount !== 1 ? 's' : ''} · Created {new Date(report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <a
+            href={`/reports/${report.slug}?preview=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-btn admin-btn-ghost"
+            style={{ fontSize: 13, textDecoration: 'none' }}
+          >
+            👁 Preview Portal
+          </a>
+          <button
+            className="admin-btn admin-btn-ghost"
+            onClick={toggleProposalVisible}
+            disabled={proposalToggling}
+            style={{ fontSize: 13, borderColor: proposalVisible ? '#06D6A0' : undefined, color: proposalVisible ? '#06D6A0' : undefined }}
+          >
+            {proposalToggling ? '...' : proposalVisible ? '✅ Proposal: Visible to client' : '🔒 Proposal: Hidden from client'}
+          </button>
           <button className="admin-btn admin-btn-ghost" onClick={() => openShareModal(report)} style={{ fontSize: 13 }}>
             📤 Share
           </button>
@@ -601,7 +636,7 @@ export default function ReportManagePage() {
               ].map(f => (
                 <div key={f.key} className="admin-field">
                   <label className="admin-label">{f.icon} {f.label}</label>
-                  <input className="admin-input" type={f.key === 'email' ? 'email' : 'text'} value={adminDraft[f.key as keyof ClientProfile] ?? ''} onChange={e => setAdminDraft(d => ({ ...d, [f.key]: e.target.value }))} />
+                  <input className="admin-input" type={f.key === 'email' ? 'email' : 'text'} value={(adminDraft[f.key as keyof ClientProfile] as string) ?? ''} onChange={e => setAdminDraft(d => ({ ...d, [f.key]: e.target.value }))} />
                 </div>
               ))}
             </div>

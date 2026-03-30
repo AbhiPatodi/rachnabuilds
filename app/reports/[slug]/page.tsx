@@ -8,10 +8,12 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }
 
-export default async function ReportPage({ params }: PageProps) {
+export default async function ReportPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const { preview } = await searchParams;
   const cookieStore = await cookies();
 
   const [report, emailSetting] = await Promise.all([
@@ -52,8 +54,23 @@ export default async function ReportPage({ params }: PageProps) {
   const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
   const cookieValue = cookieStore.get(`rp_${slug}`)?.value;
 
+  // Check if admin is previewing (admin_session must be valid)
+  const adminSession = cookieStore.get('admin_session')?.value;
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+  const expectedAdmin = await (async () => {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.digest('SHA-256', enc.encode(adminPassword));
+    return Array.from(new Uint8Array(key)).map(b => b.toString(16).padStart(2, '0')).join('');
+  })();
+  const isAdminPreview = preview === '1' && adminSession === expectedAdmin;
+
   if (cookieValue === expected) {
-    return <PortalView report={report as ReportWithSectionsAndDocs} />;
+    return <PortalView report={report as ReportWithSectionsAndDocs} isAdminPreview={isAdminPreview} />;
+  }
+
+  // Admin can preview without client password
+  if (isAdminPreview) {
+    return <PortalView report={report as ReportWithSectionsAndDocs} isAdminPreview={true} />;
   }
 
   return <PasswordGate slug={slug} clientName={report.clientName} />;

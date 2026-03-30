@@ -785,7 +785,7 @@ function DocumentsPanel({
 
 // ── Main PortalView ────────────────────────────────────────────────────────
 
-export default function PortalView({ report }: { report: ReportWithSectionsAndDocs }) {
+export default function PortalView({ report, isAdminPreview = false }: { report: ReportWithSectionsAndDocs; isAdminPreview?: boolean }) {
   const [activeTab, setActiveTab] = useState('submissions');
 
   // ── Analytics refs ────────────────────────────────────────────────────────
@@ -1040,7 +1040,23 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
         )}
 
         {activeTab === 'proposal' && (
-          <ProposalView />
+          <>
+            {isAdminPreview && (
+              <div className="portal-preview-banner">
+                👁 Admin Preview — clients cannot see this until you enable it
+              </div>
+            )}
+            {((report.adminProfile as Record<string,unknown>)?.proposalVisible === true || isAdminPreview)
+              ? <ProposalView />
+              : (
+                <ComingSoonPanel
+                  icon="📋"
+                  headline="Proposal is being prepared"
+                  sub="Once the audit review is complete, your custom proposal will appear here with recommended scope, timeline, and pricing."
+                />
+              )
+            }
+          </>
         )}
 
         {activeTab === 'status' && (
