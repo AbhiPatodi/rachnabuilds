@@ -1559,9 +1559,11 @@
   border-radius: 14px;
 }
 .prop-cta-text {
-  font-size: 14px;
+  font-size: 17px;
+  font-weight: 600;
   color: var(--text);
-  margin: 0 0 16px;
+  margin: 0;
+  line-height: 1.5;
 }
 .prop-cta-contacts {
   display: flex;

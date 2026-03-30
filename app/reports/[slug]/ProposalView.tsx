@@ -337,11 +337,7 @@ export default function ProposalView() {
 
       {/* CTA */}
       <div className="prop-cta">
-        <p className="prop-cta-text">Ready to move forward? Reply to this portal or reach out directly.</p>
-        <div className="prop-cta-contacts">
-          <a href="mailto:rachnajain2103@gmail.com" className="prop-cta-btn">✉ Email Rachna</a>
-          <a href="https://wa.me/919404643510" target="_blank" rel="noopener noreferrer" className="prop-cta-btn prop-cta-btn--ghost">💬 WhatsApp</a>
-        </div>
+        <p className="prop-cta-text">Ready to move forward? Reply via the Comments tab or reach out to Rachna directly.</p>
       </div>
 
     </div>
