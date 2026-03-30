@@ -177,9 +177,9 @@ const COMPARISON: CompRow[] = [
   { feature: 'Custom PDP + collection templates',          competitor: false,          optionA: false,          optionB: true },
   // Reporting & Support
   { feature: 'Monthly performance report',                 competitor: true,           optionA: true,           optionB: true },
-  { feature: 'Dedicated sync calls',                       competitor: 'Bi-weekly',    optionA: 'Monthly',      optionB: 'Monthly' },
+  { feature: 'Dedicated sync calls',                       competitor: 'Bi-weekly',    optionA: 'Weekly/Bi-weekly', optionB: 'Weekly/Bi-weekly' },
   // Pricing & Terms
-  { feature: 'Min. retainer commitment',                   competitor: '3 months',     optionA: '1 month',      optionB: '1 month' },
+  { feature: 'Min. retainer commitment',                   competitor: '3 months',     optionA: '3 months',     optionB: '3 months' },
   { feature: 'Theme migration available',                  competitor: false,          optionA: false,          optionB: true },
   { feature: 'Timeline (one-time)',                        competitor: '6–8 wks',      optionA: '3–4 wks',      optionB: '6–8 wks' },
   { feature: 'One-time price',                             competitor: '₹40,000',      optionA: '₹49,999',      optionB: '₹95,000' },
