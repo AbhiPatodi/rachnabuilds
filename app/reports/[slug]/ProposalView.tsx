@@ -26,7 +26,7 @@ interface Option {
 const OPTION_A: Option = {
   badge: 'OPTIMISE CURRENT THEME',
   tagline: 'Fix, optimise and grow — within your existing Shopify theme',
-  oneTimePrice: '₹45,000',
+  oneTimePrice: '₹49,999',
   oneTimeLabel: 'One-time fixed fee',
   deliverables: [
     {
@@ -75,7 +75,7 @@ const OPTION_A: Option = {
       ],
     },
   ],
-  retainerPrice: '₹22,000',
+  retainerPrice: '₹28,000',
   retainerItems: [
     'Monthly performance + SEO audit report',
     'A/B test — 2 CRO experiments per month',
@@ -167,8 +167,8 @@ const COMPARISON: CompRow[] = [
   { feature: 'PageSpeed 90+ mobile target',        competitor: false,     optionA: 'Best effort',  optionB: 'Guaranteed' },
   { feature: 'Monthly retainer available',         competitor: '❓',      optionA: true,           optionB: true },
   { feature: 'Timeline',                           competitor: '8–12 wks',optionA: '3–4 wks',     optionB: '6–8 wks' },
-  { feature: 'One-time price',                     competitor: '₹?',      optionA: '₹45,000',     optionB: '₹95,000' },
-  { feature: 'Monthly retainer',                   competitor: '₹?',      optionA: '₹22,000/mo',  optionB: '₹35,000/mo' },
+  { feature: 'One-time price',                     competitor: '₹?',      optionA: '₹49,999',     optionB: '₹95,000' },
+  { feature: 'Monthly retainer',                   competitor: '₹?',      optionA: '₹28,000/mo',  optionB: '₹35,000/mo' },
 ];
 
 // ── Cell renderer ─────────────────────────────────────────────────────────────
@@ -289,7 +289,7 @@ export default function ProposalView() {
       {/* Comparison table */}
       <div className="prop-compare-wrap">
         <button className="prop-compare-toggle" onClick={() => setShowTable(p => !p)}>
-          {showTable ? '▲ Hide' : '▼ Show'} full feature comparison
+          {showTable ? '▲ Hide' : '▼ Show'} Competition Comparison
         </button>
 
         {showTable && (

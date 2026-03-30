@@ -1453,13 +1453,14 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
   cursor: pointer;
   text-align: center;
   transition: background 0.2s, color 0.2s;
+  letter-spacing: 0.2px;
 }
 .prop-compare-toggle:hover {
   background: var(--bg-elevated);
