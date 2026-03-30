@@ -149,26 +149,41 @@ interface CompRow {
 }
 
 const COMPARISON: CompRow[] = [
-  { feature: 'Performance fix (SVG → WebP)',       competitor: false,     optionA: true,           optionB: true },
-  { feature: 'Klaviyo / GTM deduplication',        competitor: false,     optionA: true,           optionB: true },
-  { feature: 'H1 + heading hierarchy fix',         competitor: '❓',      optionA: true,           optionB: true },
-  { feature: 'Meta titles + descriptions',         competitor: 'Basic',   optionA: 'Full rewrite', optionB: 'Full rewrite' },
-  { feature: 'JSON-LD schema (Product + Org)',      competitor: false,     optionA: true,           optionB: true },
-  { feature: 'Breadcrumbs sitewide',               competitor: false,     optionA: true,           optionB: true },
-  { feature: 'Image alt text audit',               competitor: false,     optionA: true,           optionB: true },
-  { feature: 'Sticky ATC on PDP',                  competitor: '❓',      optionA: true,           optionB: true },
-  { feature: 'Judge.me stars on collection cards', competitor: false,     optionA: true,           optionB: true },
-  { feature: 'Cart page overhaul (trust + upsell)',competitor: 'Partial', optionA: true,           optionB: true },
-  { feature: 'Express checkout (Shop Pay etc.)',   competitor: false,     optionA: true,           optionB: true },
-  { feature: 'Custom Shopify theme from scratch',  competitor: false,     optionA: false,          optionB: true },
-  { feature: 'Canva mockup design executed',       competitor: false,     optionA: false,          optionB: true },
-  { feature: 'Mood-led homepage navigation',       competitor: false,     optionA: false,          optionB: true },
-  { feature: 'Custom PDP + collection templates',  competitor: false,     optionA: false,          optionB: true },
-  { feature: 'PageSpeed 90+ mobile target',        competitor: false,     optionA: 'Best effort',  optionB: 'Guaranteed' },
-  { feature: 'Monthly retainer available',         competitor: '❓',      optionA: true,           optionB: true },
-  { feature: 'Timeline',                           competitor: '8–12 wks',optionA: '3–4 wks',     optionB: '6–8 wks' },
-  { feature: 'One-time price',                     competitor: '₹40,000', optionA: '₹49,999',     optionB: '₹95,000' },
-  { feature: 'Monthly retainer',                   competitor: '₹34,000/mo', optionA: '₹28,000/mo',  optionB: '₹35,000/mo' },
+  // Performance
+  { feature: 'Performance fix (SVG → WebP, 32MB → 2MB)',  competitor: false,          optionA: true,           optionB: true },
+  { feature: 'Klaviyo script deduplication (8 → 1)',       competitor: false,          optionA: true,           optionB: true },
+  { feature: 'GTM / Google Ads deduplication',             competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Font & lazy load fix',                       competitor: false,          optionA: true,           optionB: true },
+  { feature: 'PageSpeed 90+ mobile target',                competitor: false,          optionA: 'Best effort',  optionB: 'Guaranteed' },
+  // SEO
+  { feature: 'H1 + heading hierarchy fix',                 competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Meta titles + descriptions rewrite',         competitor: true,           optionA: true,           optionB: true },
+  { feature: 'JSON-LD schema (Product, Org, FAQ)',         competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Breadcrumbs sitewide',                       competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Image alt text audit (27+ images)',          competitor: false,          optionA: true,           optionB: true },
+  { feature: 'Internal linking strategy',                  competitor: true,           optionA: true,           optionB: true },
+  { feature: 'GSC monitoring (monthly)',                   competitor: true,           optionA: true,           optionB: true },
+  // CRO
+  { feature: 'Sticky ATC on PDP',                         competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Judge.me stars on collection cards',         competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Cart overhaul (trust + free shipping bar)',  competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Express checkout (Shop Pay / Apple Pay)',    competitor: false,          optionA: true,           optionB: true },
+  { feature: 'A/B testing (up to 2/month)',                competitor: 'Retainer only',optionA: true,           optionB: true },
+  { feature: 'Heatmap + session recording setup',         competitor: true,           optionA: true,           optionB: true },
+  // Theme & Design
+  { feature: 'Custom Shopify theme from scratch',          competitor: false,          optionA: false,          optionB: true },
+  { feature: 'Canva mockup executed (dark editorial)',     competitor: false,          optionA: false,          optionB: true },
+  { feature: 'Mood-led homepage navigation',               competitor: false,          optionA: false,          optionB: true },
+  { feature: 'Custom PDP + collection templates',          competitor: false,          optionA: false,          optionB: true },
+  // Reporting & Support
+  { feature: 'Monthly performance report',                 competitor: true,           optionA: true,           optionB: true },
+  { feature: 'Dedicated sync calls',                       competitor: 'Bi-weekly',    optionA: 'Monthly',      optionB: 'Monthly' },
+  // Pricing & Terms
+  { feature: 'Min. retainer commitment',                   competitor: '3 months',     optionA: '1 month',      optionB: '1 month' },
+  { feature: 'Theme migration available',                  competitor: false,          optionA: false,          optionB: true },
+  { feature: 'Timeline (one-time)',                        competitor: '6–8 wks',      optionA: '3–4 wks',      optionB: '6–8 wks' },
+  { feature: 'One-time price',                             competitor: '₹40,000',      optionA: '₹49,999',      optionB: '₹95,000' },
+  { feature: 'Monthly retainer',                          competitor: '₹34,000/mo',   optionA: '₹28,000/mo',   optionB: '₹35,000/mo' },
 ];
 
 // ── Cell renderer ─────────────────────────────────────────────────────────────
@@ -294,7 +309,7 @@ export default function ProposalView() {
 
         {showTable && (
           <div className="prop-table-wrap">
-            <p className="prop-table-note">* Competitor = Aroha Studios proposal, March 2026</p>
+            <p className="prop-table-note">* Competitor = Aroha Studios proposal, March 2026. Their one-time is ₹40,000 (6–8 wks, no theme build). Their retainer is ₹34,000/mo with 3-month minimum commitment.</p>
             <table className="prop-table">
               <thead>
                 <tr>
