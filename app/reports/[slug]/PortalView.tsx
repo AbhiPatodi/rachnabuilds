@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import './portal.css';
+import ProposalView from './ProposalView';
 
 const LogoSVG = () => (
   <svg viewBox="0 0 64 72" fill="none" width="28" height="32">
@@ -1039,20 +1040,7 @@ export default function PortalView({ report }: { report: ReportWithSectionsAndDo
         )}
 
         {activeTab === 'proposal' && (
-          <>
-            <h1 className="portal-tab-heading">Proposal</h1>
-            <p className="portal-tab-sub">Our recommendations, scope, and pricing tailored for you.</p>
-            {proposalSections.length > 0
-              ? <SectionsPanel sections={report.sections} types={PROPOSAL_TYPES} slug={report.slug} clientName={report.clientName} />
-              : (
-                <ComingSoonPanel
-                  icon="📋"
-                  headline="Proposal is being prepared"
-                  sub="Once the audit review is complete, your custom proposal will appear here with recommended scope, timeline, and pricing."
-                />
-              )
-            }
-          </>
+          <ProposalView />
         )}
 
         {activeTab === 'status' && (
