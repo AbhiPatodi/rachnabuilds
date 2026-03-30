@@ -149,6 +149,7 @@ export default function ReportManagePage() {
   const [editDocLoading, setEditDocLoading] = useState(false);
 
   const [copied, setCopied] = useState(false);
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [proposalVisible, setProposalVisible] = useState(false);
   const [proposalToggling, setProposalToggling] = useState(false);
 
@@ -981,68 +982,80 @@ export default function ReportManagePage() {
           <>
             <h3 className="activity-section-heading">Visits</h3>
             <div className="session-list">
-              {sessions.sessions.map((s, i) => (
-                <div key={s.id} className="session-row">
-                  <div className="session-row-left">
-                    <div className="session-index">{sessions.sessions.length - i}</div>
-                    <div className="session-info">
-                      <div className="session-meta-row">
-                        {s.countryCode && (
-                          <img
-                            src={`https://flagcdn.com/20x15/${s.countryCode.toLowerCase()}.png`}
-                            alt={s.country ?? ''}
-                            className="session-flag"
-                          />
-                        )}
-                        <span className="session-location">
-                          {[s.city, s.country].filter(Boolean).join(', ') || 'Unknown location'}
-                        </span>
-                        <span className="session-device-badge">{s.device === 'mobile' ? '📱' : s.device === 'tablet' ? '📱' : '💻'} {s.device ?? 'unknown'}</span>
-                        <span className="session-browser">{s.browser}</span>
-                      </div>
-                      {s.tabsViewed.length > 0 && (
-                        <div className="session-tabs-row">
-                          {s.tabsViewed.map(t => <span key={t} className="session-tab-chip">{t}</span>)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="session-row-right">
-                    <div className="session-duration">{s.totalDuration ? fmtDuration(s.totalDuration) : '< 1s'}</div>
-                    <div className="session-time">{timeAgo(s.lastActiveAt)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="admin-empty">No visits yet — share the portal link with your client.</div>
-        )}
-
-        {/* ── Recent Events ── */}
-        {activity && activity.events.length > 0 && (
-          <>
-            <h3 className="activity-section-heading" style={{ marginTop: 24 }}>Recent Events</h3>
-            <div className="activity-timeline">
-              {activity.events.slice(0, 20).map(ev => {
-                const icon = eventIcon[ev.eventType] ?? '•';
-                const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
-                const tab = m.tab as string | undefined;
-                const dur = m.prevTabDuration as number | undefined;
-                const scroll = m.scrollDepth as number | undefined;
+              {sessions.sessions.map((s, i) => {
+                const sessionEvents = activity?.events.filter(e => e.sessionId === s.sessionId) ?? [];
+                const isExpanded = expandedSession === s.id;
                 return (
-                  <div key={ev.id} className="activity-event">
-                    <span>{icon}</span>
-                    <span className="activity-event-type">{ev.eventType.replace(/_/g, ' ')}</span>
-                    {tab && <span className="activity-event-detail">→ {tab}</span>}
-                    {dur != null && dur > 0 && <span className="activity-event-duration">{fmtDuration(dur)}</span>}
-                    {scroll != null && <span className="activity-event-scroll">{scroll}% scroll</span>}
-                    <span className="activity-event-time">{timeAgo(ev.createdAt)}</span>
+                  <div key={s.id} className="session-row">
+                    <div
+                      className="session-row-left"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setExpandedSession(isExpanded ? null : s.id)}
+                    >
+                      <div className="session-index">{sessions.sessions.length - i}</div>
+                      <div className="session-info">
+                        <div className="session-meta-row">
+                          {s.countryCode && (
+                            <img
+                              src={`https://flagcdn.com/20x15/${s.countryCode.toLowerCase()}.png`}
+                              alt={s.country ?? ''}
+                              className="session-flag"
+                            />
+                          )}
+                          <span className="session-location">
+                            {[s.city, s.country].filter(Boolean).join(', ') || 'Unknown location'}
+                          </span>
+                          <span className="session-device-badge">{s.device === 'mobile' ? '📱' : s.device === 'tablet' ? '📱' : '💻'} {s.device ?? 'unknown'}</span>
+                          <span className="session-browser">{s.browser}</span>
+                        </div>
+                        {s.tabsViewed.length > 0 && (
+                          <div className="session-tabs-row">
+                            {s.tabsViewed.map(t => <span key={t} className="session-tab-chip">{t}</span>)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="session-row-right">
+                      <div className="session-duration">{s.totalDuration ? fmtDuration(s.totalDuration) : '< 1s'}</div>
+                      <div className="session-time">{timeAgo(s.lastActiveAt)}</div>
+                      <button
+                        className="session-expand-btn"
+                        onClick={() => setExpandedSession(isExpanded ? null : s.id)}
+                        title={isExpanded ? 'Collapse' : `${sessionEvents.length} events`}
+                      >
+                        {isExpanded ? '▲' : `▼ ${sessionEvents.length}`}
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="session-events">
+                        {sessionEvents.length === 0 ? (
+                          <div className="session-events-empty">No events recorded for this session</div>
+                        ) : sessionEvents.map(ev => {
+                          const icon = eventIcon[ev.eventType] ?? '•';
+                          const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
+                          const tab = m.tab as string | undefined;
+                          const dur = m.prevTabDuration as number | undefined;
+                          const scroll = m.scrollDepth as number | undefined;
+                          return (
+                            <div key={ev.id} className="activity-event session-event-row">
+                              <span>{icon}</span>
+                              <span className="activity-event-type">{ev.eventType.replace(/_/g, ' ')}</span>
+                              {tab && <span className="activity-event-detail">→ {tab}</span>}
+                              {dur != null && dur > 0 && <span className="activity-event-duration">{fmtDuration(dur)}</span>}
+                              {scroll != null && <span className="activity-event-scroll">{scroll}% scroll</span>}
+                              <span className="activity-event-time">{timeAgo(ev.createdAt)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           </>
+        ) : (
+          <div className="admin-empty">No visits yet — share the portal link with your client.</div>
         )}
 
         {/* ── Comments ── */}
