@@ -196,17 +196,29 @@ function Cell({ val }: { val: string | boolean }) {
 
 // ── Option card ───────────────────────────────────────────────────────────────
 
-function OptionCard({ opt, letter }: { opt: Option; letter: 'A' | 'B' }) {
+function OptionCard({ opt, letter, selected, onSelect }: {
+  opt: Option;
+  letter: 'A' | 'B';
+  selected: boolean;
+  onSelect: () => void;
+}) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggle = (h: string) => setOpen(p => ({ ...p, [h]: !p[h] }));
 
   return (
-    <div className={`prop-card ${opt.recommended ? 'prop-card--rec' : ''}`}>
+    <div
+      className={`prop-card ${opt.recommended ? 'prop-card--rec' : ''} ${selected ? 'prop-card--selected' : ''}`}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onSelect()}
+    >
       <div className="prop-card-header">
         <div className="prop-badges">
           <span className="prop-badge-letter">{letter}</span>
           <span className="prop-badge-type">{opt.badge}</span>
           {opt.recommended && <span className="prop-badge-rec">★ RECOMMENDED</span>}
+          {selected && <span className="prop-badge-selected">✓ SELECTED</span>}
         </div>
         <p className="prop-tagline">{opt.tagline}</p>
       </div>
@@ -228,7 +240,7 @@ function OptionCard({ opt, letter }: { opt: Option; letter: 'A' | 'B' }) {
       </div>
 
       {/* Deliverables */}
-      <div className="prop-deliverables">
+      <div className="prop-deliverables" onClick={e => e.stopPropagation()}>
         <div className="prop-section-label">What&apos;s included</div>
         {opt.deliverables.map(group => (
           <div key={group.heading} className="prop-group">
@@ -261,7 +273,7 @@ function OptionCard({ opt, letter }: { opt: Option; letter: 'A' | 'B' }) {
       </div>
 
       {/* Retainer */}
-      <div className="prop-retainer">
+      <div className="prop-retainer" onClick={e => e.stopPropagation()}>
         <div className="prop-section-label">Monthly retainer includes</div>
         <ul className="prop-items prop-items--retainer">
           {opt.retainerItems.map((item, i) => (
@@ -272,6 +284,13 @@ function OptionCard({ opt, letter }: { opt: Option; letter: 'A' | 'B' }) {
           ))}
         </ul>
       </div>
+
+      {/* Select button */}
+      <div className="prop-card-select">
+        <div className={`prop-select-btn ${selected ? 'prop-select-btn--active' : ''}`}>
+          {selected ? '✓ This is my preferred option' : `Select Option ${letter}`}
+        </div>
+      </div>
     </div>
   );
 }
@@ -280,6 +299,7 @@ function OptionCard({ opt, letter }: { opt: Option; letter: 'A' | 'B' }) {
 
 export default function ProposalView() {
   const [showTable, setShowTable] = useState(false);
+  const [selected, setSelected] = useState<'A' | 'B'>('B');
 
   return (
     <div className="prop-root">
@@ -290,15 +310,23 @@ export default function ProposalView() {
         <h1 className="prop-title">CRO, SEO &amp; Shopify Optimisation Proposal</h1>
         <p className="prop-subtitle">Prepared by Rachna Builds &middot; Valid for 30 days</p>
         <p className="prop-note">
-          Choose the option that works best for you. Both include a retainer option for ongoing growth.
-          The proposal below is based on the full technical audit completed in March 2026.
+          Review both options and click to select the one that fits best. Both include an optional monthly retainer for ongoing growth.
         </p>
       </div>
 
       {/* Option cards */}
       <div className="prop-cards">
-        <OptionCard opt={OPTION_A} letter="A" />
-        <OptionCard opt={OPTION_B} letter="B" />
+        <OptionCard opt={OPTION_A} letter="A" selected={selected === 'A'} onSelect={() => setSelected('A')} />
+        <OptionCard opt={OPTION_B} letter="B" selected={selected === 'B'} onSelect={() => setSelected('B')} />
+      </div>
+
+      {/* Selection banner */}
+      <div className={`prop-selection-banner prop-selection-banner--${selected.toLowerCase()}`}>
+        <span className="prop-selection-icon">✓</span>
+        <div>
+          <strong>Option {selected} selected</strong> — {selected === 'B' ? 'Custom Theme Build · ₹95,000 one-time + ₹35,000/mo retainer' : 'Optimise Current Theme · ₹49,999 one-time + ₹28,000/mo retainer'}
+        </div>
+        <span className="prop-selection-hint">Reply to this portal or reach out to confirm</span>
       </div>
 
       {/* Comparison table */}

@@ -1612,3 +1612,80 @@
   margin-bottom: 20px;
   text-align: center;
 }
+
+/* ── PROPOSAL — SELECTED STATE ── */
+.prop-cards { align-items: start; }
+
+.prop-card {
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.prop-card:hover { box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 10%, transparent); }
+
+.prop-card--selected {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent), 0 6px 32px color-mix(in srgb, var(--accent) 18%, transparent) !important;
+}
+
+.prop-badge-selected {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #0B0F1A;
+  background: var(--accent);
+  border-radius: 6px;
+  padding: 3px 8px;
+  animation: prop-pop 0.2s ease;
+}
+@keyframes prop-pop {
+  0%  { transform: scale(0.8); opacity: 0; }
+  100%{ transform: scale(1);   opacity: 1; }
+}
+
+/* Select button at bottom of card */
+.prop-card-select {
+  padding: 12px 20px 16px;
+}
+.prop-select-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s;
+}
+.prop-select-btn--active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Selection banner */
+.prop-selection-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.prop-selection-icon {
+  font-size: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.prop-selection-banner strong { color: var(--text); font-size: 14px; }
+.prop-selection-banner div { flex: 1; font-size: 13px; color: var(--text-muted); }
+.prop-selection-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
