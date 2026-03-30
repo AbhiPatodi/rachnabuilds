@@ -14,10 +14,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const body = await req.json();
   const allowed = ['email', 'phone', 'whatsapp', 'website', 'instagram', 'linkedin', 'twitter', 'notes'];
-  const profile: Record<string, string> = {};
+  const profile: Record<string, unknown> = {};
   for (const key of allowed) {
     if (typeof body[key] === 'string') profile[key] = body[key].trim();
   }
+  // Boolean flags
+  if (typeof body.proposalVisible === 'boolean') profile.proposalVisible = body.proposalVisible;
   const updated = await prisma.report.update({
     where: { id },
     data: { adminProfile: profile },
