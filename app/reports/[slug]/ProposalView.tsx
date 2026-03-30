@@ -167,8 +167,8 @@ const COMPARISON: CompRow[] = [
   { feature: 'PageSpeed 90+ mobile target',        competitor: false,     optionA: 'Best effort',  optionB: 'Guaranteed' },
   { feature: 'Monthly retainer available',         competitor: '❓',      optionA: true,           optionB: true },
   { feature: 'Timeline',                           competitor: '8–12 wks',optionA: '3–4 wks',     optionB: '6–8 wks' },
-  { feature: 'One-time price',                     competitor: '₹?',      optionA: '₹49,999',     optionB: '₹95,000' },
-  { feature: 'Monthly retainer',                   competitor: '₹?',      optionA: '₹28,000/mo',  optionB: '₹35,000/mo' },
+  { feature: 'One-time price',                     competitor: '₹40,000', optionA: '₹49,999',     optionB: '₹95,000' },
+  { feature: 'Monthly retainer',                   competitor: '₹34,000/mo', optionA: '₹28,000/mo',  optionB: '₹35,000/mo' },
 ];
 
 // ── Cell renderer ─────────────────────────────────────────────────────────────
