@@ -480,10 +480,9 @@ export default function ProposalView({ sections }: { sections?: ReportSection[] 
   const [showTable, setShowTable] = useState(false);
   const [selected, setSelected]   = useState<'A' | 'B'>('B');
 
-  // Data-driven two-option layout — only when actual 'proposal' sections exist in DB
-  const hasProposalSections = sections && sections.some(s => s.sectionType === 'proposal');
-  if (hasProposalSections) {
-    return <DataProposalView sections={sections!} />;
+  // Data-driven two-option layout
+  if (sections && sections.length > 0) {
+    return <DataProposalView sections={sections} />;
   }
 
   // Original Sage & Veda two-option layout

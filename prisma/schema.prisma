@@ -208,3 +208,113 @@ model PushSubscription {
 
   @@map("push_subscriptions")
 }
+
+// ─── New Client Portal Schema (v2) ───────────────────────────────────────────
+// Old models (Report, ReportSection, ClientDocument, PortalComment,
+// PortalEvent, PortalSession) are kept intact as backup above.
+
+model Client {
+  id              String    @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  slug            String    @unique  // portal URL slug, e.g. "kruti-lunawat"
+  passwordHash    String
+  passwordPlain   String?   // stored for admin reference only
+  isActive        Boolean   @default(true)
+  clientProfile   Json      @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  projects        ClientProject[]
+
+  @@map("clients")
+}
+
+model ClientProject {
+  id            String    @id @default(cuid())
+  clientId      String
+  name          String    // e.g. "Shopify Store Build — Phase 1"
+  clientType    String    @default("new_build")  // new_build | existing_optimisation | audit_only | retainer | landing_page | migration
+  status        String    @default("active")     // draft | active | completed
+  tabConfig     Json?     // null = use clientType defaults
+  adminProfile  Json      @default("{}")          // proposalVisible, notes, etc.
+  displayOrder  Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sections      ProjectSection[]
+  documents     ProjectDocument[]
+  comments      ProjectComment[]
+  events        ProjectEvent[]
+  sessions      ProjectSession[]
+
+  @@map("client_projects")
+}
+
+model ProjectSection {
+  id           String        @id @default(cuid())
+  projectId    String
+  sectionType  String
+  title        String
+  content      Json          @default("{}")
+  displayOrder Int           @default(0)
+  createdAt    DateTime      @default(now())
+  project      ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_sections")
+}
+
+model ProjectDocument {
+  id         String        @id @default(cuid())
+  projectId  String
+  docType    String
+  title      String
+  url        String
+  notes      String?
+  uploadedAt DateTime      @default(now())
+  project    ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_documents")
+}
+
+model ProjectComment {
+  id        String        @id @default(cuid())
+  projectId String
+  context   String        @default("general")
+  author    String
+  text      String
+  createdAt DateTime      @default(now())
+  project   ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_comments")
+}
+
+model ProjectEvent {
+  id        String        @id @default(cuid())
+  projectId String
+  eventType String
+  meta      Json          @default("{}")
+  sessionId String?
+  createdAt DateTime      @default(now())
+  project   ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_events")
+}
+
+model ProjectSession {
+  id            String        @id @default(cuid())
+  projectId     String
+  sessionId     String        @unique
+  ip            String?
+  country       String?
+  countryCode   String?
+  city          String?
+  device        String?
+  browser       String?
+  totalDuration Int           @default(0)
+  startedAt     DateTime      @default(now())
+  lastActiveAt  DateTime      @default(now())
+  project       ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_sessions")
+}

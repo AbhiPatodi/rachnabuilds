@@ -1,0 +1,379 @@
+{
+  "backup_date": "2026-04-03",
+  "description": "Full backup of both client portals before universal system migration. Includes reports, sections, and documents.",
+  "documents": [
+    {
+      "id": "cmnaiv7pl000bxroin7bie9md",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "rfp",
+      "title": "Website Optimization RFP",
+      "url": "https://www.canva.com",
+      "notes": "Original RFP document from Amar Japawar (March 2026)",
+      "uploadedAt": "2026-03-28T16:05:55.017Z"
+    },
+    {
+      "id": "cmnaiv7vq000cxroiwnv95rds",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "mockup",
+      "title": "Homepage Design Mockup",
+      "url": "https://amarjapawar.my.canva.site/sage-veda-website-2026",
+      "notes": "Dark editorial mockup — approved direction for theme migration",
+      "uploadedAt": "2026-03-28T16:05:55.238Z"
+    },
+    {
+      "id": "cmnaiv83w000dxroik1cwc115",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "competitor_ref",
+      "title": "Competitor Reference: Indewild",
+      "url": "https://indewild.com",
+      "notes": "Ayurvedic competitor — note schema, Instagram feed, TikTok presence",
+      "uploadedAt": "2026-03-28T16:05:55.532Z"
+    },
+    {
+      "id": "cmnaiv8a5000exroi7np8elbk",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "competitor_ref",
+      "title": "Competitor Reference: Fable & Mane",
+      "url": "https://fableandmane.com",
+      "notes": "Best performer at 1.4MB — target benchmark for page size",
+      "uploadedAt": "2026-03-28T16:05:55.757Z"
+    },
+    {
+      "id": "cmnaiv8gd000fxroip18scfbv",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "competitor_ref",
+      "title": "Competitor Reference: Ranavat",
+      "url": "https://ranavat.com",
+      "notes": "Strong merchandising — Skin Quiz, Discovery sizes, 449 lazy images",
+      "uploadedAt": "2026-03-28T16:05:55.981Z"
+    },
+    {
+      "id": "cmnaiv8mm000gxroinavm9bfk",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "competitor_ref",
+      "title": "Reference PDP: The Ouai",
+      "url": "https://theouai.com/products/detox-shampoo",
+      "notes": "Problem-first headline + sticky ATC + benefit tags pattern",
+      "uploadedAt": "2026-03-28T16:05:56.206Z"
+    },
+    {
+      "id": "cmnaiv8tf000hxroigb1xgzr4",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "competitor_ref",
+      "title": "Reference PDP: Rhode Skin",
+      "url": "https://rhodeskin.com/products/glazing-milk",
+      "notes": "COMPLETE THE ROUTINE cross-sell module near ATC",
+      "uploadedAt": "2026-03-28T16:05:56.451Z"
+    },
+    {
+      "id": "bc3420835268b0674ba21787",
+      "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+      "reportSlug": "sage-and-veda-2026",
+      "docType": "client_upload",
+      "title": "Audit Report done by 3rd party",
+      "url": "https://drive.google.com/file/d/1d8KJ4UzLxBMvWyzNKc2EDzm5lBoiEC9h/view?usp=drive_link",
+      "notes": null,
+      "uploadedAt": "2026-04-01T09:54:20.204Z"
+    },
+    {
+      "id": "08a203f3-6390-48b8-b015-89820b5ecc6e",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "brand_assets",
+      "title": "Logo Files",
+      "url": "pending",
+      "notes": "SVG or high-resolution PNG (transparent background preferred)",
+      "uploadedAt": "2026-04-02T14:55:11.490Z"
+    },
+    {
+      "id": "75bb1591-27db-4d97-af8b-427b91da1a69",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "brand_assets",
+      "title": "Brand Colours",
+      "url": "pending",
+      "notes": "Exact hex colour codes if you have them",
+      "uploadedAt": "2026-04-02T14:55:11.717Z"
+    },
+    {
+      "id": "82d144c3-9748-47c4-9ba0-384692a0bc27",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "brand_assets",
+      "title": "Brand Fonts",
+      "url": "pending",
+      "notes": "Font names or files if you have a specific typeface in mind",
+      "uploadedAt": "2026-04-02T14:55:11.936Z"
+    },
+    {
+      "id": "59c00316-1890-4947-892b-eb0dfe682813",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "brand_assets",
+      "title": "Product Photography",
+      "url": "pending",
+      "notes": "All product images — minimum 3 per product (white or lifestyle background)",
+      "uploadedAt": "2026-04-02T14:55:12.192Z"
+    },
+    {
+      "id": "64ad740a-56ae-45ee-b953-babeb9efd84f",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "brand_assets",
+      "title": "Brand Story / About Text",
+      "url": "pending",
+      "notes": "A short paragraph about your brand, who you are, and what you make",
+      "uploadedAt": "2026-04-02T14:55:12.410Z"
+    },
+    {
+      "id": "7e8b23f6-74dc-436f-a4e5-fef8f82535d3",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "rfp",
+      "title": "Collection Names",
+      "url": "pending",
+      "notes": "List of all collections you want on the site (e.g., Summer 2026, Bridal Edit)",
+      "uploadedAt": "2026-04-02T14:55:12.703Z"
+    },
+    {
+      "id": "640256c4-3062-486b-b1e1-50a5f592115f",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "brand_assets",
+      "title": "Lookbook / Campaign Images",
+      "url": "pending",
+      "notes": "Any editorial or campaign photography for homepage or collection banners",
+      "uploadedAt": "2026-04-02T14:55:12.923Z"
+    },
+    {
+      "id": "81929024-4d18-4ec1-aa72-b3f1c41cd4ad",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "rfp",
+      "title": "Size Chart",
+      "url": "pending",
+      "notes": "Your sizing information in cm and inches for the size guide",
+      "uploadedAt": "2026-04-02T14:55:13.140Z"
+    },
+    {
+      "id": "31043ec5-9dae-4a65-85a7-c05ceee048b0",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "rfp",
+      "title": "Shipping & Returns Policy",
+      "url": "pending",
+      "notes": "Your policy text — we will format and upload it",
+      "uploadedAt": "2026-04-02T14:55:13.423Z"
+    },
+    {
+      "id": "819a5c9e-a9d8-4b70-8a33-4953749d8da2",
+      "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+      "reportSlug": "kruti-shopify-2026",
+      "docType": "rfp",
+      "title": "Instagram Handle",
+      "url": "pending",
+      "notes": "So we can embed your feed on the homepage",
+      "uploadedAt": "2026-04-02T14:55:13.641Z"
+    }
+  ],
+  "clients": [
+    {
+      "report": {
+        "id": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+        "slug": "kruti-shopify-2026",
+        "clientName": "Kruti Lunawat",
+        "clientEmail": null,
+        "passwordHash": "$2b$10$aQuELvT683NNDJ8B8w1dPOK4NPH4CyFfg77QGbd5ZjydrzeUfmpG.",
+        "isActive": true,
+        "viewCount": 1,
+        "lastViewedAt": "2026-04-02T15:02:00.459",
+        "createdAt": "2026-04-02T20:23:37.793",
+        "updatedAt": "2026-04-02T15:02:00.467",
+        "clientProfile": {},
+        "clientPasswordPlain": "kruti2026",
+        "adminProfile": { "proposalVisible": true }
+      },
+      "sections": [
+        {
+          "id": "d8fdb738-3ea9-4a0a-b6e1-761c718fccbf",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "executive_summary",
+          "title": "Reference Site Analysis — What We Observed",
+          "displayOrder": 1,
+          "content": { "items": ["✅ All three reference sites (Raw Mango, Atelier Shikaarbagh, Matsya World) are built on Shopify — confirming Shopify is the right platform for your store","✅ Raw Mango is built on Dawn — Shopify's free theme — proving a luxury editorial look is achievable without a paid theme","✅ All three use a mega menu with Collections + Categories + Curations — this is the navigation structure we will build for you","✅ Drawer cart (slide-out) used by Raw Mango and Matsya — cleaner UX than full-page cart, included in your build","✅ WhatsApp floating button present on Raw Mango and Matsya — high-converting for Indian buyers, included in your build","✅ Razorpay / Indian payment methods are standard across all three — UPI, cards, net banking, wallets, EMI all covered"] }
+        },
+        {
+          "id": "4e889d68-be10-4269-a96b-6c510ee9625e",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "seo_audit",
+          "title": "Key Observations — What Makes These Sites Work",
+          "displayOrder": 2,
+          "content": { "items": ["🔴 Raw Mango took 14 versions (V14) of their site to reach where they are today — what you see is years of iteration and investment, not a one-time build","🟠 Matsya uses the Prestige theme (paid, ~₹28,000) — we are achieving the same look using Dawn (free) with custom code","🟠 All three brands invest heavily in professional photography — the luxury feel comes 60% from imagery, 40% from design. Strong product photography is critical.","🟡 None of the three brands use customer reviews on their site — this is actually a gap we can use to your advantage by adding Judge.me reviews from day one","🟡 Matsya's 'Book a Private Appointment' feature in the main nav drives high-value consultations — we can add this in Phase 2"] }
+        },
+        {
+          "id": "8e0f6ae8-ff74-4a51-a468-ceb31f5b0399",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "action_plan",
+          "title": "Platform Decision",
+          "displayOrder": 3,
+          "content": { "items": ["✅ Platform: Shopify Basic (₹2,100/month approx — billed by Shopify directly to you)","✅ Theme: Dawn (Free — Shopify's flagship theme, used by Raw Mango)","✅ Domain: Purchased and managed by you directly on GoDaddy or Namecheap (~₹800–1,200/year)","✅ Payment Gateway: Razorpay (free to install, 2% per transaction — no monthly fee)","✅ Currency: INR","✅ Language: English (Hindi toggle available in Phase 2 — Raw Mango has this)"] }
+        },
+        {
+          "id": "633722b8-052d-4c63-a887-258a4efd5f37",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "competitor_analysis",
+          "title": "Raw Mango — rawmango.com",
+          "displayOrder": 4,
+          "content": { "items": ["✅ Platform: Shopify (Dawn theme — same as your build, V14 after years of iteration)","✅ Aesthetic: Minimalist luxury — white backgrounds, deep forest green (#00552e) accent, clean typography","✅ Font: Assistant (sans-serif, Google Fonts — free)","✅ Navigation: Mega menu — Categories + Collections + Curations (3 columns)","✅ Hero: Video + image slider with caption overlay","✅ Cart: Drawer (slide-out)","✅ Swatches: Colour swatches with 'Show More' toggle","✅ WhatsApp: Floating button","✅ Hindi toggle: रॉ मैंगो — language switcher for Hindi audience","✅ Store locator: 6 physical stores (Bengaluru, Chennai, Hyderabad, Kolkata, Mumbai, Delhi)","✅ Virtual appointment: Dedicated page","🟠 No customer reviews visible — a gap you can fill","🟠 No wishlist feature","🟠 INR only — no multi-currency","💡 Key learning: Their luxury feel is built on a free theme + strong photography. Design alone doesn't make it premium — the photography does."] }
+        },
+        {
+          "id": "c94ad103-d145-47d1-bd76-4e4de00212e4",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "competitor_analysis",
+          "title": "Atelier Shikaarbagh — ateliershikaarbagh.com",
+          "displayOrder": 5,
+          "content": { "items": ["✅ Platform: Shopify (Craft theme — paid ~₹28,000)","✅ Aesthetic: Heritage luxury — dark navy (#1e253d) + gold + cream. Rajkarigar artisan storytelling.","✅ Fonts: Garamond (serif headings) + Quattrocento Sans (body)","✅ Navigation: Mega menu — Collections (named after women: Urmila, Renuka, Ayesha) + Products","✅ Celebrity section: Kareena Kapoor Khan, Janhvi Kapoor wearing their pieces","✅ Press mentions: Carousel of media coverage","✅ Razorpay EMI: Installment payment options on product pages","✅ Add-on services: Blouse stitching option directly on product page","✅ Badges: NEW, Best Seller, Price on Request","🟠 No drawer cart — full page cart (less modern UX)","🟠 No WhatsApp button","🟠 No reviews, no wishlist","💡 Key learning: Named collections (after female characters) + celebrity endorsements create strong brand identity. Something to build toward."] }
+        },
+        {
+          "id": "8ab88397-aebe-4d16-8945-94cb3438913a",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "competitor_analysis",
+          "title": "Matsya World — matsyaworld.com",
+          "displayOrder": 6,
+          "content": { "items": ["✅ Platform: Shopify (Prestige theme — paid ~₹28,000)","✅ Aesthetic: Ultra-premium bridal couture — soft cream (#E9E5DF) + near-black + serif fonts","✅ Fonts: Crimson Text + Didot (both elegant serifs)","✅ Price range: ₹25,000 – ₹5,60,990 — bespoke couture positioning","✅ Navigation: 'Book a Private Appointment' in primary nav — drives high-value conversions","✅ WhatsApp: Persistent button + pre-filled message per product ('I'm interested in [product name]')","✅ Size guide: Modal with detailed measurements in cm and inches (women + men)","✅ Delivery timeline: '8–9 Weeks' on product pages — sets expectations for bespoke orders","✅ Multi-currency: 180+ currencies with auto-detection","✅ Cart: Drawer","✅ Celebrity section: 'Celebrities in Matsya' — Aditi Rao Hydari featured","🟠 No customer reviews","🟠 No wishlist","💡 Key learning: 'Book a Private Appointment' in nav is a high-converting feature for luxury fashion. Easy to add in Phase 2."] }
+        },
+        {
+          "id": "a3608212-e7f1-4ec0-97d6-b995f80acf06",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "competitor_analysis",
+          "title": "Our Build Plan",
+          "displayOrder": 7,
+          "content": { "items": ["✅ Same platform (Shopify) — you are in the right ecosystem","✅ Same free theme base as Raw Mango (Dawn) — the look is achievable","✅ Same payment setup (Razorpay, UPI, EMI) as all three","✅ Mega menu (Phase 1) — built into your store from day one","✅ Drawer cart (Phase 1) — with free shipping threshold message","✅ WhatsApp button (Phase 1) — floating button on all pages","✅ Size guide (Phase 1) — modal popup on product pages","🟡 Celebrity / press section (Phase 2) — homepage feature showing press & Bollywood endorsements","🟡 Book a Private Appointment (Phase 2) — booking page with Google Calendar + WhatsApp confirmation","🟡 Hindi language toggle (Phase 2) — bilingual site like Raw Mango","🟡 Multi-currency (Phase 2) — auto-detect visitor location, show USD / EUR / GBP / AED","🟡 Advanced filters (Phase 2) — premium filter app for size, fabric, price, colour","🟡 Video hero (Phase 2) — full-width autoplay video homepage (requires video from you)"] }
+        },
+        {
+          "id": "61750fb4-be10-4399-8166-0e777ff12c7d",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "proposal",
+          "title": "Phase 1 — What We Are Building (Current Scope)",
+          "displayOrder": 8,
+          "content": { "items": ["✅ Shopify store setup on Basic plan (you pay Shopify ~₹2,100/month directly)","✅ Dawn theme — fully customised to luxury Indian fashion aesthetic","✅ Custom domain connected (you purchase domain separately ~₹800–1,200/year)","✅ Mega navigation — Categories + Collections + Curations","✅ Homepage — hero slider, editorial collection blocks, new arrivals grid, brand story section, Instagram feed, newsletter signup, WhatsApp floating button","✅ Product pages — multi-image gallery with zoom, colour swatches, size guide modal, sticky Add to Bag button, product tabs (Description / Fabric & Care / Shipping & Returns), WhatsApp enquiry button, related products","✅ Collection pages — Shopify native filters, 3-column grid desktop / 2-column mobile, product badges (New, Best Seller, Sold Out)","✅ Drawer cart with free shipping threshold message","✅ Razorpay payment gateway — UPI, credit/debit cards, net banking, wallets, EMI","✅ Tax configuration for Indian orders","✅ All standard pages — About, Brand Story, Contact, FAQ, Shipping Policy, Returns & Exchange, Privacy Policy, Terms & Conditions","✅ Basic SEO — meta titles, descriptions, image alt text, sitemap","✅ Mobile-first responsive design — tested on all screen sizes","✅ ShipRocket order tracking integration","✅ Klaviyo email setup (free tier — abandoned cart, welcome email)","💡 Investment: ₹49,000","💡 Payment: 50% advance (₹24,500) to begin | 50% on delivery (₹24,500)","💡 Timeline: 4–5 weeks from content receipt"] }
+        },
+        {
+          "id": "da3e7d8f-3ca1-4aa3-aeda-eaf08bf96a65",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "proposal",
+          "title": "Phase 2 — What Can Be Added Later",
+          "displayOrder": 9,
+          "content": { "items": ["🟡 'Book a Private Appointment' feature — dedicated booking page with calendar, connected to Google Calendar, automated WhatsApp confirmation (like Matsya)","🟡 Celebrity / Press section — homepage section showcasing celebrities or press features (like Shikaarbagh + Matsya)","🟡 Video hero — full-width autoplay video on homepage (requires product video from you, like Raw Mango)","🟡 Hindi language toggle — bilingual site for Hindi-speaking audience (like Raw Mango's रॉ मैंगो)","🟡 Multi-currency — auto-detect visitor location and show prices in USD, EUR, GBP, AED etc. (like Matsya's 180+ currencies)","🟡 Advanced product filters — size, fabric, price range, colour filters using a premium filter app","🟡 Wishlist — let customers save products and return to purchase later","🟡 Customer reviews — Judge.me integration for verified reviews, photo reviews, review widgets","🟡 WhatsApp automation — automated order confirmations, shipping updates, abandoned cart recovery via WhatsApp (Wati/Interakt)","🟡 Lookbook / Shop the Look — editorial page where customers can shop entire styled outfits in one click (like Raw Mango)","🟡 Loyalty program — reward repeat customers with points and discounts","🟡 Size recommendation tool — AI-based size finder ('What's my size?') to reduce returns","🟡 SEO content — monthly blog posts targeting search terms like 'handloom sarees online', 'luxury kurta sets India'","🟡 Google Ads + Meta Ads setup — paid acquisition campaigns targeting your ideal buyer","💡 Investment: ₹95,000 (Phase 1 + Phase 2 combined)","💡 Payment: 50% advance (₹47,500) to begin | 50% on delivery (₹47,500)","💡 Timeline: 6–8 weeks from content receipt"] }
+        },
+        {
+          "id": "6330a447-5b14-4337-a848-9ef50d0866bc",
+          "reportId": "27dc1b83-7dc3-483f-8624-d19b73e4db7a",
+          "sectionType": "project_status",
+          "title": "Project Timeline",
+          "displayOrder": 10,
+          "content": { "items": ["🟡 Proposal Sent — April 2026","⬜ Agreement Signed + Advance Received","⬜ Kick-off Call — Content collection, brand preferences, collection structure","⬜ Figma Mockups Shared — Homepage + Product page preview for approval","⬜ Development Begins — Shopify store setup + Dawn theme customisation","⬜ Content Upload — Products, collections, pages populated","⬜ Review on Staging — Client review before go-live","⬜ Revisions + Final Approval","⬜ Go Live — Domain connected, payments tested, store launched","⬜ Handover + Training — 30-min walkthrough on managing your store"] }
+        }
+      ]
+    },
+    {
+      "report": {
+        "id": "cmnaiv5oq0000xroi7sx46ca5",
+        "slug": "sage-and-veda-2026",
+        "clientName": "Amarja",
+        "clientEmail": null,
+        "passwordHash": "$2b$10$ZiRI8JRuv8huRggDCzqycOh7q.z8hI.Aaoh2BRsC45jdKT6Dh42N.",
+        "isActive": true,
+        "viewCount": 14,
+        "lastViewedAt": "2026-04-01T04:29:54.567",
+        "createdAt": "2026-03-28T16:05:52.394",
+        "updatedAt": "2026-04-01T08:58:49.592",
+        "clientProfile": {
+          "email": "amarja@veratempo.com",
+          "website": "https://sageandveda.com",
+          "whatsapp": "+33672277761",
+          "instagram": "@sage.and.veda"
+        },
+        "clientPasswordPlain": "sageandveda2026",
+        "adminProfile": {
+          "phone": "+33 6 72 27 77 61",
+          "instagram": "https://www.instagram.com/amarjapawar",
+          "proposalVisible": true
+        }
+      },
+      "sections": [
+        {
+          "id": "cmnaiv5vd0001xroilmzhggsx",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "executive_summary",
+          "title": "Executive Summary",
+          "displayOrder": 1,
+          "content": { "text": "sageandveda.com is a Shopify store on the DT Theme (Debutify family) with serious performance, SEO, and CRO gaps that are costing conversions every day. The homepage currently weighs 32MB — 16× heavier than industry best practice — primarily due to SVG banners being used instead of optimised images. Klaviyo loads 8 times per page. There are zero H1 tags and zero structured data anywhere on the site. The cart page is completely bare. These are fixable, high-impact problems.", "metrics": [{"note":"Target: <2MB","label":"Homepage Size","value":"32MB"},{"note":"Target: <2s","label":"DOM Content Loaded","value":"4.8s"},{"note":"Should be 1×","label":"Klaviyo Loads","value":"8×"},{"note":"Every page needs one","label":"H1 Tags","value":"0"},{"note":"Critical for SEO","label":"Structured Data","value":"None"},{"note":"Target: <20","label":"JS Files / Page","value":"64–67"}] }
+        },
+        {
+          "id": "cmnaiv61p0002xroihbkpu768",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "performance_audit",
+          "title": "Performance Audit",
+          "displayOrder": 2,
+          "content": { "items": ["🔴 Homepage = 32MB total — SVG banners used as photos: New_roll-on_Banner_Shopify.svg (12.5MB), Roll-on_shopify_mobile_768x940.svg (12.5MB), banner_Jan.svg (3.2MB), Amrit_Jan_768x940.svg (3.2MB). Fix: re-export all as WebP, max 150KB each.","🔴 DOM Content Loaded: 4.8 seconds (target: under 2s)","🔴 Klaviyo loaded 8 times — critical script duplication bug causing repeated tracking calls","🔴 Google Ads / GTM loaded twice — duplicate tracking tags","🔴 9 render-blocking CSS files: dt-framework, dt-custom, swiper, select2, slick, font-all, and more","🔴 64–67 JS files per page (target: under 20)","🔴 Zero lazy loading on homepage images","🔴 All Mulish font faces show status 'unloaded' — FOUT issue, no preload hints in <head>","🟠 PDP = 5.7MB, recommended product images stuck as loading.gif (lazy-load broken on product page)"] }
+        },
+        {
+          "id": "cmnaiv6ai0003xroi0kax9vcs",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "seo_audit",
+          "title": "SEO Audit",
+          "displayOrder": 3,
+          "content": { "items": ["🔴 ZERO H1 tags on any page — homepage, collection, PDP, about page all missing H1","🔴 ZERO structured data (JSON-LD) anywhere — no Product, Organization, FAQ, or Breadcrumb schema","🔴 H2 content duplicated 3× on homepage — sections rendering in triplicate (theme bug)","🔴 All page headings use H4 on About page — heading hierarchy broken site-wide","🔴 Meta title includes domain: 'www.sageandveda.com – sage & veda' (wrong format, wastes characters)","🔴 Meta description = 26 characters: 'Next global wellness house' — not keyword-optimised","🔴 PDP meta description = 18 characters: 'Hydrating Body Oil' — not useful for search","🟠 Collection page title: 'all – sage & veda' — generic, no keywords","🟠 About page title: 'About – sage & veda' — no keywords","🟠 No breadcrumb navigation anywhere on site","🟠 No hreflang tags (international audience likely given pricing in USD)","🟠 15 homepage images without alt text, 12 with empty alt attributes"] }
+        },
+        {
+          "id": "cmnaiv6gy0004xroihljpbvi2",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "cro_audit",
+          "title": "CRO Audit",
+          "displayOrder": 4,
+          "content": { "items": ["🔴 Cart page completely bare — no upsell, no free shipping progress bar, no trust badges, no express checkout (Shop Pay / Apple Pay / Google Pay), no gift note option","🔴 No sticky Add-to-Cart on PDP — button scrolls off-screen, user must scroll back up to purchase","🔴 'PLEASE CHOOSE' variant default on homepage carousel — blocks add-to-cart for visitors who don't notice","🔴 Star ratings not showing on collection page cards — Judge.me is enabled but not surfaced in theme card templates","🔴 Only 2 reviews shown on homepage despite 25 reviews at 4.64★ average","🟠 No free shipping callout near ATC button on PDP","🟠 No shipping / returns information near Add-to-Cart","🟠 Announcement bar offer '17% off + heart necklace with orders $65+' not reinforced near ATC","🟠 'Design Themes' credit link in footer — unprofessional, should be removed","🟠 Footer 'Contact Us' link duplicated twice in Quick Links","🟠 No TikTok social link (only FB, Pinterest, Instagram, LinkedIn present)","🟠 No Instagram feed / UGC section on homepage or PDPs","🟠 No express checkout anywhere on site"] }
+        },
+        {
+          "id": "cmnaiv6n50005xroikjw3lu2g",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "competitor_analysis",
+          "title": "Competitor Analysis",
+          "displayOrder": 5,
+          "content": { "competitors": [{"name":"Sage & Veda","size":"32MB 🔴","notes":"SVG banners, 64+ JS files, no H1, no schema, bare cart","speed":"4.8s DCL 🔴"},{"name":"Indewild","size":"2.7MB ✅","notes":"Instagram feed, video, Organization + WebSite schema, sticky header, TikTok presence","speed":"Fast ✅"},{"name":"Fable & Mane","size":"1.4MB ✅✅","notes":"Best performer. Full schema (WebSite + Organization + BreadcrumbList + ItemList), H1, Bundle Builder, multi-currency. 61 lazy-loaded images.","speed":"Fastest ✅✅"},{"name":"Ranavat","size":"2.1MB ✅","notes":"449 lazy-loaded images, video homepage, Skin Quiz nav item, Instagram feed, Discovery sizes, Gift Cards","speed":"Good ✅"}] }
+        },
+        {
+          "id": "cmnaiv6td0006xroi0w7u7rjh",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "pdp_analysis",
+          "title": "Reference PDP Analysis",
+          "displayOrder": 6,
+          "content": { "text": "These are the four PDPs you referenced as benchmarks. Each does something exceptional worth replicating on Sage & Veda.", "items": ["Hello Sanctuary (/products/red-panda): Charitable mission integrated near ATC ('Together we have raised $133,122 for Red Pandas'), 13 gallery images, Product schema, breadcrumbs, free shipping callout + 30-day guarantee near ATC. Page: 947KB.","The Ouai (/products/detox-shampoo): Problem-first headline pattern ('OVERDID IT LAST WEEK? TIME TO DETOX.' before product name), sticky ATC, 'PERFECT FOR' benefit tags (Oiliness/Shine/Flaky scalp), scent story section, free sample selector. Page: 343KB.","Rhode Skin (/products/glazing-milk): 'COMPLETE THE ROUTINE / THE RHODE KIT' cross-sell module below ATC — drives bundle revenue. Sticky ATC, video, 5 schema types. Page: 1.1MB.","Olaplex (/products/n-3plus): 'CLINICAL RESULTS' section with data builds credibility for premium pricing. Sticky ATC, cross-sell Recommended Routine, video, 112 lazy images. Page: 2.2MB."] }
+        },
+        {
+          "id": "cmnaiv6zy0007xroig4yc90kv",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "mockup_review",
+          "title": "Homepage Mockup Review",
+          "displayOrder": 7,
+          "content": { "text": "Your Canva mockup (amarjapawar.my.canva.site/sage-veda-website-2026) shows a strong editorial direction — dark background, warm off-white typography, serif font (Times), mood-led navigation. This is a significant upgrade from the current Debutify theme.", "items": ["✅ Dark editorial aesthetic is on-brand and competitive — closest to Fable & Mane / Ranavat","✅ Mood-led category navigation (face / hair / home / rituals / about) is a UX upgrade","✅ Product storytelling first, SKU grid second — correct priority for wellness brand","✅ 'OUR EVERYDAY ESSENTIAL' feature section builds hero product authority","✅ Philosophy section ('our philosophy — Wellness, designed...') differentiates from competitors","⚠️ Testimonials marked as placeholder — will need real review content before launch","⚠️ Mobile rendering needs verification — dark + serif can be hard to read on small screens","⚠️ 11 homepage sections is ambitious — ensure page weight stays under 2MB"] }
+        },
+        {
+          "id": "cmnaiv76c0008xroixtf5jj0l",
+          "reportId": "cmnaiv5oq0000xroi7sx46ca5",
+          "sectionType": "action_plan",
+          "title": "Recommended Quick Wins",
+          "displayOrder": 8,
+          "content": { "rows": [{"label":"Replace 4 SVG banners → WebP","value":"32MB → ~2MB instantly","status":"critical"},{"label":"Fix Klaviyo duplicate loading (8×→1×)","value":"Eliminates tracking errors","status":"critical"},{"label":"Fix GTM / Google Ads duplicate tags","value":"Clean analytics data","status":"critical"},{"label":"Add H1 to every page template","value":"Baseline SEO requirement","status":"critical"},{"label":"Add Product + Organization JSON-LD","value":"Rich snippets in search results","status":"critical"},{"label":"Surface Judge.me stars on collection cards","value":"Social proof at browse stage","status":"high"},{"label":"Fix 'PLEASE CHOOSE' variant default","value":"Remove ATC blocker","status":"high"},{"label":"Add sticky ATC to PDP","value":"Never lose the buy button","status":"high"},{"label":"Add free shipping progress bar to cart","value":"Increase AOV","status":"high"},{"label":"Remove 'Design Themes' footer credit","value":"Professional appearance","status":"medium"}] }
+        }
+      ]
+    }
+  ]
+}
