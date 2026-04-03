@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 interface RouteParams {
@@ -48,8 +49,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   // Merge into existing adminProfile
-  const existing = (project.adminProfile as Record<string, unknown>) ?? {};
-  const merged = { ...existing, ...updates };
+  const existing = (project.adminProfile ?? {}) as Prisma.JsonObject;
+  const merged: Prisma.JsonObject = { ...existing, ...updates };
 
   await prisma.clientProject.update({
     where: { id: project.id },
