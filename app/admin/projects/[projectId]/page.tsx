@@ -44,7 +44,7 @@ const EVENT_ICONS: Record<string, string> = {
   login: '🔑',
 };
 
-type Tab = 'overview' | 'sections' | 'documents' | 'sessions' | 'events' | 'settings';
+type Tab = 'overview' | 'sections' | 'documents' | 'sessions' | 'settings';
 
 interface Section {
   id: string;
@@ -513,9 +513,6 @@ export default function ProjectManagePage() {
     }
   };
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  const getEventCount = (type: string) =>
-    project?.analytics?.eventCounts.find(e => e.eventType === type)?._count.eventType ?? 0;
 
   // ─── Guards ───────────────────────────────────────────────────────────────
   if (loading) return <div className="admin-content"><div className="admin-empty">Loading…</div></div>;
@@ -612,7 +609,7 @@ export default function ProjectManagePage() {
 
       {/* Tabs */}
       <div className="settings-tabs">
-        {(['overview', 'sections', 'documents', 'sessions', 'events', 'settings'] as Tab[]).map(tab => (
+        {(['overview', 'sections', 'documents', 'sessions', 'settings'] as Tab[]).map(tab => (
           <button
             key={tab}
             className={`settings-tab${activeTab === tab ? ' active' : ''}`}
@@ -1093,110 +1090,50 @@ export default function ProjectManagePage() {
                       {expandedSession === sess.id ? '▲ Hide' : '▼ Details'}
                     </button>
                   </div>
-                  {expandedSession === sess.id && (
-                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', width: '100%' }}>
-                      <div className="admin-section-item-meta" style={{ marginBottom: 6 }}>Tabs viewed:</div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {(sess.tabsViewed ?? []).map((tab, ti) => (
-                          <span key={ti} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 8px', borderRadius: 100, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                            {tab}
-                          </span>
-                        ))}
-                        {sess.tabsViewed.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>None recorded</span>}
+                  {expandedSession === sess.id && (() => {
+                    const sessEvents = events.filter(ev => ev.sessionId === sess.id);
+                    return (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', width: '100%' }}>
+                        <div className="admin-section-item-meta" style={{ marginBottom: 6 }}>Tabs viewed:</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: sessEvents.length > 0 ? 12 : 0 }}>
+                          {(sess.tabsViewed ?? []).map((tab, ti) => (
+                            <span key={ti} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 8px', borderRadius: 100, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                              {tab}
+                            </span>
+                          ))}
+                          {sess.tabsViewed.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>None recorded</span>}
+                        </div>
+                        {sessEvents.length > 0 && (
+                          <>
+                            <div className="admin-section-item-meta" style={{ marginBottom: 6 }}>Events ({sessEvents.length}):</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {sessEvents.map(ev => {
+                                const icon = EVENT_ICONS[ev.eventType] ?? '•';
+                                const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
+                                const tab = m.tab as string | undefined;
+                                return (
+                                  <div key={ev.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+                                    <span style={{ flexShrink: 0 }}>{icon}</span>
+                                    <span style={{ color: 'var(--text)', fontWeight: 500 }}>
+                                      {ev.eventType.replace(/_/g, ' ')}
+                                      {tab && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>→ {tab}</span>}
+                                    </span>
+                                    <span style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
+                                      {timeAgo(ev.createdAt)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               ))
             )}
           </div>
-        </div>
-      )}
-
-      {/* ─── EVENTS ─── */}
-      {activeTab === 'events' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Event count pills */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {[
-              { type: 'tab_view', label: 'Tab Views' },
-              { type: 'doc_open', label: 'Doc Opens' },
-              { type: 'comment_add', label: 'Comments' },
-              { type: 'login', label: 'Logins' },
-            ].map(({ type, label }) => {
-              const count = type === 'comment_add'
-                ? (project.analytics?.commentCount ?? 0)
-                : getEventCount(type);
-              return (
-                <div
-                  key={type}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '5px 12px',
-                    borderRadius: 100,
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    fontSize: 13,
-                    color: 'var(--text)',
-                  }}
-                >
-                  <span>{EVENT_ICONS[type]}</span>
-                  <strong>{count}</strong>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{label}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Timeline */}
-          <div className="admin-card">
-            <div className="admin-card-title">Event Timeline</div>
-            {activityLoading ? (
-              <div className="admin-empty">Loading events…</div>
-            ) : events.length === 0 ? (
-              <div className="admin-empty">No events recorded yet.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {events.map((ev, i) => {
-                  const icon = EVENT_ICONS[ev.eventType] ?? '•';
-                  const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
-                  const tab = m.tab as string | undefined;
-                  return (
-                    <div
-                      key={ev.id}
-                      style={{
-                        display: 'flex',
-                        gap: 14,
-                        paddingBottom: i < events.length - 1 ? 12 : 0,
-                        marginBottom: i < events.length - 1 ? 12 : 0,
-                        borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none',
-                      }}
-                    >
-                      <div style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
-                          {ev.eventType.replace(/_/g, ' ')}
-                          {tab && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 6 }}>→ {tab}</span>}
-                        </div>
-                        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-muted)' }}>
-                          {timeAgo(ev.createdAt)}
-                          {ev.sessionId ? ` · session ${ev.sessionId.slice(0, 8)}…` : ''}
-                        </div>
-                        {(ev.meta != null && typeof ev.meta === 'object' && Object.keys(ev.meta as Record<string, unknown>).filter(k => k !== 'tab').length > 0) && (
-                          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace' }}>
-                            {JSON.stringify(Object.fromEntries(Object.entries(ev.meta as Record<string, unknown>).filter(([k]) => k !== 'tab')))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Comments */}
           {comments.length > 0 && (
             <div className="admin-card">
