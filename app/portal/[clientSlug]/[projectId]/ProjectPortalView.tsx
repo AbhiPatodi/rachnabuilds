@@ -791,6 +791,16 @@ export default function ProjectPortalView({ clientSlug, clientName, project }: P
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: sid, userAgent: navigator.userAgent }),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      // Only track initial tab for new sessions (not returning)
+      if (!data.returning) {
+        fetch(`/api/portal/${clientSlug}/${project.id}/track`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventType: 'tab_view', meta: { tab: 'submissions', initial: true }, sessionId: sid }),
+        }).catch(() => {});
+      }
     }).catch(() => {});
 
     const handleVisibility = () => {
