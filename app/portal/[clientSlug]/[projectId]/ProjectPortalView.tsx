@@ -270,6 +270,7 @@ const TABS = [
   { id: 'competitors', label: 'Competitor Analysis' },
   { id: 'proposal',    label: 'Proposal' },
   { id: 'status',      label: 'Project Status' },
+  { id: 'contract',    label: 'Contract' },
 ];
 
 const AUDIT_TYPES      = ['executive_summary', 'performance_audit', 'seo_audit', 'cro_audit', 'action_plan'];
@@ -893,6 +894,13 @@ export default function ProjectPortalView({ clientSlug, clientName, project }: P
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('submissions');
 
+  type ContractData = { id: string; content: string; status: string; clientSignature?: string | null; signedAt?: string | null };
+  const [contract, setContract] = useState<ContractData | null | undefined>(undefined); // undefined = not loaded, null = not available
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractSigning, setContractSigning] = useState(false);
+  const [signatureName, setSignatureName] = useState('');
+  const [signError, setSignError] = useState('');
+
   const sessionIdRef    = useRef<string>('');
   const tabStartTimeRef = useRef<number>(Date.now());
   const visStartRef     = useRef<number>(Date.now());
@@ -998,6 +1006,40 @@ export default function ProjectPortalView({ clientSlug, clientName, project }: P
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: sid, duration }),
     }).catch(() => {});
+  };
+
+  // Load contract when tab becomes active
+  useEffect(() => {
+    if (activeTab !== 'contract' || contract !== undefined) return;
+    setContractLoading(true);
+    fetch(`/api/portal/${clientSlug}/${project.id}/contract`)
+      .then(r => r.json())
+      .then(d => setContract(d.contract ?? null))
+      .catch(() => setContract(null))
+      .finally(() => setContractLoading(false));
+  }, [activeTab, clientSlug, project.id, contract]);
+
+  const handleSign = async () => {
+    if (!signatureName.trim()) { setSignError('Please enter your full name'); return; }
+    setSignError('');
+    setContractSigning(true);
+    try {
+      const res = await fetch(`/api/portal/${clientSlug}/${project.id}/contract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature: signatureName.trim() }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setContract(d.contract);
+        track('contract_signed', { projectId: project.id });
+      } else {
+        setSignError('Failed to sign. Please try again.');
+      }
+    } catch {
+      setSignError('Something went wrong. Please try again.');
+    }
+    setContractSigning(false);
   };
 
   const track = useCallback(async (eventType: string, meta?: Record<string, unknown>) => {
@@ -1193,6 +1235,98 @@ export default function ProjectPortalView({ clientSlug, clientName, project }: P
                 />
               )
             }
+          </>
+        )}
+
+        {activeTab === 'contract' && (
+          <>
+            <h1 className="portal-tab-heading">Contract</h1>
+            <p className="portal-tab-sub">Your service agreement with Rachna Builds.</p>
+
+            {contractLoading ? (
+              <div className="portal-empty">
+                <div className="portal-empty-icon">⏳</div>
+                <p>Loading contract…</p>
+              </div>
+            ) : contract === null || contract === undefined ? (
+              <div className="portal-empty">
+                <div className="portal-empty-icon">📋</div>
+                <p>Your contract hasn&apos;t been prepared yet. Rachna will share it here once it&apos;s ready.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                {/* Status badge */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ padding: '4px 14px', borderRadius: 100, fontSize: 12, fontWeight: 700, background: contract.status === 'signed' ? 'rgba(6,214,160,0.12)' : 'rgba(251,191,36,0.12)', color: contract.status === 'signed' ? '#06D6A0' : '#F59E0B', border: `1px solid ${contract.status === 'signed' ? '#06D6A0' : '#F59E0B'}` }}>
+                    {contract.status === 'signed' ? '✓ Signed' : '⏳ Awaiting Your Signature'}
+                  </div>
+                  {contract.status === 'signed' && contract.signedAt && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      Signed on {new Date(contract.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  )}
+                  {contract.status === 'signed' && (
+                    <button
+                      onClick={() => {
+                        const w = window.open('', '_blank');
+                        if (!w) return;
+                        w.document.write(`<!DOCTYPE html><html><head><title>Contract — Rachna Builds</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 24px;color:#111;line-height:1.8}h1,h2,h3{font-family:inherit}h1{font-size:24px;border-bottom:2px solid #111;padding-bottom:8px}h2{font-size:18px;margin-top:32px}pre,code{background:#f5f5f5;padding:2px 6px;border-radius:3px}.sig-block{margin-top:48px;padding-top:24px;border-top:2px solid #111}.sig-line{font-family:Georgia,serif;font-style:italic;font-size:20px;color:#111}.sig-meta{font-size:12px;color:#666;margin-top:4px}@media print{body{margin:20px}}</style></head><body><div style="white-space:pre-wrap">${contract.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div class="sig-block"><p class="sig-line">${contract.clientSignature}</p><p class="sig-meta">Signed digitally on ${contract.signedAt ? new Date(contract.signedAt).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}</p></div></body></html>`);
+                        w.document.close();
+                        w.print();
+                      }}
+                      style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      🖨 Print / Download PDF
+                    </button>
+                  )}
+                </div>
+
+                {/* Contract body */}
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 32px' }}>
+                  <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', fontSize: 15, lineHeight: 1.8, color: 'var(--text)' }}>
+                    {contract.content}
+                  </div>
+                </div>
+
+                {/* Sign block */}
+                {contract.status === 'signed' ? (
+                  <div style={{ background: 'rgba(6,214,160,0.06)', border: '1px solid #06D6A0', borderRadius: 14, padding: '20px 24px' }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>Digital Signature</div>
+                    <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text)', marginBottom: 6 }}>{contract.clientSignature}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Sign this contract</div>
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 18 }}>
+                      By typing your full name below, you confirm you have read and agree to the terms of this service agreement.
+                    </p>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Full Name</label>
+                    <input
+                      type="text"
+                      value={signatureName}
+                      onChange={e => { setSignatureName(e.target.value); setSignError(''); }}
+                      placeholder="Type your full name to sign"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${signError ? '#FF6B6B' : 'var(--border)'}`, background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14, fontFamily: 'Georgia, serif', fontStyle: 'italic', marginBottom: signError ? 6 : 16, boxSizing: 'border-box' }}
+                    />
+                    {signError && <p style={{ fontSize: 12, color: '#FF6B6B', marginBottom: 12 }}>{signError}</p>}
+                    <button
+                      onClick={handleSign}
+                      disabled={contractSigning || !signatureName.trim()}
+                      style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontWeight: 700, fontSize: 14, cursor: contractSigning ? 'not-allowed' : 'pointer', opacity: contractSigning || !signatureName.trim() ? 0.7 : 1 }}
+                    >
+                      {contractSigning ? 'Signing…' : '✍ I Agree & Sign'}
+                    </button>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, textAlign: 'center' }}>
+                      This digital signature is legally binding under the Information Technology Act, 2000.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 

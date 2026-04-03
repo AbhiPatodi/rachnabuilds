@@ -249,6 +249,7 @@ model ClientProject {
   comments      ProjectComment[]
   events        ProjectEvent[]
   sessions      ProjectSession[]
+  contract      ProjectContract?
 
   @@map("client_projects")
 }
@@ -314,6 +315,21 @@ model ProjectDocumentLog {
   createdAt  DateTime @default(now())
 
   @@map("project_document_logs")
+}
+
+model ProjectContract {
+  id              String    @id @default(cuid())
+  projectId       String    @unique
+  content         String    @default("")   // markdown contract text
+  status          String    @default("draft")  // draft | sent | signed
+  clientSignature String?   // typed name
+  signedAt        DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  project         ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_contracts")
 }
 
 model ProjectSession {

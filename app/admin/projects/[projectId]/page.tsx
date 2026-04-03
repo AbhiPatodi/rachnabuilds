@@ -44,7 +44,7 @@ const EVENT_ICONS: Record<string, string> = {
   login: '🔑',
 };
 
-type Tab = 'overview' | 'sections' | 'documents' | 'sessions' | 'settings';
+type Tab = 'overview' | 'sections' | 'documents' | 'sessions' | 'contract' | 'settings';
 
 interface Section {
   id: string;
@@ -227,6 +227,15 @@ export default function ProjectManagePage() {
   const [adminNotes, setAdminNotes] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
 
+  // Contract
+  type ContractData = { id: string; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; sentAt?: string | null };
+  const [contract, setContract] = useState<ContractData | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractSaving, setContractSaving] = useState(false);
+  const [contractSaved, setContractSaved] = useState(false);
+  const [contractContent, setContractContent] = useState('');
+  const [contractSending, setContractSending] = useState(false);
+
   // Overview — edit client info
   const [editingClientInfo, setEditingClientInfo] = useState(false);
   const [editClientName, setEditClientName] = useState('');
@@ -285,6 +294,17 @@ export default function ProjectManagePage() {
   }, [projectId]);
 
   useEffect(() => { fetchProject(); loadActivity(); }, [fetchProject, loadActivity]);
+
+  // Load contract when tab is opened
+  useEffect(() => {
+    if (activeTab !== 'contract' || contract !== null) return;
+    setContractLoading(true);
+    fetch(`/api/admin/projects/${projectId}/contract`)
+      .then(r => r.json())
+      .then(d => { setContract(d); setContractContent(d.content ?? ''); })
+      .catch(() => {})
+      .finally(() => setContractLoading(false));
+  }, [activeTab, projectId, contract]);
 
   // ─── Share modal helpers ───────────────────────────────────────────────────
   const openShareModal = (p: Project) => {
@@ -495,6 +515,41 @@ export default function ProjectManagePage() {
     setProject(p => p ? { ...p, documents: p.documents.filter(d => d.id !== docId) } : p);
   };
 
+  // ─── Contract save / send ─────────────────────────────────────────────────
+  const saveContract = async () => {
+    setContractSaving(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/contract`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: contractContent }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setContract(d);
+        setContractSaved(true);
+        setTimeout(() => setContractSaved(false), 2000);
+      }
+    } finally {
+      setContractSaving(false);
+    }
+  };
+
+  const sendContract = async () => {
+    if (!confirm('Send this contract to the client? They will see it in their portal.')) return;
+    setContractSending(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/contract`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'sent' }),
+      });
+      if (res.ok) setContract(await res.json());
+    } finally {
+      setContractSending(false);
+    }
+  };
+
   // ─── Settings save ────────────────────────────────────────────────────────
   const saveSettings = async () => {
     setSettingsSaving(true);
@@ -615,7 +670,7 @@ export default function ProjectManagePage() {
 
       {/* Tabs */}
       <div className="settings-tabs">
-        {(['overview', 'sections', 'documents', 'sessions', 'settings'] as Tab[]).map(tab => (
+        {(['overview', 'sections', 'documents', 'sessions', 'contract', 'settings'] as Tab[]).map(tab => (
           <button
             key={tab}
             className={`settings-tab${activeTab === tab ? ' active' : ''}`}
@@ -1191,6 +1246,78 @@ export default function ProjectManagePage() {
                 ))}
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── CONTRACT ─── */}
+      {activeTab === 'contract' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {contractLoading ? (
+            <div className="admin-empty">Loading contract…</div>
+          ) : (
+            <>
+              {/* Status bar */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ padding: '4px 12px', borderRadius: 100, fontSize: 12, fontWeight: 700, background: contract?.status === 'signed' ? 'rgba(6,214,160,0.15)' : contract?.status === 'sent' ? 'rgba(251,191,36,0.15)' : 'var(--bg-elevated)', color: contract?.status === 'signed' ? '#06D6A0' : contract?.status === 'sent' ? '#F59E0B' : 'var(--text-secondary)', border: '1px solid', borderColor: contract?.status === 'signed' ? '#06D6A0' : contract?.status === 'sent' ? '#F59E0B' : 'var(--border)' }}>
+                  {contract?.status === 'signed' ? '✓ Signed' : contract?.status === 'sent' ? '📤 Sent to Client' : '📝 Draft'}
+                </div>
+                {contract?.sentAt && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sent {timeAgo(contract.sentAt)}</div>
+                )}
+                {contract?.status === 'signed' && contract.signedAt && (
+                  <div style={{ fontSize: 11, color: '#06D6A0' }}>Signed by <strong>{contract.clientSignature}</strong> on {new Date(contract.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                )}
+              </div>
+
+              {/* Editor */}
+              <div className="admin-card">
+                <div className="admin-card-title">
+                  Contract Content
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {contractSaved && <span style={{ fontSize: 12, color: '#06D6A0' }}>✓ Saved</span>}
+                    <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={saveContract} disabled={contractSaving || contract?.status === 'signed'}>
+                      {contractSaving ? 'Saving…' : 'Save Draft'}
+                    </button>
+                    {contract?.status === 'draft' && (
+                      <button className="admin-btn admin-btn-primary admin-btn-icon" style={{ fontSize: 12 }} onClick={sendContract} disabled={contractSending || !contractContent.trim()}>
+                        {contractSending ? 'Sending…' : '📤 Send to Client'}
+                      </button>
+                    )}
+                    {contract?.status === 'sent' && (
+                      <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={sendContract} disabled={contractSending}>
+                        {contractSending ? '…' : '↺ Resend'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {contract?.status === 'signed' ? (
+                  <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 14, color: 'var(--text)', lineHeight: 1.7, opacity: 0.8 }}>
+                    {contractContent}
+                  </div>
+                ) : (
+                  <textarea
+                    className="admin-textarea"
+                    value={contractContent}
+                    onChange={e => setContractContent(e.target.value)}
+                    rows={30}
+                    placeholder="Write your contract here using Markdown formatting…"
+                    style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, lineHeight: 1.6 }}
+                  />
+                )}
+              </div>
+
+              {/* Signature block (if signed) */}
+              {contract?.status === 'signed' && (
+                <div className="admin-card" style={{ borderColor: '#06D6A0' }}>
+                  <div className="admin-card-title" style={{ color: '#06D6A0' }}>✓ Contract Signed</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ fontSize: 14, color: 'var(--text)' }}><strong>Client Signature:</strong> {contract.clientSignature}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Signed on {contract.signedAt ? new Date(contract.signedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
