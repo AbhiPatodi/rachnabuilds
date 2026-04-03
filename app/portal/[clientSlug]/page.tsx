@@ -8,10 +8,12 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ clientSlug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }
 
-export default async function ClientPortalPage({ params }: PageProps) {
+export default async function ClientPortalPage({ params, searchParams }: PageProps) {
   const { clientSlug } = await params;
+  const { preview } = await searchParams;
   const cookieStore = await cookies();
 
   const client = await prisma.client.findUnique({
@@ -55,7 +57,14 @@ export default async function ClientPortalPage({ params }: PageProps) {
   const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
   const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;
 
-  if (cookieValue !== expected) {
+  // Admin preview bypass
+  const adminSession = cookieStore.get('admin_session')?.value;
+  const enc = new TextEncoder();
+  const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(process.env.ADMIN_PASSWORD || ''));
+  const adminHash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const isAdminPreview = preview === '1' && adminSession === adminHash;
+
+  if (cookieValue !== expected && !isAdminPreview) {
     return <PortalPasswordGate clientSlug={clientSlug} clientName={client.name} />;
   }
 

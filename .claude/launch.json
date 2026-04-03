@@ -4,8 +4,8 @@
     {
       "name": "rachna-nextjs",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "runtimeArgs": ["run", "dev", "--", "--port", "3090"],
+      "port": 3090
     }
   ]
 }

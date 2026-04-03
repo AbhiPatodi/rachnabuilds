@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +36,14 @@ const CLIENT_TYPES: Record<string, string> = {
   migration: 'Migration',
 };
 
+const EVENT_ICONS: Record<string, string> = {
+  tab_view: '👁',
+  doc_open: '📄',
+  comment_add: '💬',
+  file_submit: '📤',
+  login: '🔑',
+};
+
 type Tab = 'overview' | 'sections' | 'documents' | 'sessions' | 'events' | 'settings';
 
 interface Section {
@@ -59,12 +67,21 @@ interface PortalSession {
   sessionId: string;
   ip: string | null;
   country: string | null;
+  countryCode?: string | null;
+  city?: string | null;
   device: string | null;
   browser: string | null;
   totalDuration: number;
   startedAt: string;
   lastActiveAt: string;
   tabsViewed: string[];
+}
+
+interface SessionStats {
+  totalSessions: number;
+  returnSessions: number;
+  avgDuration: number;
+  topTab: string | null;
 }
 
 interface PortalEvent {
@@ -75,24 +92,51 @@ interface PortalEvent {
   createdAt: string;
 }
 
+interface PortalComment {
+  id: string;
+  author: string;
+  context: string;
+  text: string;
+  createdAt: string;
+}
+
+interface AdminProfile {
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  website?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  notes?: string;
+  proposalVisible?: boolean;
+}
+
 interface Project {
   id: string;
   name: string;
   clientType: string;
   status: string;
+  isActive?: boolean;
+  viewCount?: number;
+  lastViewedAt?: string | null;
   createdAt: string;
   tabConfig?: unknown;
-  adminProfile?: {
-    proposalVisible?: boolean;
-    notes?: string;
-  } | null;
+  adminProfile?: AdminProfile | null;
   client: {
     id: string;
     name: string;
+    email?: string | null;
+    phone?: string | null;
     slug: string;
+    passwordPlain?: string | null;
   };
   sections: Section[];
   documents: Document[];
+  analytics?: {
+    commentCount: number;
+    eventCounts: { eventType: string; _count: { eventType: number } }[];
+  };
 }
 
 function formatDate(str: string) {
@@ -102,11 +146,29 @@ function formatDate(str: string) {
 function formatDuration(ms: number) {
   const s = Math.round(ms / 1000);
   if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${s % 60}s`;
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  if (m < 60) return rs > 0 ? `${m}m ${rs}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 }
 
 export default function ProjectManagePage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.projectId as string;
 
   const [project, setProject] = useState<Project | null>(null);
@@ -119,10 +181,11 @@ export default function ProjectManagePage() {
   const [sectionType, setSectionType] = useState('executive_summary');
   const [sectionTitle, setSectionTitle] = useState('');
   const [sectionContent, setSectionContent] = useState('{}');
+  const [sectionOrder, setSectionOrder] = useState(0);
   const [sectionLoading, setSectionLoading] = useState(false);
   const [sectionError, setSectionError] = useState('');
 
-  // Documents
+  // Documents — add form
   const [showDocForm, setShowDocForm] = useState(false);
   const [docType, setDocType] = useState('rfp');
   const [docTitle, setDocTitle] = useState('');
@@ -131,20 +194,45 @@ export default function ProjectManagePage() {
   const [docLoading, setDocLoading] = useState(false);
   const [docError, setDocError] = useState('');
 
+  // Documents — inline edit
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editDocType, setEditDocType] = useState('rfp');
+  const [editDocTitle, setEditDocTitle] = useState('');
+  const [editDocUrl, setEditDocUrl] = useState('');
+  const [editDocNotes, setEditDocNotes] = useState('');
+  const [editDocLoading, setEditDocLoading] = useState(false);
+
   // Sessions & events
-  const [sessions, setSessions] = useState<PortalSession[]>([]);
+  const [sessions, setSessions] = useState<{ sessions: PortalSession[]; stats: SessionStats } | null>(null);
   const [events, setEvents] = useState<PortalEvent[]>([]);
+  const [comments, setComments] = useState<PortalComment[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
   // Settings
   const [tabConfigText, setTabConfigText] = useState('');
   const [proposalVisible, setProposalVisible] = useState(false);
+  const [proposalToggling, setProposalToggling] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
 
-  // Copy states
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  // Overview — edit client info
+  const [editingClientInfo, setEditingClientInfo] = useState(false);
+  const [editClientName, setEditClientName] = useState('');
+  const [editClientEmail, setEditClientEmail] = useState('');
+  const [editClientPhone, setEditClientPhone] = useState('');
+  const [clientInfoSaving, setClientInfoSaving] = useState(false);
+
+  // Overview — edit admin profile
+  const [editingAdminProfile, setEditingAdminProfile] = useState(false);
+  const [adminDraft, setAdminDraft] = useState<AdminProfile>({});
+  const [adminProfileSaving, setAdminProfileSaving] = useState(false);
+
+  // Share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePassword, setSharePassword] = useState('');
+  const [msgCopied, setMsgCopied] = useState(false);
+  const [pwCopied, setPwCopied] = useState(false);
 
   const fetchProject = useCallback(async () => {
     try {
@@ -169,8 +257,15 @@ export default function ProjectManagePage() {
         fetch(`/api/admin/projects/${projectId}/events`),
         fetch(`/api/admin/projects/${projectId}/sessions`),
       ]);
-      if (evRes.ok) { const d = await evRes.json(); setEvents(d.events ?? []); }
-      if (sessRes.ok) { const d = await sessRes.json(); setSessions(d.sessions ?? []); }
+      if (evRes.ok) {
+        const d = await evRes.json();
+        setEvents(d.events ?? []);
+        setComments(d.comments ?? []);
+      }
+      if (sessRes.ok) {
+        const d = await sessRes.json();
+        setSessions(d);
+      }
     } catch {
       // non-critical
     } finally {
@@ -180,6 +275,126 @@ export default function ProjectManagePage() {
 
   useEffect(() => { fetchProject(); loadActivity(); }, [fetchProject, loadActivity]);
 
+  // ─── Share modal helpers ───────────────────────────────────────────────────
+  const openShareModal = (p: Project) => {
+    const pw = p.client.passwordPlain
+      || (typeof localStorage !== 'undefined' ? localStorage.getItem(`share_pw_${p.client.slug}`) : '')
+      || '';
+    setSharePassword(pw);
+    setShowShareModal(true);
+  };
+
+  const updateSharePassword = (val: string, slug: string) => {
+    setSharePassword(val);
+    if (typeof localStorage !== 'undefined') {
+      if (val) localStorage.setItem(`share_pw_${slug}`, val);
+      else localStorage.removeItem(`share_pw_${slug}`);
+    }
+  };
+
+  const shareMessage = (p: Project) => {
+    const link = `https://rachnabuilds.com/portal/${p.client.slug}`;
+    const pw = sharePassword || '[password]';
+    return `Hi ${p.client.name}! 👋\n\nYour portal is ready for review.\n\n🔗 Portal: ${link}\n🔑 Password: ${pw}\n\nLet me know if you have any questions!\n\n— Rachna\nrachnabuilds.com`;
+  };
+
+  const copyShareMessage = async () => {
+    if (!project) return;
+    await navigator.clipboard.writeText(shareMessage(project));
+    setMsgCopied(true);
+    setTimeout(() => setMsgCopied(false), 2000);
+  };
+
+  const copyPassword = async () => {
+    if (!sharePassword) return;
+    await navigator.clipboard.writeText(sharePassword);
+    setPwCopied(true);
+    setTimeout(() => setPwCopied(false), 2000);
+  };
+
+  const openWhatsApp = () => {
+    if (!project) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage(project))}`, '_blank');
+  };
+
+  // ─── Proposal toggle ─────────────────────────────────────────────────────
+  const toggleProposalVisible = async () => {
+    if (!project) return;
+    setProposalToggling(true);
+    const next = !proposalVisible;
+    await fetch(`/api/admin/projects/${projectId}/admin-profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ proposalVisible: next }),
+    });
+    setProposalVisible(next);
+    setProject(p => p ? { ...p, adminProfile: { ...p.adminProfile, proposalVisible: next } } : p);
+    setProposalToggling(false);
+  };
+
+  // ─── Delete project ──────────────────────────────────────────────────────
+  const handleDeleteProject = async () => {
+    if (!confirm('Delete this entire project? This cannot be undone.')) return;
+    await fetch(`/api/admin/projects/${projectId}`, { method: 'DELETE' });
+    router.push('/admin/clients');
+  };
+
+  // ─── Activate/deactivate ─────────────────────────────────────────────────
+  const toggleActive = async () => {
+    if (!project) return;
+    await fetch(`/api/admin/projects/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: !project.isActive }),
+    });
+    fetchProject();
+  };
+
+  // ─── Client info edit ────────────────────────────────────────────────────
+  const startEditClientInfo = () => {
+    if (!project) return;
+    setEditClientName(project.client.name);
+    setEditClientEmail(project.client.email ?? '');
+    setEditClientPhone(project.client.phone ?? '');
+    setEditingClientInfo(true);
+  };
+
+  const saveClientInfo = async () => {
+    if (!project) return;
+    setClientInfoSaving(true);
+    await fetch(`/api/admin/clients/${project.client.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editClientName.trim(),
+        email: editClientEmail.trim() || null,
+        phone: editClientPhone.trim() || null,
+      }),
+    });
+    setClientInfoSaving(false);
+    setEditingClientInfo(false);
+    fetchProject();
+  };
+
+  // ─── Admin profile edit ──────────────────────────────────────────────────
+  const startEditAdminProfile = () => {
+    setAdminDraft(project?.adminProfile ?? {});
+    setEditingAdminProfile(true);
+  };
+
+  const saveAdminProfile = async () => {
+    setAdminProfileSaving(true);
+    await fetch(`/api/admin/projects/${projectId}/admin-profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(adminDraft),
+    });
+    setAdminProfileSaving(false);
+    setEditingAdminProfile(false);
+    fetchProject();
+  };
+
+  // ─── Sections ─────────────────────────────────────────────────────────────
   const handleAddSection = async (e: React.FormEvent) => {
     e.preventDefault();
     setSectionError('');
@@ -194,14 +409,15 @@ export default function ProjectManagePage() {
       const res = await fetch(`/api/admin/projects/${projectId}/sections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sectionType, title: sectionTitle, content: parsedContent }),
+        body: JSON.stringify({ sectionType, title: sectionTitle, content: parsedContent, displayOrder: sectionOrder }),
       });
       if (!res.ok) { setSectionError('Failed to add section'); return; }
-      const data = await res.json();
-      setProject(p => p ? { ...p, sections: [...p.sections, data] } : p);
       setSectionTitle('');
       setSectionContent('{}');
+      setSectionOrder(0);
+      setSectionType('executive_summary');
       setShowSectionForm(false);
+      fetchProject();
     } catch {
       setSectionError('Something went wrong');
     } finally {
@@ -215,6 +431,7 @@ export default function ProjectManagePage() {
     setProject(p => p ? { ...p, sections: p.sections.filter(s => s.id !== sectionId) } : p);
   };
 
+  // ─── Documents ────────────────────────────────────────────────────────────
   const handleAddDoc = async (e: React.FormEvent) => {
     e.preventDefault();
     setDocError('');
@@ -239,12 +456,35 @@ export default function ProjectManagePage() {
     }
   };
 
+  const startEditDoc = (doc: Document) => {
+    setEditingDocId(doc.id);
+    setEditDocType(doc.docType);
+    setEditDocTitle(doc.title);
+    setEditDocUrl(doc.url);
+    setEditDocNotes(doc.notes ?? '');
+  };
+
+  const cancelEditDoc = () => setEditingDocId(null);
+
+  const handleSaveDocEdit = async (docId: string) => {
+    setEditDocLoading(true);
+    await fetch(`/api/admin/projects/${projectId}/documents`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docId, docType: editDocType, title: editDocTitle, url: editDocUrl, notes: editDocNotes }),
+    });
+    setEditDocLoading(false);
+    setEditingDocId(null);
+    fetchProject();
+  };
+
   const handleDeleteDoc = async (docId: string) => {
     if (!confirm('Delete this document?')) return;
-    await fetch(`/api/admin/projects/${projectId}/documents/${docId}`, { method: 'DELETE' });
+    await fetch(`/api/admin/projects/${projectId}/documents?docId=${docId}`, { method: 'DELETE' });
     setProject(p => p ? { ...p, documents: p.documents.filter(d => d.id !== docId) } : p);
   };
 
+  // ─── Settings save ────────────────────────────────────────────────────────
   const saveSettings = async () => {
     setSettingsSaving(true);
     try {
@@ -253,10 +493,12 @@ export default function ProjectManagePage() {
       await fetch(`/api/admin/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tabConfig: parsedConfig,
-          adminProfile: { proposalVisible, notes: adminNotes },
-        }),
+        body: JSON.stringify({ tabConfig: parsedConfig }),
+      });
+      await fetch(`/api/admin/projects/${projectId}/admin-profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: adminNotes }),
       });
       fetchProject();
     } catch {
@@ -266,6 +508,11 @@ export default function ProjectManagePage() {
     }
   };
 
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  const getEventCount = (type: string) =>
+    project?.analytics?.eventCounts.find(e => e.eventType === type)?._count.eventType ?? 0;
+
+  // ─── Guards ───────────────────────────────────────────────────────────────
   if (loading) return <div className="admin-content"><div className="admin-empty">Loading…</div></div>;
   if (error || !project) return <div className="admin-content"><div className="admin-alert admin-alert-error">{error || 'Not found'}</div></div>;
 
@@ -273,6 +520,7 @@ export default function ProjectManagePage() {
 
   return (
     <div className="admin-content">
+      {/* Breadcrumb */}
       <div className="admin-breadcrumb">
         <Link href="/admin/dashboard">Dashboard</Link>
         <span>/</span>
@@ -283,6 +531,7 @@ export default function ProjectManagePage() {
         <span className="current">{project.name}</span>
       </div>
 
+      {/* Header */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">{project.name}</h1>
@@ -293,22 +542,67 @@ export default function ProjectManagePage() {
             {' '}· {CLIENT_TYPES[project.clientType] ?? project.clientType} · {project.status}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div className="admin-link-row" style={{ fontSize: 11, padding: '8px 12px' }}>
-            <span>/portal/{project.client.slug}/{project.id}</span>
-            <button
-              className="admin-btn admin-btn-ghost admin-btn-icon"
-              style={{ fontSize: 10, flexShrink: 0 }}
-              onClick={() => {
-                navigator.clipboard.writeText(`https://${portalUrl}`);
-                setCopiedUrl(true);
-                setTimeout(() => setCopiedUrl(false), 2000);
-              }}
-            >
-              {copiedUrl ? '✓' : 'Copy'}
-            </button>
-          </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <a
+            href={`/portal/${project.client.slug}/${project.id}?preview=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-btn admin-btn-ghost"
+            style={{ fontSize: 13, textDecoration: 'none' }}
+          >
+            👁 Preview Portal
+          </a>
+          <button
+            className="admin-btn admin-btn-ghost"
+            onClick={toggleProposalVisible}
+            disabled={proposalToggling}
+            style={{
+              fontSize: 13,
+              borderColor: proposalVisible ? '#06D6A0' : undefined,
+              color: proposalVisible ? '#06D6A0' : undefined,
+            }}
+          >
+            {proposalToggling ? '...' : proposalVisible ? '✅ Proposal: Visible' : '🔒 Proposal: Hidden'}
+          </button>
+          <button
+            className="admin-btn admin-btn-ghost"
+            onClick={() => openShareModal(project)}
+            style={{ fontSize: 13 }}
+          >
+            📤 Share
+          </button>
+          <button className="admin-btn admin-btn-danger" onClick={handleDeleteProject} style={{ fontSize: 13 }}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Delete
+          </button>
         </div>
+      </div>
+
+      {/* Stats strip */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        {[
+          { label: '👁 Views', value: project.viewCount ?? 0 },
+          { label: '📅 Last Viewed', value: project.lastViewedAt ? timeAgo(project.lastViewedAt) : 'Never' },
+          { label: '👤 Sessions', value: sessions?.stats?.totalSessions ?? 0 },
+          { label: '⏱ Avg Duration', value: sessions?.stats?.avgDuration ? formatDuration(sessions.stats.avgDuration) : '—' },
+          { label: '🏆 Top Tab', value: sessions?.stats?.topTab ?? '—' },
+        ].map(stat => (
+          <div
+            key={stat.label}
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '10px 16px',
+              minWidth: 100,
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>{stat.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>{stat.label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
@@ -329,37 +623,175 @@ export default function ProjectManagePage() {
 
       {/* ─── OVERVIEW ─── */}
       {activeTab === 'overview' && (
-        <div className="admin-card">
-          <div className="admin-card-title">Project Info</div>
-          <div className="admin-info-grid">
-            <div className="admin-info-item">
-              <label>Project Name</label>
-              <span>{project.name}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Project Info */}
+          <div className="admin-card">
+            <div className="admin-card-title">
+              Project Info
+              <button
+                className={`admin-btn admin-btn-icon ${project.isActive ? 'admin-btn-danger' : 'admin-btn-ghost'}`}
+                onClick={toggleActive}
+                style={{ fontSize: 12 }}
+              >
+                {project.isActive ? 'Deactivate' : 'Activate'}
+              </button>
             </div>
-            <div className="admin-info-item">
-              <label>Client</label>
-              <span>
-                <Link href={`/admin/clients/${project.client.id}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-                  {project.client.name}
-                </Link>
-              </span>
+            <div className="admin-info-grid">
+              <div className="admin-info-item">
+                <label>Project Name</label>
+                <span>{project.name}</span>
+              </div>
+              <div className="admin-info-item">
+                <label>Type</label>
+                <span>{CLIENT_TYPES[project.clientType] ?? project.clientType}</span>
+              </div>
+              <div className="admin-info-item">
+                <label>Status</label>
+                <span style={{ textTransform: 'capitalize' }}>{project.status}</span>
+              </div>
+              <div className="admin-info-item">
+                <label>Active</label>
+                <span>
+                  <span className={`badge ${project.isActive ? 'badge-green' : 'badge-red'}`}>
+                    <span className="badge-dot" />
+                    {project.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </span>
+              </div>
+              <div className="admin-info-item">
+                <label>Created</label>
+                <span>{formatDate(project.createdAt)}</span>
+              </div>
+              <div className="admin-info-item">
+                <label>Portal URL</label>
+                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{portalUrl}</span>
+              </div>
             </div>
-            <div className="admin-info-item">
-              <label>Type</label>
-              <span>{CLIENT_TYPES[project.clientType] ?? project.clientType}</span>
+          </div>
+
+          {/* Client Info */}
+          <div className="admin-card">
+            <div className="admin-card-title">
+              Client Info
+              <button
+                className="admin-btn admin-btn-ghost admin-btn-icon"
+                onClick={editingClientInfo ? () => setEditingClientInfo(false) : startEditClientInfo}
+                style={{ fontSize: 12 }}
+              >
+                {editingClientInfo ? '✕ Cancel' : '✏️ Edit'}
+              </button>
             </div>
-            <div className="admin-info-item">
-              <label>Status</label>
-              <span style={{ textTransform: 'capitalize' }}>{project.status}</span>
+            {editingClientInfo ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="admin-form-row">
+                  <div className="admin-field">
+                    <label className="admin-label">Name *</label>
+                    <input className="admin-input" value={editClientName} onChange={e => setEditClientName(e.target.value)} required />
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">Email</label>
+                    <input className="admin-input" type="email" value={editClientEmail} onChange={e => setEditClientEmail(e.target.value)} placeholder="client@example.com" />
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">Phone</label>
+                    <input className="admin-input" type="tel" value={editClientPhone} onChange={e => setEditClientPhone(e.target.value)} placeholder="+91 98765 43210" />
+                  </div>
+                </div>
+                <div>
+                  <button className="admin-btn admin-btn-primary" onClick={saveClientInfo} disabled={clientInfoSaving || !editClientName.trim()} style={{ fontSize: 13 }}>
+                    {clientInfoSaving ? 'Saving…' : 'Save Client Info'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="admin-info-grid">
+                <div className="admin-info-item">
+                  <label>Name</label>
+                  <span>
+                    <Link href={`/admin/clients/${project.client.id}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                      {project.client.name}
+                    </Link>
+                  </span>
+                </div>
+                <div className="admin-info-item">
+                  <label>Email</label>
+                  <span>{project.client.email || '—'}</span>
+                </div>
+                <div className="admin-info-item">
+                  <label>Phone</label>
+                  <span>{project.client.phone || '—'}</span>
+                </div>
+                <div className="admin-info-item">
+                  <label>Portal Slug</label>
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{project.client.slug}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Admin Profile (contact info for portal) */}
+          <div className="admin-card">
+            <div className="admin-card-title">
+              <div className="admin-section-label">
+                Admin Contact Info
+                <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 8 }}>(shown read-only in portal)</span>
+              </div>
+              <button
+                className="admin-btn admin-btn-ghost"
+                onClick={editingAdminProfile ? () => setEditingAdminProfile(false) : startEditAdminProfile}
+                style={{ fontSize: 12 }}
+              >
+                {editingAdminProfile ? '✕ Cancel' : '✏️ Edit'}
+              </button>
             </div>
-            <div className="admin-info-item">
-              <label>Created</label>
-              <span>{formatDate(project.createdAt)}</span>
-            </div>
-            <div className="admin-info-item">
-              <label>Portal URL</label>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{portalUrl}</span>
-            </div>
+            {editingAdminProfile ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12, marginBottom: 14 }}>
+                  {[
+                    { key: 'email', label: 'Email', icon: '✉️' },
+                    { key: 'phone', label: 'Phone', icon: '📞' },
+                    { key: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+                    { key: 'website', label: 'Website', icon: '🌐' },
+                    { key: 'instagram', label: 'Instagram', icon: '📸' },
+                    { key: 'linkedin', label: 'LinkedIn', icon: '💼' },
+                    { key: 'twitter', label: 'X / Twitter', icon: '𝕏' },
+                    { key: 'notes', label: 'Notes', icon: '📝' },
+                  ].map(f => (
+                    <div key={f.key} className="admin-field">
+                      <label className="admin-label">{f.icon} {f.label}</label>
+                      <input
+                        className="admin-input"
+                        type={f.key === 'email' ? 'email' : 'text'}
+                        value={(adminDraft[f.key as keyof AdminProfile] as string) ?? ''}
+                        onChange={e => setAdminDraft(d => ({ ...d, [f.key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button className="admin-btn admin-btn-primary" onClick={saveAdminProfile} disabled={adminProfileSaving} style={{ fontSize: 13 }}>
+                  {adminProfileSaving ? 'Saving…' : 'Save Contact Info'}
+                </button>
+              </>
+            ) : project.adminProfile && Object.entries(project.adminProfile).some(([k, v]) => k !== 'proposalVisible' && k !== 'notes' && v) ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {[
+                  { key: 'email', label: 'Email', icon: '✉️' },
+                  { key: 'phone', label: 'Phone', icon: '📞' },
+                  { key: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+                  { key: 'website', label: 'Website', icon: '🌐' },
+                  { key: 'instagram', label: 'Instagram', icon: '📸' },
+                  { key: 'linkedin', label: 'LinkedIn', icon: '💼' },
+                  { key: 'twitter', label: 'X / Twitter', icon: '𝕏' },
+                ].filter(f => project.adminProfile![f.key as keyof AdminProfile]).map(f => (
+                  <div key={f.key} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{f.icon} {f.label}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', wordBreak: 'break-all' }}>{project.adminProfile![f.key as keyof AdminProfile] as string}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="admin-empty" style={{ padding: '16px 0' }}>No contact info yet. Click Edit to add phone, Instagram, etc.</div>
+            )}
           </div>
         </div>
       )}
@@ -394,15 +826,25 @@ export default function ProjectManagePage() {
                       </select>
                     </div>
                     <div className="admin-field">
-                      <label className="admin-label">Title *</label>
+                      <label className="admin-label">Display Order</label>
                       <input
+                        type="number"
                         className="admin-input"
-                        placeholder="Section title"
-                        value={sectionTitle}
-                        onChange={e => setSectionTitle(e.target.value)}
-                        required
+                        value={sectionOrder}
+                        onChange={e => setSectionOrder(Number(e.target.value))}
+                        min={0}
                       />
                     </div>
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">Title *</label>
+                    <input
+                      className="admin-input"
+                      placeholder="Section title"
+                      value={sectionTitle}
+                      onChange={e => setSectionTitle(e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="admin-field">
                     <label className="admin-label">Content (JSON)</label>
@@ -426,11 +868,13 @@ export default function ProjectManagePage() {
             {project.sections.length === 0 ? (
               <div className="admin-empty">No sections yet. Add your first section above.</div>
             ) : (
-              project.sections.map(section => (
+              [...project.sections].sort((a, b) => a.displayOrder - b.displayOrder).map(section => (
                 <div key={section.id} className="admin-section-item">
                   <div className="admin-section-item-info">
                     <div className="admin-section-item-title">{section.title}</div>
-                    <div className="admin-section-item-meta">{section.sectionType} · order {section.displayOrder}</div>
+                    <div className="admin-section-item-meta">
+                      {SECTION_TYPES.find(t => t.value === section.sectionType)?.label ?? section.sectionType} · Order: {section.displayOrder}
+                    </div>
                   </div>
                   <div className="admin-section-item-actions">
                     <button
@@ -522,26 +966,68 @@ export default function ProjectManagePage() {
               <div className="admin-empty">No documents yet.</div>
             ) : (
               project.documents.map(doc => (
-                <div key={doc.id} className="admin-section-item">
-                  <div className="admin-section-item-info">
-                    <div className="admin-section-item-title">{doc.title}</div>
-                    <div className="admin-section-item-meta">
-                      {doc.docType}
-                      {doc.notes ? ` · ${doc.notes}` : ''}
+                <div key={doc.id}>
+                  {editingDocId === doc.id ? (
+                    <div className="admin-add-form-wrapper" style={{ marginBottom: 12 }}>
+                      <div className="admin-add-form-title">Edit Document</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div className="admin-form-row">
+                          <div className="admin-field">
+                            <label className="admin-label">Doc Type</label>
+                            <select className="admin-select" value={editDocType} onChange={e => setEditDocType(e.target.value)}>
+                              {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                            </select>
+                          </div>
+                          <div className="admin-field">
+                            <label className="admin-label">Title</label>
+                            <input type="text" className="admin-input" value={editDocTitle} onChange={e => setEditDocTitle(e.target.value)} />
+                          </div>
+                        </div>
+                        <div className="admin-field">
+                          <label className="admin-label">URL</label>
+                          <input type="url" className="admin-input" value={editDocUrl} onChange={e => setEditDocUrl(e.target.value)} />
+                        </div>
+                        <div className="admin-field">
+                          <label className="admin-label">Notes</label>
+                          <textarea className="admin-textarea" value={editDocNotes} onChange={e => setEditDocNotes(e.target.value)} rows={2} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} onClick={() => handleSaveDocEdit(doc.id)} disabled={editDocLoading}>
+                            {editDocLoading ? 'Saving…' : 'Save'}
+                          </button>
+                          <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={cancelEditDoc}>Cancel</button>
+                        </div>
+                      </div>
                     </div>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
-                      {doc.url.length > 50 ? `${doc.url.slice(0, 50)}…` : doc.url}
-                    </a>
-                  </div>
-                  <div className="admin-section-item-actions">
-                    <button
-                      className="admin-btn admin-btn-danger admin-btn-icon"
-                      onClick={() => handleDeleteDoc(doc.id)}
-                      style={{ fontSize: 12 }}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="admin-section-item">
+                      <div className="admin-section-item-info">
+                        <div className="admin-section-item-title">{doc.title}</div>
+                        <div className="admin-section-item-meta">
+                          {DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType}
+                          {doc.notes ? ` · ${doc.notes}` : ''}
+                        </div>
+                        <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
+                          {doc.url.length > 60 ? `${doc.url.slice(0, 60)}…` : doc.url}
+                        </a>
+                      </div>
+                      <div className="admin-section-item-actions">
+                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                          Open ↗
+                        </a>
+                        <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDoc(doc)}>
+                          Edit
+                        </button>
+                        <button
+                          className="admin-btn admin-btn-danger admin-btn-icon"
+                          onClick={() => handleDeleteDoc(doc.id)}
+                          style={{ fontSize: 12 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -551,89 +1037,176 @@ export default function ProjectManagePage() {
 
       {/* ─── SESSIONS ─── */}
       {activeTab === 'sessions' && (
-        <div className="admin-card">
-          <div className="admin-card-title">Sessions</div>
-          {activityLoading ? (
-            <div className="admin-empty">Loading sessions…</div>
-          ) : sessions.length === 0 ? (
-            <div className="admin-empty">No sessions recorded yet.</div>
-          ) : (
-            sessions.map(sess => (
-              <div key={sess.id} className="admin-section-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                  <div className="admin-section-item-info">
-                    <div className="admin-section-item-title">
-                      {sess.country ?? 'Unknown'} · {sess.device ?? 'Unknown device'} · {sess.browser ?? ''}
-                    </div>
-                    <div className="admin-section-item-meta">
-                      {new Date(sess.startedAt).toLocaleString()} · {formatDuration(sess.totalDuration)}
-                      {sess.ip ? ` · ${sess.ip}` : ''}
-                    </div>
-                  </div>
-                  <button
-                    className="admin-btn admin-btn-ghost admin-btn-icon"
-                    onClick={() => setExpandedSession(expandedSession === sess.id ? null : sess.id)}
-                    style={{ fontSize: 11 }}
-                  >
-                    {expandedSession === sess.id ? 'Hide' : 'Details'}
-                  </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Session stats */}
+          {sessions && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[
+                { label: '👤 Total Sessions', value: sessions.stats.totalSessions },
+                { label: '🔁 Return Visits', value: sessions.stats.returnSessions },
+                { label: '⏱ Avg Duration', value: sessions.stats.avgDuration ? formatDuration(sessions.stats.avgDuration) : '—' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>{s.label}</div>
                 </div>
-                {expandedSession === sess.id && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', width: '100%' }}>
-                    <div className="admin-section-item-meta" style={{ marginBottom: 6 }}>Tabs viewed:</div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(sess.tabsViewed ?? []).map((tab, i) => (
-                        <span key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 8px', borderRadius: 100, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                          {tab}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
+              ))}
+              {sessions.stats.topTab && (
+                <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>{sessions.stats.topTab}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3 }}>🏆 Top Tab</div>
+                </div>
+              )}
+            </div>
           )}
+
+          <div className="admin-card">
+            <div className="admin-card-title">Sessions</div>
+            {activityLoading ? (
+              <div className="admin-empty">Loading sessions…</div>
+            ) : !sessions || sessions.sessions.length === 0 ? (
+              <div className="admin-empty">No sessions recorded yet.</div>
+            ) : (
+              sessions.sessions.map((sess, i) => (
+                <div key={sess.id} className="admin-section-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <div className="admin-section-item-info">
+                      <div className="admin-section-item-title">
+                        #{sessions.sessions.length - i} · {[sess.city, sess.country].filter(Boolean).join(', ') || 'Unknown location'}
+                        {' '}· {sess.device ?? 'unknown device'} · {sess.browser ?? ''}
+                      </div>
+                      <div className="admin-section-item-meta">
+                        {timeAgo(sess.startedAt)} · {sess.totalDuration ? formatDuration(sess.totalDuration) : '< 1s'}
+                        {sess.ip ? ` · ${sess.ip}` : ''}
+                      </div>
+                    </div>
+                    <button
+                      className="admin-btn admin-btn-ghost admin-btn-icon"
+                      onClick={() => setExpandedSession(expandedSession === sess.id ? null : sess.id)}
+                      style={{ fontSize: 11 }}
+                    >
+                      {expandedSession === sess.id ? '▲ Hide' : '▼ Details'}
+                    </button>
+                  </div>
+                  {expandedSession === sess.id && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', width: '100%' }}>
+                      <div className="admin-section-item-meta" style={{ marginBottom: 6 }}>Tabs viewed:</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {(sess.tabsViewed ?? []).map((tab, ti) => (
+                          <span key={ti} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 8px', borderRadius: 100, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                            {tab}
+                          </span>
+                        ))}
+                        {sess.tabsViewed.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>None recorded</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
       {/* ─── EVENTS ─── */}
       {activeTab === 'events' && (
-        <div className="admin-card">
-          <div className="admin-card-title">Event Timeline</div>
-          {activityLoading ? (
-            <div className="admin-empty">Loading events…</div>
-          ) : events.length === 0 ? (
-            <div className="admin-empty">No events recorded yet.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {events.map((ev, i) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Event count pills */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { type: 'tab_view', label: 'Tab Views' },
+              { type: 'doc_open', label: 'Doc Opens' },
+              { type: 'comment_add', label: 'Comments' },
+              { type: 'login', label: 'Logins' },
+            ].map(({ type, label }) => {
+              const count = type === 'comment_add'
+                ? (project.analytics?.commentCount ?? 0)
+                : getEventCount(type);
+              return (
                 <div
-                  key={ev.id}
+                  key={type}
                   style={{
                     display: 'flex',
-                    gap: 14,
-                    paddingBottom: i < events.length - 1 ? 12 : 0,
-                    marginBottom: i < events.length - 1 ? 12 : 0,
-                    borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '5px 12px',
+                    borderRadius: 100,
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
                   }}
                 >
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 4 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
-                      {ev.eventType.replace(/_/g, ' ')}
-                    </div>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-muted)' }}>
-                      {new Date(ev.createdAt).toLocaleString()}
-                      {ev.sessionId ? ` · session: ${ev.sessionId.slice(0, 8)}…` : ''}
-                    </div>
-                    {(ev.meta != null && typeof ev.meta === 'object' && Object.keys(ev.meta as Record<string, unknown>).length > 0) && (
-                      <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {JSON.stringify(ev.meta)}
-                      </div>
-                    )}
-                  </div>
+                  <span>{EVENT_ICONS[type]}</span>
+                  <strong>{count}</strong>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{label}</span>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* Timeline */}
+          <div className="admin-card">
+            <div className="admin-card-title">Event Timeline</div>
+            {activityLoading ? (
+              <div className="admin-empty">Loading events…</div>
+            ) : events.length === 0 ? (
+              <div className="admin-empty">No events recorded yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {events.map((ev, i) => {
+                  const icon = EVENT_ICONS[ev.eventType] ?? '•';
+                  const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
+                  const tab = m.tab as string | undefined;
+                  return (
+                    <div
+                      key={ev.id}
+                      style={{
+                        display: 'flex',
+                        gap: 14,
+                        paddingBottom: i < events.length - 1 ? 12 : 0,
+                        marginBottom: i < events.length - 1 ? 12 : 0,
+                        borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none',
+                      }}
+                    >
+                      <div style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
+                          {ev.eventType.replace(/_/g, ' ')}
+                          {tab && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 6 }}>→ {tab}</span>}
+                        </div>
+                        <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-muted)' }}>
+                          {timeAgo(ev.createdAt)}
+                          {ev.sessionId ? ` · session ${ev.sessionId.slice(0, 8)}…` : ''}
+                        </div>
+                        {(ev.meta != null && typeof ev.meta === 'object' && Object.keys(ev.meta as Record<string, unknown>).filter(k => k !== 'tab').length > 0) && (
+                          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace' }}>
+                            {JSON.stringify(Object.fromEntries(Object.entries(ev.meta as Record<string, unknown>).filter(([k]) => k !== 'tab')))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Comments */}
+          {comments.length > 0 && (
+            <div className="admin-card">
+              <div className="admin-card-title">Comments ({comments.length})</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {comments.map(c => (
+                  <div key={c.id} style={{ background: 'var(--bg-elevated)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border)' }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', marginBottom: 4 }}>{c.author}</div>
+                    <div style={{ fontSize: 14, color: 'var(--text)', marginBottom: 6 }}>{c.text}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      in {c.context} · {timeAgo(c.createdAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -693,6 +1266,79 @@ export default function ProjectManagePage() {
             >
               {settingsSaving ? 'Saving…' : 'Save Settings'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── SHARE MODAL ─── */}
+      {showShareModal && (
+        <div
+          className="share-overlay"
+          onClick={() => setShowShareModal(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div
+            className="share-modal"
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, width: '100%', maxWidth: 500, overflow: 'hidden' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>📤 Share Portal</div>
+              <button
+                onClick={() => setShowShareModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 18, cursor: 'pointer', padding: 4 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label className="admin-label" style={{ marginBottom: 6, display: 'block' }}>Portal Link</label>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--text-secondary)', padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  rachnabuilds.com/portal/{project.client.slug}
+                </div>
+              </div>
+
+              <div>
+                <label className="admin-label" style={{ marginBottom: 6, display: 'block' }}>Password</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="admin-input"
+                    type="text"
+                    placeholder="e.g. client2026"
+                    value={sharePassword}
+                    onChange={e => updateSharePassword(e.target.value, project.client.slug)}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    className="admin-btn admin-btn-ghost admin-btn-icon"
+                    onClick={copyPassword}
+                    disabled={!sharePassword}
+                    style={{ fontSize: 14, flexShrink: 0 }}
+                    title="Copy password"
+                  >
+                    {pwCopied ? '✓' : '📋'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="admin-label" style={{ marginBottom: 6, display: 'block' }}>Message Preview</label>
+                <pre style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, lineHeight: 1.6 }}>
+                  {shareMessage(project)}
+                </pre>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+              <button className="admin-btn admin-btn-primary" style={{ flex: 1, fontSize: 13 }} onClick={copyShareMessage}>
+                {msgCopied ? '✓ Copied!' : '📋 Copy Message'}
+              </button>
+              <button className="admin-btn admin-btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={openWhatsApp}>
+                💬 WhatsApp
+              </button>
+            </div>
           </div>
         </div>
       )}

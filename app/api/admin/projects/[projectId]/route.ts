@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     const project = await prisma.clientProject.findUnique({
       where: { id: projectId },
       include: {
-        client: { select: { id: true, name: true, email: true, slug: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, slug: true, passwordPlain: true } },
         sections: { orderBy: { displayOrder: 'asc' } },
         documents: { orderBy: { uploadedAt: 'desc' } },
       },
