@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { logDocAction } from '@/lib/docLog';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
@@ -36,6 +37,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       },
     });
 
+    logDocAction({ projectId, documentId: doc.id, action: 'added', actorType: 'admin', docTitle: title, meta: { docType, url } });
+
     return NextResponse.json(doc, { status: 201 });
   } catch (err) {
     console.error(err);
@@ -52,6 +55,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const { docId, docType, title, url, notes } = await req.json();
     if (!docId) return NextResponse.json({ error: 'docId is required' }, { status: 400 });
 
+    const existing = await prisma.projectDocument.findUnique({ where: { id: docId } });
     const updated = await prisma.projectDocument.update({
       where: { id: docId },
       data: {
@@ -61,6 +65,16 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         ...(notes   !== undefined && { notes: notes || null }),
       },
     });
+
+    if (existing) {
+      const projectId = existing.projectId;
+      if (url !== undefined && url !== existing.url) {
+        logDocAction({ projectId, documentId: docId, action: 'url_changed', actorType: 'admin', docTitle: updated.title, meta: { oldUrl: existing.url, newUrl: url } });
+      }
+      if (notes !== undefined && notes !== existing.notes) {
+        logDocAction({ projectId, documentId: docId, action: 'note_edited', actorType: 'admin', docTitle: updated.title, meta: { oldNote: existing.notes, newNote: notes } });
+      }
+    }
 
     return NextResponse.json(updated);
   } catch (err: unknown) {
@@ -83,7 +97,11 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     const docId = searchParams.get('docId');
     if (!docId) return NextResponse.json({ error: 'docId is required' }, { status: 400 });
 
+    const doc = await prisma.projectDocument.findUnique({ where: { id: docId } });
     await prisma.projectDocument.delete({ where: { id: docId } });
+    if (doc) {
+      logDocAction({ projectId: doc.projectId, documentId: docId, action: 'deleted', actorType: 'admin', docTitle: doc.title });
+    }
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const error = err as { code?: string };

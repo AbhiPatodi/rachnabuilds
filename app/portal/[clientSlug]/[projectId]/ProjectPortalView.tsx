@@ -430,6 +430,23 @@ function ComingSoonPanel({ icon, headline, sub }: { icon: string; headline: stri
 
 // ── Documents panel ─────────────────────────────────────────────────────────
 
+type DocLog = { id: string; documentId: string; action: string; actorType: string; docTitle?: string | null; createdAt: string };
+
+function timeAgoShort(iso: string) {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  added: 'Added',
+  url_changed: 'File/link updated',
+  note_edited: 'Note edited',
+  deleted: 'Removed',
+};
+
 function DocumentsPanel({
   documents,
   clientSlug,
@@ -442,6 +459,9 @@ function DocumentsPanel({
   onDocOpen: (docId: string, title: string) => void;
 }) {
   const [noteState, setNoteState] = useState<Record<string, { editing: boolean; value: string; saving: boolean; saved: boolean }>>({});
+  const [editUrlState, setEditUrlState] = useState<Record<string, { open: boolean; mode: 'link' | 'upload'; value: string; file: File | null; saving: boolean; progress: string }>>({});
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
+  const [logs, setLogs] = useState<DocLog[]>([]);
   const [showSubmit, setShowSubmit] = useState(false);
   const [submitMode, setSubmitMode] = useState<'link' | 'text' | 'upload'>('link');
   const [submitTitle, setSubmitTitle] = useState('');
@@ -450,6 +470,14 @@ function DocumentsPanel({
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [docUrls, setDocUrls] = useState<Record<string, string>>(() => Object.fromEntries(documents.map(d => [d.id, d.url ?? ''])));
+
+  useEffect(() => {
+    fetch(`/api/portal/${clientSlug}/${projectId}/document-logs`)
+      .then(r => r.ok ? r.json() : { logs: [] })
+      .then(d => setLogs(d.logs ?? []))
+      .catch(() => {});
+  }, [clientSlug, projectId]);
 
   const getNote = useCallback((doc: ProjectDocument) => {
     return noteState[doc.id] ?? { editing: false, value: doc.notes ?? '', saving: false, saved: false };
@@ -466,10 +494,57 @@ function DocumentsPanel({
   const saveNote = async (doc: ProjectDocument, value: string) => {
     setNoteState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: true } }));
     try {
-      // Note: reuses submit route pattern — for now a simple PATCH approach; if a separate note route is needed it can be added later
-      setNoteState(prev => ({ ...prev, [doc.id]: { editing: false, value, saving: false, saved: true } }));
+      const res = await fetch(`/api/portal/${clientSlug}/${projectId}/documents/${doc.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: value }),
+      });
+      if (res.ok) {
+        setNoteState(prev => ({ ...prev, [doc.id]: { editing: false, value, saving: false, saved: true } }));
+        // Refresh logs
+        fetch(`/api/portal/${clientSlug}/${projectId}/document-logs`)
+          .then(r => r.json()).then(d => setLogs(d.logs ?? [])).catch(() => {});
+        setTimeout(() => setNoteState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saved: false } })), 2000);
+      } else {
+        setNoteState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: false } }));
+      }
     } catch {
       setNoteState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: false } }));
+    }
+  };
+
+  const saveEditUrl = async (doc: ProjectDocument) => {
+    const es = editUrlState[doc.id];
+    if (!es) return;
+    setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: true } }));
+    try {
+      let finalUrl = es.value;
+      if (es.mode === 'upload' && es.file) {
+        setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], progress: 'Uploading…' } }));
+        const form = new FormData();
+        form.append('file', es.file);
+        const upRes = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: form });
+        if (!upRes.ok) {
+          setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: false, progress: 'Upload failed' } }));
+          return;
+        }
+        finalUrl = (await upRes.json()).url;
+      }
+      const res = await fetch(`/api/portal/${clientSlug}/${projectId}/documents/${doc.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: finalUrl }),
+      });
+      if (res.ok) {
+        setDocUrls(prev => ({ ...prev, [doc.id]: finalUrl }));
+        setEditUrlState(prev => ({ ...prev, [doc.id]: { open: false, mode: 'link', value: finalUrl, file: null, saving: false, progress: '' } }));
+        fetch(`/api/portal/${clientSlug}/${projectId}/document-logs`)
+          .then(r => r.json()).then(d => setLogs(d.logs ?? [])).catch(() => {});
+      } else {
+        setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: false, progress: '' } }));
+      }
+    } catch {
+      setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], saving: false, progress: '' } }));
     }
   };
 
@@ -577,6 +652,11 @@ function DocumentsPanel({
         <div className="portal-docs-grid">
           {documents.map(doc => {
             const ns = getNote(doc);
+            const es = editUrlState[doc.id] ?? { open: false, mode: 'link' as const, value: doc.url ?? '', file: null, saving: false, progress: '' };
+            const docUrl = docUrls[doc.id] ?? doc.url ?? '';
+            const isClientUpload = doc.docType === 'client_upload';
+            const docLogs = logs.filter(l => l.documentId === doc.id).slice(0, 5);
+            const historyOpen = !!showHistory[doc.id];
             return (
               <div key={doc.id} className="portal-doc-card">
                 <div className="portal-doc-type-badge">{DOC_TYPE_LABELS[doc.docType] || doc.docType}</div>
@@ -603,15 +683,79 @@ function DocumentsPanel({
                       ? <div className="portal-doc-note-text">{ns.value}</div>
                       : <div className="portal-doc-note-placeholder">No note added</div>
                     }
-                    <button className="portal-note-edit-btn" onClick={() => startEdit(doc)}>
-                      {ns.value ? 'Edit note' : '+ Add note'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {ns.saved && <span style={{ fontSize: 11, color: '#06D6A0' }}>✓ Saved</span>}
+                      <button className="portal-note-edit-btn" onClick={() => startEdit(doc)}>
+                        {ns.value ? 'Edit note' : '+ Add note'}
+                      </button>
+                    </div>
                   </div>
                 )}
-                {doc.url && doc.url !== 'pending' && doc.url.startsWith('http') && (
-                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="portal-doc-link" onClick={() => onDocOpen(doc.id, doc.title)}>
+
+                {/* Edit file/link — only for client uploads */}
+                {isClientUpload && (
+                  es.open ? (
+                    <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                        {(['link', 'upload'] as const).map(m => (
+                          <button key={m} onClick={() => setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], mode: m, value: '', file: null } }))}
+                            style={{ flex: 1, padding: '6px 0', borderRadius: 6, border: `1.5px solid ${es.mode === m ? '#06D6A0' : 'var(--border)'}`, background: es.mode === m ? 'rgba(6,214,160,0.08)' : 'transparent', color: es.mode === m ? '#06D6A0' : 'var(--text-secondary)', fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>
+                            {m === 'link' ? '🔗 Link' : '📎 Upload'}
+                          </button>
+                        ))}
+                      </div>
+                      {es.mode === 'link' ? (
+                        <input className="client-submit-input" value={es.value} onChange={e => setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], value: e.target.value } }))} placeholder="New link URL…" style={{ marginBottom: 8 }} />
+                      ) : (
+                        <div style={{ marginBottom: 8 }}>
+                          <input type="file" onChange={e => setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], file: e.target.files?.[0] ?? null } }))}
+                            style={{ display: 'block', width: '100%', padding: '8px', borderRadius: 6, border: '1.5px dashed var(--border)', background: 'transparent', cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }} />
+                          {es.file && <div style={{ fontSize: 11, color: '#06D6A0', marginTop: 4 }}>✓ {es.file.name}</div>}
+                          {es.progress && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{es.progress}</div>}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="portal-note-save" onClick={() => saveEditUrl(doc)} disabled={es.saving || (es.mode === 'link' ? !es.value.trim() : !es.file)} style={{ flex: 1, fontSize: 12 }}>
+                          {es.saving ? 'Saving…' : 'Update'}
+                        </button>
+                        <button className="portal-note-cancel" onClick={() => setEditUrlState(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], open: false } }))} style={{ fontSize: 12 }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditUrlState(prev => ({ ...prev, [doc.id]: { open: true, mode: 'link', value: docUrl, file: null, saving: false, progress: '' } }))}
+                      style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}>
+                      ✏️ Replace file / link
+                    </button>
+                  )
+                )}
+
+                {/* View link */}
+                {docUrl && docUrl !== 'pending' && docUrl.startsWith('http') && (
+                  <a href={docUrl} target="_blank" rel="noopener noreferrer" className="portal-doc-link" onClick={() => onDocOpen(doc.id, doc.title)}>
                     View document →
                   </a>
+                )}
+
+                {/* History */}
+                {docLogs.length > 0 && (
+                  <div style={{ marginTop: 10, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                    <button onClick={() => setShowHistory(prev => ({ ...prev, [doc.id]: !prev[doc.id] }))}
+                      style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {historyOpen ? '▲ Hide history' : `▼ History (${docLogs.length})`}
+                    </button>
+                    {historyOpen && (
+                      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {docLogs.map(log => (
+                          <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              {log.actorType === 'admin' ? '👩‍💼' : '👤'} {ACTION_LABELS[log.action] ?? log.action}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>{timeAgoShort(log.createdAt)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             );

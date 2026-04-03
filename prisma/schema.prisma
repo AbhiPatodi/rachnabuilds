@@ -239,6 +239,8 @@ model ClientProject {
   tabConfig     Json?     // null = use clientType defaults
   adminProfile  Json      @default("{}")          // proposalVisible, notes, etc.
   displayOrder  Int       @default(0)
+  viewCount     Int       @default(0)
+  lastViewedAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -299,6 +301,19 @@ model ProjectEvent {
   project   ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_events")
+}
+
+model ProjectDocumentLog {
+  id         String   @id @default(cuid())
+  projectId  String
+  documentId String
+  action     String   // 'added' | 'url_changed' | 'note_edited' | 'deleted'
+  actorType  String   // 'admin' | 'client'
+  docTitle   String?
+  meta       Json?    // { oldValue?, newValue?, docType? }
+  createdAt  DateTime @default(now())
+
+  @@map("project_document_logs")
 }
 
 model ProjectSession {

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPushToAll } from '@/lib/webpush';
+import { logDocAction } from '@/lib/docLog';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       notes: note?.trim() || null,
     },
   });
+
+  logDocAction({ projectId: project.id, documentId: doc.id, action: 'added', actorType: 'client', docTitle: title.trim(), meta: { url: url.trim() } });
 
   sendPushToAll(
     'File Submitted',

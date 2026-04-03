@@ -214,6 +214,12 @@ export default function ProjectManagePage() {
   const [activityLoading, setActivityLoading] = useState(false);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
 
+  // Document logs
+  type DocLogEntry = { id: string; documentId: string; action: string; actorType: string; docTitle?: string | null; createdAt: string };
+  const [docLogs, setDocLogs] = useState<DocLogEntry[]>([]);
+  const [docLogsLoaded, setDocLogsLoaded] = useState(false);
+  const [showDocHistory, setShowDocHistory] = useState<Record<string, boolean>>({});
+
   // Settings
   const [tabConfigText, setTabConfigText] = useState('');
   const [proposalVisible, setProposalVisible] = useState(false);
@@ -895,6 +901,11 @@ export default function ProjectManagePage() {
       )}
 
       {/* ─── DOCUMENTS ─── */}
+      {activeTab === 'documents' && !docLogsLoaded && (() => {
+        fetch(`/api/admin/projects/${projectId}/document-logs`)
+          .then(r => r.json()).then(d => { setDocLogs(d.logs ?? []); setDocLogsLoaded(true); }).catch(() => {});
+        return null;
+      })()}
       {activeTab === 'documents' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="admin-card">
@@ -1002,32 +1013,62 @@ export default function ProjectManagePage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="admin-section-item">
-                      <div className="admin-section-item-info">
-                        <div className="admin-section-item-title">{doc.title}</div>
-                        <div className="admin-section-item-meta">
-                          {DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType}
-                          {doc.notes ? ` · ${doc.notes}` : ''}
+                    <div style={{ flexDirection: 'column', gap: 0 }} className="admin-section-item">
+                      <div style={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
+                        <div className="admin-section-item-info" style={{ flex: 1 }}>
+                          <div className="admin-section-item-title">{doc.title}</div>
+                          <div className="admin-section-item-meta">
+                            {DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType}
+                            {doc.notes ? ` · ${doc.notes}` : ''}
+                          </div>
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
+                            {doc.url.length > 60 ? `${doc.url.slice(0, 60)}…` : doc.url}
+                          </a>
                         </div>
-                        <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
-                          {doc.url.length > 60 ? `${doc.url.slice(0, 60)}…` : doc.url}
-                        </a>
+                        <div className="admin-section-item-actions">
+                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                            Open ↗
+                          </a>
+                          <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDoc(doc)}>
+                            Edit
+                          </button>
+                          <button
+                            className="admin-btn admin-btn-danger admin-btn-icon"
+                            onClick={() => handleDeleteDoc(doc.id)}
+                            style={{ fontSize: 12 }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <div className="admin-section-item-actions">
-                        <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
-                          Open ↗
-                        </a>
-                        <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDoc(doc)}>
-                          Edit
-                        </button>
-                        <button
-                          className="admin-btn admin-btn-danger admin-btn-icon"
-                          onClick={() => handleDeleteDoc(doc.id)}
-                          style={{ fontSize: 12 }}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      {(() => {
+                        const dLogs = docLogs.filter(l => l.documentId === doc.id).slice(0, 5);
+                        if (dLogs.length === 0) return null;
+                        const open = !!showDocHistory[doc.id];
+                        const DOC_ACTION_LABELS: Record<string, string> = { added: 'Added', url_changed: 'File/link updated', note_edited: 'Note edited', deleted: 'Removed' };
+                        return (
+                          <div style={{ width: '100%', paddingTop: 8, marginTop: 4, borderTop: '1px solid var(--border)' }}>
+                            <button onClick={() => setShowDocHistory(prev => ({ ...prev, [doc.id]: !prev[doc.id] }))}
+                              style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              {open ? '▲ Hide history' : `▼ History (${dLogs.length})`}
+                            </button>
+                            {open && (
+                              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                {dLogs.map(log => (
+                                  <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                                    <span style={{ color: 'var(--text-secondary)' }}>
+                                      {log.actorType === 'admin' ? '👩‍💼 Rachna' : '👤 Client'} — {DOC_ACTION_LABELS[log.action] ?? log.action}
+                                    </span>
+                                    <span style={{ color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>
+                                      {new Date(log.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
