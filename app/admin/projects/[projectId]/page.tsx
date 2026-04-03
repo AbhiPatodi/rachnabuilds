@@ -169,8 +169,8 @@ export default function ProjectManagePage() {
         fetch(`/api/admin/projects/${projectId}/events`),
         fetch(`/api/admin/projects/${projectId}/sessions`),
       ]);
-      if (evRes.ok) setEvents(await evRes.json());
-      if (sessRes.ok) setSessions(await sessRes.json());
+      if (evRes.ok) { const d = await evRes.json(); setEvents(d.events ?? []); }
+      if (sessRes.ok) { const d = await sessRes.json(); setSessions(d.sessions ?? []); }
     } catch {
       // non-critical
     } finally {
