@@ -154,6 +154,11 @@ function formatDuration(ms: number) {
   return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
 }
 
+function countryFlag(code?: string | null) {
+  if (!code || code.length !== 2) return '';
+  return String.fromCodePoint(...code.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -544,7 +549,7 @@ export default function ProjectManagePage() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <a
-            href={`/portal/${project.client.slug}/${project.id}?preview=1`}
+            href={`/api/portal/preview?slug=${project.client.slug}&project=${project.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="admin-btn admin-btn-ghost"
@@ -1072,7 +1077,7 @@ export default function ProjectManagePage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                     <div className="admin-section-item-info">
                       <div className="admin-section-item-title">
-                        #{sessions.sessions.length - i} · {[sess.city, sess.country].filter(Boolean).join(', ') || 'Unknown location'}
+                        {countryFlag(sess.countryCode)} #{sessions.sessions.length - i} · {[sess.city, sess.country].filter(Boolean).join(', ') || 'Unknown location'}
                         {' '}· {sess.device ?? 'unknown device'} · {sess.browser ?? ''}
                       </div>
                       <div className="admin-section-item-meta">

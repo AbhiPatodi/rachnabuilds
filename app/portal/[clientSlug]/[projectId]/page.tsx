@@ -35,7 +35,7 @@ export default async function ProjectPortalPage({ params }: PageProps) {
     );
   }
 
-  // HMAC cookie check
+  // HMAC cookie check (v2)
   const secret = process.env.ADMIN_PASSWORD || 'secret';
   const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
   const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;

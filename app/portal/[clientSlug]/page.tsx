@@ -59,9 +59,7 @@ export default async function ClientPortalPage({ params, searchParams }: PagePro
 
   // Admin preview bypass
   const adminSession = cookieStore.get('admin_session')?.value;
-  const enc = new TextEncoder();
-  const hashBuf = await crypto.subtle.digest('SHA-256', enc.encode(process.env.ADMIN_PASSWORD || ''));
-  const adminHash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
   const isAdminPreview = preview === '1' && adminSession === adminHash;
 
   if (cookieValue !== expected && !isAdminPreview) {

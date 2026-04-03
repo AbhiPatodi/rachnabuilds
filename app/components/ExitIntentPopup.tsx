@@ -13,7 +13,7 @@ export function ExitIntentPopup() {
 
   useEffect(() => {
     // Only on public non-admin pages
-    if (pathname?.startsWith('/admin') || pathname?.startsWith('/reports')) return
+    if (pathname?.startsWith('/admin') || pathname?.startsWith('/reports') || pathname?.startsWith('/portal')) return
     // Only once per session
     if (sessionStorage.getItem('exit_popup_shown')) return
 

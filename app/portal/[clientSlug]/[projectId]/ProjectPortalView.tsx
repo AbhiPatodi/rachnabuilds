@@ -443,9 +443,12 @@ function DocumentsPanel({
 }) {
   const [noteState, setNoteState] = useState<Record<string, { editing: boolean; value: string; saving: boolean; saved: boolean }>>({});
   const [showSubmit, setShowSubmit] = useState(false);
+  const [submitMode, setSubmitMode] = useState<'link' | 'text' | 'upload'>('link');
   const [submitTitle, setSubmitTitle] = useState('');
   const [submitUrl, setSubmitUrl] = useState('');
   const [submitNote, setSubmitNote] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
 
   const getNote = useCallback((doc: ProjectDocument) => {
@@ -471,17 +474,34 @@ function DocumentsPanel({
   };
 
   const handleSubmitFile = async () => {
-    if (!submitTitle.trim() || !submitUrl.trim()) return;
+    if (!submitTitle.trim()) return;
     setSubmitLoading(true);
-    const res = await fetch(`/api/portal/${clientSlug}/${projectId}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: submitTitle, url: submitUrl, note: submitNote }),
-    });
-    if (res.ok) {
-      window.location.reload();
+    try {
+      let finalUrl = submitUrl;
+
+      // Upload mode: upload file first, get URL
+      if (submitMode === 'upload' && uploadFile) {
+        setUploadProgress('Uploading…');
+        const form = new FormData();
+        form.append('file', uploadFile);
+        const upRes = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: form });
+        if (!upRes.ok) { setUploadProgress('Upload failed'); setSubmitLoading(false); return; }
+        const { url } = await upRes.json();
+        finalUrl = url;
+        setUploadProgress('');
+      }
+
+      if (!finalUrl.trim()) { setSubmitLoading(false); return; }
+
+      const res = await fetch(`/api/portal/${clientSlug}/${projectId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: submitTitle, url: finalUrl, note: submitNote }),
+      });
+      if (res.ok) window.location.reload();
+    } finally {
+      setSubmitLoading(false);
     }
-    setSubmitLoading(false);
   };
 
   return (
@@ -495,22 +515,52 @@ function DocumentsPanel({
         </button>
         {showSubmit && (
           <div className="client-submit-form">
-            <div className="client-submit-title">Share a file or link with us</div>
-            <div>
-              <label className="client-submit-label">Title *</label>
-              <input className="client-submit-input" value={submitTitle} onChange={e => setSubmitTitle(e.target.value)} placeholder="e.g. Brand guidelines PDF" />
+            <div className="client-submit-title">Share with us</div>
+
+            {/* Mode toggle */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {(['link', 'upload', 'text'] as const).map(mode => (
+                <button key={mode} onClick={() => { setSubmitMode(mode); setSubmitUrl(''); setUploadFile(null); }}
+                  style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `1.5px solid ${submitMode === mode ? '#06D6A0' : '#E2E8F0'}`, background: submitMode === mode ? 'rgba(6,214,160,0.08)' : 'transparent', color: submitMode === mode ? '#06D6A0' : '#64748B', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                >
+                  {mode === 'link' ? '🔗 Link' : mode === 'upload' ? '📎 Upload' : '✏️ Text'}
+                </button>
+              ))}
             </div>
+
             <div>
-              <label className="client-submit-label">URL or link *</label>
-              <input className="client-submit-input" value={submitUrl} onChange={e => setSubmitUrl(e.target.value)} placeholder="https://drive.google.com/…" />
+              <label className="client-submit-label">Label *</label>
+              <input className="client-submit-input" value={submitTitle} onChange={e => setSubmitTitle(e.target.value)} placeholder={submitMode === 'link' ? 'e.g. Brand Guidelines PDF' : 'e.g. Instagram Handle'} />
             </div>
+
+            {submitMode === 'link' ? (
+              <div>
+                <label className="client-submit-label">Link *</label>
+                <input className="client-submit-input" value={submitUrl} onChange={e => setSubmitUrl(e.target.value)} placeholder="https://drive.google.com/…" />
+                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 5 }}>Works with Google Drive, Dropbox, WeTransfer, or any public link</div>
+              </div>
+            ) : submitMode === 'upload' ? (
+              <div>
+                <label className="client-submit-label">File * <span style={{ fontWeight: 400, color: '#94A3B8' }}>(max 10 MB)</span></label>
+                <input type="file" onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
+                  style={{ display: 'block', width: '100%', padding: '10px', borderRadius: 8, border: '1.5px dashed #CBD5E1', background: 'transparent', cursor: 'pointer', fontSize: 13, color: '#64748B' }} />
+                {uploadFile && <div style={{ fontSize: 11, color: '#06D6A0', marginTop: 5 }}>✓ {uploadFile.name} ({(uploadFile.size / 1024).toFixed(0)} KB)</div>}
+                {uploadProgress && <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 5 }}>{uploadProgress}</div>}
+              </div>
+            ) : (
+              <div>
+                <label className="client-submit-label">Your response *</label>
+                <textarea className="client-submit-input" value={submitUrl} onChange={e => setSubmitUrl(e.target.value)} placeholder="Type your response here…" rows={3} style={{ resize: 'vertical' }} />
+              </div>
+            )}
+
             <div>
               <label className="client-submit-label">Note (optional)</label>
               <input className="client-submit-input" value={submitNote} onChange={e => setSubmitNote(e.target.value)} placeholder="Any context you want to add…" />
             </div>
             <div className="client-submit-actions">
               <button className="client-submit-cancel" onClick={() => setShowSubmit(false)}>Cancel</button>
-              <button className="client-submit-save" onClick={handleSubmitFile} disabled={submitLoading || !submitTitle.trim() || !submitUrl.trim()}>
+              <button className="client-submit-save" onClick={handleSubmitFile} disabled={submitLoading || !submitTitle.trim() || (submitMode === 'upload' ? !uploadFile : !submitUrl.trim())}>
                 {submitLoading ? 'Submitting…' : 'Submit'}
               </button>
             </div>
@@ -558,15 +608,138 @@ function DocumentsPanel({
                     </button>
                   </div>
                 )}
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="portal-doc-link" onClick={() => onDocOpen(doc.id, doc.title)}>
-                  View document →
-                </a>
+                {doc.url && doc.url !== 'pending' && doc.url.startsWith('http') && (
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="portal-doc-link" onClick={() => onDocOpen(doc.id, doc.title)}>
+                    View document →
+                  </a>
+                )}
               </div>
             );
           })}
         </div>
       )}
     </>
+  );
+}
+
+// ── Profile Card ──────────────────────────────────────────────────────────
+
+const CLIENT_FIELDS: { key: string; label: string; icon: string }[] = [
+  { key: 'clientEmail',    label: 'Email',     icon: '✉️' },
+  { key: 'clientPhone',    label: 'Phone',     icon: '📞' },
+  { key: 'clientWhatsapp', label: 'WhatsApp',  icon: '💬' },
+  { key: 'clientWebsite',  label: 'Website',   icon: '🌐' },
+  { key: 'clientInstagram',label: 'Instagram', icon: '📸' },
+];
+
+const ADMIN_FIELDS: { key: string; label: string; icon: string }[] = [
+  { key: 'phone',     label: 'Phone',     icon: '📞' },
+  { key: 'instagram', label: 'Instagram', icon: '📸' },
+  { key: 'email',     label: 'Email',     icon: '✉️' },
+  { key: 'whatsapp',  label: 'WhatsApp',  icon: '💬' },
+  { key: 'website',   label: 'Website',   icon: '🌐' },
+];
+
+function ProfileCard({ clientSlug, projectId, clientName, adminProfile }: {
+  clientSlug: string; projectId: string; clientName: string;
+  adminProfile: Record<string, unknown> | null;
+}) {
+  type ProfileState = Record<string, string>;
+  const initial: ProfileState = {};
+  CLIENT_FIELDS.forEach(f => { initial[f.key] = (adminProfile?.[f.key] as string) || ''; });
+
+  const [profile, setProfile] = useState<ProfileState>(initial);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const adminFilled = ADMIN_FIELDS.filter(f => adminProfile?.[f.key]);
+  const clientFilled = CLIENT_FIELDS.filter(f => profile[f.key]);
+  const totalFilled = adminFilled.length + clientFilled.length;
+  const totalFields = ADMIN_FIELDS.length + CLIENT_FIELDS.length;
+
+  const save = async () => {
+    setSaving(true);
+    await fetch(`/api/portal/${clientSlug}/${projectId}/profile`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    setSaving(false); setSaved(true); setEditing(false);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="profile-card">
+      <div className="profile-card-header">
+        <div className="profile-avatar">{clientName.charAt(0).toUpperCase()}</div>
+        <div className="profile-header-text">
+          <div className="profile-name">{clientName}</div>
+          <div className="profile-label">
+            {totalFilled > 0 ? `${totalFilled} of ${totalFields} fields filled` : 'Add your contact details'}
+          </div>
+        </div>
+        <div className="profile-header-actions">
+          {saved && <span className="profile-saved-badge">✓ Saved</span>}
+          {!editing && (
+            <button className="profile-edit-btn" onClick={() => setEditing(true)}>✏️ Edit</button>
+          )}
+        </div>
+      </div>
+
+      {/* Admin-provided fields (read-only) */}
+      {adminFilled.length > 0 && (
+        <div className="profile-chips" style={{ marginBottom: 10 }}>
+          {adminFilled.map(f => (
+            <div key={f.key} className="profile-chip profile-chip-locked">
+              <span className="profile-chip-icon">{f.icon}</span>
+              <div>
+                <div className="profile-chip-label">{f.label.toUpperCase()} · FROM RACHNA</div>
+                <div className="profile-chip-value">{adminProfile![f.key] as string}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing ? (
+        <>
+          <div className="profile-form-grid">
+            {CLIENT_FIELDS.map(f => (
+              <div key={f.key} className="profile-field">
+                <label className="profile-field-label"><span>{f.icon}</span> {f.label}</label>
+                <input
+                  className="profile-field-input"
+                  value={profile[f.key]}
+                  onChange={e => setProfile(p => ({ ...p, [f.key]: e.target.value }))}
+                  placeholder={f.label}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="profile-form-actions">
+            <button className="profile-save-btn" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+            <button className="profile-cancel-btn" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </>
+      ) : clientFilled.length > 0 ? (
+        <div className="profile-chips">
+          {clientFilled.map(f => (
+            <div key={f.key} className="profile-chip">
+              <span className="profile-chip-icon">{f.icon}</span>
+              <div>
+                <div className="profile-chip-label">{f.label.toUpperCase()}</div>
+                <div className="profile-chip-value">{profile[f.key]}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 0 0' }}>
+          Add your contact details so Rachna can reach you quickly.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -790,6 +963,12 @@ export default function ProjectPortalView({ clientSlug, clientName, project }: P
           <>
             <h1 className="portal-tab-heading">Your Submissions</h1>
             <p className="portal-tab-sub">Documents and files shared with us. Add a note to any document if needed.</p>
+            <ProfileCard
+              clientSlug={clientSlug}
+              projectId={project.id}
+              clientName={clientName}
+              adminProfile={project.adminProfile}
+            />
             <DocumentsPanel
               documents={project.documents}
               clientSlug={clientSlug}
