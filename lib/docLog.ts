@@ -1,4 +1,5 @@
 // Shared helper to log document activity
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 export type DocAction = 'added' | 'url_changed' | 'note_edited' | 'deleted';
@@ -21,7 +22,7 @@ export async function logDocAction({
 }) {
   try {
     await prisma.projectDocumentLog.create({
-      data: { projectId, documentId, action, actorType, docTitle: docTitle ?? null, meta: meta ?? undefined },
+      data: { projectId, documentId, action, actorType, docTitle: docTitle ?? null, meta: (meta ?? undefined) as Prisma.InputJsonValue | undefined },
     });
   } catch {
     // non-critical — never let logging break the main flow
