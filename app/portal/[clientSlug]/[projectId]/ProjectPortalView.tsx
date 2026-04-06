@@ -58,13 +58,20 @@ interface ProjectData {
   documents: ProjectDocument[];
 }
 
+interface PortalContractData {
+  id: string; phase: number; phaseLabel: string | null; content: string; status: string;
+  clientSignature?: string | null; signedAt?: string | null;
+  advancePaid?: boolean; balancePaid?: boolean;
+  advanceReceiptUrl?: string | null; balanceReceiptUrl?: string | null;
+}
+
 interface ProjectPortalViewProps {
   clientSlug: string;
   clientName: string;
   project: ProjectData;
   hasMultipleProjects?: boolean;
   visibleTabs?: string[]; // if not provided, show all tabs (backward compat)
-  initialContracts?: ContractData[];
+  initialContracts?: PortalContractData[];
 }
 
 // ── Severity finding accordion ─────────────────────────────────────────────
@@ -1319,7 +1326,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; advancePaid?: boolean; balancePaid?: boolean; advanceReceiptUrl?: string | null; balanceReceiptUrl?: string | null };
+  type ContractData = PortalContractData;
   const [contracts, setContracts] = useState<ContractData[] | undefined>(initialContracts ?? undefined);
   const [activeContractPhase, setActiveContractPhase] = useState(1);
   const [contractLoading, setContractLoading] = useState(false);
