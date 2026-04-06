@@ -117,6 +117,16 @@ export default function AdminNav() {
       <div className="admin-nav-section">Client Portal</div>
 
       <Link
+        href="/admin/portal-leads"
+        className={pathname.startsWith('/admin/portal-leads') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Portal Leads
+      </Link>
+
+      <Link
         href="/admin/clients"
         className={pathname.startsWith('/admin/clients') ? 'active' : ''}
       >
@@ -126,6 +136,18 @@ export default function AdminNav() {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
         Clients
+      </Link>
+
+      <Link
+        href="/admin/analytics"
+        className={pathname.startsWith('/admin/analytics') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Analytics
       </Link>
 
     </nav>

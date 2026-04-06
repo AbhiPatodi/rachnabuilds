@@ -220,7 +220,6 @@ model Client {
   phone           String?
   slug            String    @unique  // portal URL slug, e.g. "kruti-lunawat"
   passwordHash    String
-  passwordPlain   String?   // stored for admin reference only
   isActive        Boolean   @default(true)
   clientProfile   Json      @default("{}")
   createdAt       DateTime  @default(now())
@@ -235,8 +234,9 @@ model ClientProject {
   clientId      String
   name          String    // e.g. "Shopify Store Build — Phase 1"
   clientType    String    @default("new_build")  // new_build | existing_optimisation | audit_only | retainer | landing_page | migration
+  platform      String?                          // shopify | wordpress | woocommerce | webflow | custom | null (null = show all tabs, backward compat)
   status        String    @default("active")     // draft | active | completed
-  tabConfig     Json?     // null = use clientType defaults
+  tabConfig     Json?     // null = use clientType+platform defaults
   adminProfile  Json      @default("{}")          // proposalVisible, notes, etc.
   displayOrder  Int       @default(0)
   viewCount     Int       @default(0)
@@ -249,7 +249,9 @@ model ClientProject {
   comments      ProjectComment[]
   events        ProjectEvent[]
   sessions      ProjectSession[]
-  contract      ProjectContract?
+  contracts     ProjectContract[]
+  milestones    ProjectMilestone[]
+  messages      ProjectMessage[]
 
   @@map("client_projects")
 }
@@ -274,6 +276,8 @@ model ProjectDocument {
   title      String
   url        String
   notes      String?
+  approvedAt DateTime?
+  approvedBy String?
   uploadedAt DateTime      @default(now())
   project    ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -319,17 +323,72 @@ model ProjectDocumentLog {
 
 model ProjectContract {
   id              String    @id @default(cuid())
-  projectId       String    @unique
-  content         String    @default("")   // markdown contract text
+  projectId       String
+  phase           Int       @default(1)
+  phaseLabel      String?
+  content         String    @default("")
   status          String    @default("draft")  // draft | sent | signed
-  clientSignature String?   // typed name
+  clientSignature String?
   signedAt        DateTime?
   sentAt          DateTime?
+  advancePaid     Boolean   @default(false)
+  balancePaid     Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   project         ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  @@unique([projectId, phase])
   @@map("project_contracts")
+}
+
+model ProjectMilestone {
+  id          String        @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  status      String        @default("pending")  // pending | in_progress | completed | blocked
+  dueDate     DateTime?
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  project     ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_milestones")
+}
+
+model PortalLead {
+  id                String    @id @default(cuid())
+  name              String
+  email             String
+  phone             String?
+  businessName      String?
+  website           String?
+  clientType        String    @default("new_build")
+  platform          String?
+  message           String?
+  status            String    @default("new")   // new | contacted | converted | archived
+  convertedClientId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("portal_leads")
+}
+
+model ProjectMessage {
+  id           String        @id @default(cuid())
+  projectId    String
+  senderType   String        // 'admin' | 'client'
+  text         String
+  readByAdmin    Boolean       @default(false)
+  readByClient   Boolean       @default(false)
+  attachmentUrl  String?
+  attachmentName String?
+  createdAt      DateTime      @default(now())
+  project      ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_messages")
 }
 
 model ProjectSession {

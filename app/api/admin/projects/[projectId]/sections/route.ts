@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
   if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  await params; // consume params (projectId unused for cascade-safe delete)
+  const { projectId } = await params;
 
   try {
     const { searchParams } = new URL(req.url);
@@ -53,6 +53,12 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     if (!sectionId) return NextResponse.json({ error: 'sectionId is required' }, { status: 400 });
 
     await prisma.projectSection.delete({ where: { id: sectionId } });
+
+    // Clean up orphaned comments for this section
+    await prisma.projectComment.deleteMany({
+      where: { projectId: projectId, context: `section:${sectionId}` },
+    });
+
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const error = err as { code?: string };

@@ -1,8 +1,10 @@
-// GET    — fetch contract (creates draft if none)
-// PATCH  — update content or status
+// GET    — fetch all contracts for project (array)
+// POST   — create a new phase contract
+// PATCH  — update content/status for a specific phase (?phase=N)
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { notifyContractReady } from '@/lib/email';
 
 interface RouteContext { params: Promise<{ projectId: string }> }
 
@@ -11,105 +13,127 @@ async function auth() {
   return !!store.get('admin_session')?.value;
 }
 
-const DEFAULT_TEMPLATE = `# Service Agreement
-
-**Prepared by:** Rachna Jain — Rachna Builds
-**Client:** {CLIENT_NAME}
-**Project:** {PROJECT_NAME}
-**Date:** {DATE}
-
----
-
-## 1. Scope of Work
-
-[Describe exactly what will be delivered — design, development, pages, features, integrations]
-
-## 2. Deliverables
-
-- [ ] Item 1
-- [ ] Item 2
-- [ ] Item 3
-
-## 3. Timeline
-
-| Milestone | Due Date |
-|-----------|----------|
-| Kickoff   |          |
-| Design Review |      |
-| Development |        |
-| Launch    |          |
-
-## 4. Investment
-
-**Total Fee:** ₹ ____
-**Payment Schedule:**
-- 50% upfront: ₹ ____
-- 50% on delivery: ₹ ____
-
-## 5. Revisions
-
-Includes up to ___ rounds of revisions. Additional revisions billed at ₹ ____/hour.
-
-## 6. Client Responsibilities
-
-The client agrees to provide timely feedback, content, and access to required platforms within 5 business days of each request.
-
-## 7. Intellectual Property
-
-Upon receipt of full payment, all rights to the final deliverables transfer to the client.
-
-## 8. Confidentiality
-
-Both parties agree to keep all project details, pricing, and communications confidential.
-
-## 9. Governing Law
-
-This agreement is governed by Indian law.
-
----
-
-By signing below, both parties agree to the terms outlined in this agreement.`;
+function defaultContent(clientName: string, projectName: string, phase: number, phaseLabel?: string): string {
+  const label = phaseLabel || `Phase ${phase}`;
+  return JSON.stringify({
+    version: '2',
+    meta: {
+      clientName,
+      projectName: `${projectName} — ${label}`,
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+      preparedBy: 'Rachna Jain — Rachna Builds',
+    },
+    sections: [
+      { id: 's1', type: 'bullets', title: 'Scope of Work', items: [''] },
+      { id: 's2', type: 'bullets', title: 'Deliverables', items: [''] },
+      { id: 's3', type: 'timeline', title: 'Timeline', rows: [
+        { milestone: 'Kickoff + Setup', duration: 'Week 1' },
+        { milestone: 'Development', duration: 'Week 2–3' },
+        { milestone: 'Review + Revisions', duration: 'Week 4' },
+        { milestone: 'Delivery', duration: 'Week 5' },
+      ], note: '' },
+      { id: 's4', type: 'payment', title: 'Investment', totalFee: '', schedule: [
+        { label: '50% Advance', amount: '', timing: 'due on signing' },
+        { label: '50% Balance', amount: '', timing: 'due before delivery' },
+      ], latePenalty: '2% per month after 7-day grace period' },
+      { id: 's5', type: 'bullets', title: 'Revisions Policy', items: [
+        'Includes 2 rounds of revisions',
+        'Additional revisions billed at ₹2,500/hour',
+      ]},
+      { id: 's6', type: 'bullets', title: 'Client Responsibilities', items: [
+        'Provide brand assets, content, and access within 5 days of signing',
+        'Provide feedback within 5 business days of each review',
+      ]},
+      { id: 's7', type: 'text', title: 'Intellectual Property', body: 'Upon receipt of final payment, all rights to the completed work transfer to the client. Third-party themes, plugins, and apps remain under their respective licenses.' },
+      { id: 's8', type: 'text', title: 'Confidentiality', body: 'Both parties agree to keep all project details, pricing, and communications confidential and shall not disclose them to any third party without prior written consent.' },
+      { id: 's9', type: 'text', title: 'Governing Law', body: 'This agreement is governed by the laws of India. Any disputes shall be resolved in courts of Mumbai, Maharashtra.' },
+    ],
+  });
+}
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { projectId } = await params;
 
-  let contract = await prisma.projectContract.findUnique({ where: { projectId } });
-  if (!contract) {
-    // Auto-create the draft with project/client info for template
-    const project = await prisma.clientProject.findUnique({
-      where: { id: projectId },
-      include: { client: true },
-    });
-    const content = DEFAULT_TEMPLATE
-      .replace('{CLIENT_NAME}', project?.client?.name ?? '')
-      .replace('{PROJECT_NAME}', project?.name ?? '')
-      .replace('{DATE}', new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
-    contract = await prisma.projectContract.create({
-      data: { projectId, content },
-    });
+  const contracts = await prisma.projectContract.findMany({
+    where: { projectId },
+    orderBy: { phase: 'asc' },
+  });
+  return NextResponse.json({ contracts });
+}
+
+export async function POST(req: NextRequest, { params }: RouteContext) {
+  if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { projectId } = await params;
+
+  const body = await req.json();
+  const { phase, phaseLabel } = body;
+
+  if (!phase || typeof phase !== 'number') {
+    return NextResponse.json({ error: 'phase (number) required' }, { status: 400 });
   }
-  return NextResponse.json(contract);
+
+  const project = await prisma.clientProject.findUnique({
+    where: { id: projectId },
+    include: { client: true },
+  });
+  if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+
+  const existing = await prisma.projectContract.findUnique({
+    where: { projectId_phase: { projectId, phase } },
+  });
+  if (existing) return NextResponse.json({ error: `Phase ${phase} already exists` }, { status: 409 });
+
+  const content = defaultContent(project.client.name, project.name, phase, phaseLabel);
+  const contract = await prisma.projectContract.create({
+    data: { projectId, phase, phaseLabel: phaseLabel || null, content },
+  });
+  return NextResponse.json({ contract });
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { projectId } = await params;
 
+  const url = new URL(req.url);
+  const phaseParam = url.searchParams.get('phase');
+  const phase = phaseParam ? parseInt(phaseParam, 10) : 1;
+
   const body = await req.json();
-  const { content, status } = body;
+  const { content, status, phaseLabel, advancePaid, balancePaid } = body;
 
   const data: Record<string, unknown> = {};
   if (content !== undefined) data.content = content;
+  if (phaseLabel !== undefined) data.phaseLabel = phaseLabel;
   if (status !== undefined) {
     data.status = status;
     if (status === 'sent') data.sentAt = new Date();
   }
+  if (advancePaid !== undefined) data.advancePaid = advancePaid;
+  if (balancePaid !== undefined) data.balancePaid = balancePaid;
 
   const contract = await prisma.projectContract.upsert({
-    where: { projectId },
-    create: { projectId, ...data },
+    where: { projectId_phase: { projectId, phase } },
+    create: { projectId, phase, ...data },
     update: data,
   });
-  return NextResponse.json(contract);
+
+  // Fire-and-forget: notify client when contract is marked as sent
+  if (status === 'sent') {
+    const project = await prisma.clientProject.findUnique({
+      where: { id: projectId },
+      include: { client: true },
+    });
+    if (project?.client?.email) {
+      const portalUrl = `https://rachnabuilds.com/portal/${project.client.slug}/${projectId}`;
+      notifyContractReady(
+        project.client.email,
+        project.client.name,
+        project.name,
+        portalUrl,
+      ).catch(console.error);
+    }
+  }
+
+  return NextResponse.json({ contract });
 }

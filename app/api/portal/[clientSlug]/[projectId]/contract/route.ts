@@ -1,5 +1,5 @@
-// GET  — fetch contract (only if sent or signed)
-// POST — sign the contract
+// GET  — fetch all sent/signed contracts for this project
+// POST — sign a specific phase contract
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
@@ -25,11 +25,15 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
   const project = await getProject(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const contract = await prisma.projectContract.findUnique({ where: { projectId: project.id } });
-  if (!contract || contract.status === 'draft') {
-    return NextResponse.json({ contract: null });
-  }
-  return NextResponse.json({ contract });
+  const contracts = await prisma.projectContract.findMany({
+    where: {
+      projectId: project.id,
+      status: { in: ['sent', 'signed'] },
+    },
+    orderBy: { phase: 'asc' },
+  });
+
+  return NextResponse.json({ contracts });
 }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
@@ -39,16 +43,30 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const project = await getProject(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const contract = await prisma.projectContract.findUnique({ where: { projectId: project.id } });
+  const { signature, phase = 1 } = await req.json();
+  if (!signature?.trim()) return NextResponse.json({ error: 'Signature required' }, { status: 400 });
+
+  // If this is phase > 1, ensure previous phase is already signed
+  if (phase > 1) {
+    const previousPhase = await prisma.projectContract.findUnique({
+      where: { projectId_phase: { projectId: project.id, phase: phase - 1 } },
+    });
+    if (!previousPhase || previousPhase.status !== 'signed') {
+      return NextResponse.json({
+        error: `Phase ${phase - 1} must be signed before you can sign Phase ${phase}`,
+      }, { status: 400 });
+    }
+  }
+
+  const contract = await prisma.projectContract.findUnique({
+    where: { projectId_phase: { projectId: project.id, phase } },
+  });
   if (!contract || contract.status !== 'sent') {
     return NextResponse.json({ error: 'Contract is not available for signing' }, { status: 400 });
   }
 
-  const { signature } = await req.json();
-  if (!signature?.trim()) return NextResponse.json({ error: 'Signature required' }, { status: 400 });
-
   const updated = await prisma.projectContract.update({
-    where: { projectId: project.id },
+    where: { projectId_phase: { projectId: project.id, phase } },
     data: { status: 'signed', clientSignature: signature.trim(), signedAt: new Date() },
   });
   return NextResponse.json({ contract: updated });

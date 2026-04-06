@@ -23,9 +23,10 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     const project = await prisma.clientProject.findUnique({
       where: { id: projectId },
       include: {
-        client: { select: { id: true, name: true, email: true, phone: true, slug: true, passwordPlain: true } },
+        client: { select: { id: true, name: true, email: true, phone: true, slug: true, clientProfile: true } },
         sections: { orderBy: { displayOrder: 'asc' } },
         documents: { orderBy: { uploadedAt: 'desc' } },
+        milestones: { orderBy: { order: 'asc' } },
       },
     });
 
@@ -54,9 +55,22 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   try {
     const body = await req.json();
+
+    // If adminProfile is in the patch, deep-merge it with existing to avoid overwriting keys
+    // (e.g. proposalAcceptedAt set by portal should not be wiped by admin editing notes)
+    let patchData = body;
+    if (body.adminProfile && typeof body.adminProfile === 'object') {
+      const existing = await prisma.clientProject.findUnique({
+        where: { id: projectId },
+        select: { adminProfile: true },
+      });
+      const existingProfile = (existing?.adminProfile ?? {}) as Record<string, unknown>;
+      patchData = { ...body, adminProfile: { ...existingProfile, ...body.adminProfile } };
+    }
+
     const project = await prisma.clientProject.update({
       where: { id: projectId },
-      data: body,
+      data: patchData,
     });
     return NextResponse.json(project);
   } catch (err: unknown) {

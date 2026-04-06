@@ -21,6 +21,14 @@ const PROJECT_STATUSES = [
   { value: 'completed', label: 'Completed' },
 ];
 
+const PLATFORMS = [
+  { value: 'shopify',     label: 'Shopify' },
+  { value: 'wordpress',   label: 'WordPress' },
+  { value: 'woocommerce', label: 'WooCommerce' },
+  { value: 'webflow',     label: 'Webflow' },
+  { value: 'custom',      label: 'Custom / Other' },
+];
+
 interface Project {
   id: string;
   name: string;
@@ -36,9 +44,9 @@ interface Client {
   email?: string | null;
   phone?: string | null;
   slug: string;
-  password?: string | null;
   isActive: boolean;
   createdAt: string;
+  clientProfile?: Record<string, unknown> | null;
   projects: Project[];
 }
 
@@ -75,11 +83,17 @@ export default function ClientDetailPage() {
   const [infoSaving, setInfoSaving] = useState(false);
   const [copiedPw, setCopiedPw] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [resetPw, setResetPw] = useState('');
+  const [resetSaving, setResetSaving] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Add project form
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectType, setProjectType] = useState('new_build');
+  const [projectPlatform, setProjectPlatform] = useState('');
   const [projectStatus, setProjectStatus] = useState('draft');
   const [projectLoading, setProjectLoading] = useState(false);
   const [projectError, setProjectError] = useState('');
@@ -135,6 +149,40 @@ export default function ClientDetailPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetPw.trim() || resetPw.length < 6) { setResetMsg('Password must be at least 6 characters'); return; }
+    setResetSaving(true);
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: resetPw.trim() }),
+      });
+      if (res.ok) {
+        setResetMsg(`✓ Password updated to: ${resetPw}`);
+        setResetPw('');
+      } else {
+        setResetMsg('Failed to update password');
+      }
+    } catch { setResetMsg('Error'); }
+    setResetSaving(false);
+  };
+
+  const handleDeleteClient = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/admin/clients');
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setProjectError('');
@@ -143,7 +191,7 @@ export default function ClientDetailPage() {
       const res = await fetch(`/api/admin/clients/${clientId}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: projectName, clientType: projectType, status: projectStatus }),
+        body: JSON.stringify({ name: projectName, clientType: projectType, platform: projectPlatform || null, status: projectStatus }),
       });
       if (!res.ok) {
         setProjectError('Failed to create project');
@@ -153,6 +201,7 @@ export default function ClientDetailPage() {
       setClient(c => c ? { ...c, projects: [...c.projects, data] } : c);
       setProjectName('');
       setProjectType('new_build');
+      setProjectPlatform('');
       setProjectStatus('draft');
       setShowProjectForm(false);
       router.push(`/admin/projects/${data.id}`);
@@ -199,6 +248,13 @@ export default function ClientDetailPage() {
             style={{ fontSize: 13 }}
           >
             {client.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button
+            className="admin-btn admin-btn-icon"
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{ fontSize: 13, borderColor: 'rgba(255,107,107,0.4)', color: '#FF6B6B' }}
+          >
+            Delete Client
           </button>
         </div>
       </div>
@@ -317,14 +373,14 @@ export default function ClientDetailPage() {
                 <label className="admin-label">Portal Password</label>
                 <div className="admin-link-row">
                   <span style={{ fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.5px' }}>
-                    {client.password || '—'}
+                    {(client.clientProfile?.portalPassword as string) || '—'}
                   </span>
-                  {client.password && (
+                  {!!(client.clientProfile?.portalPassword as string) && (
                     <button
                       className="admin-btn admin-btn-ghost admin-btn-icon"
                       style={{ fontSize: 11, flexShrink: 0 }}
                       onClick={() => {
-                        navigator.clipboard.writeText(client.password!);
+                        navigator.clipboard.writeText(client.clientProfile!.portalPassword as string);
                         setCopiedPw(true);
                         setTimeout(() => setCopiedPw(false), 2000);
                       }}
@@ -341,6 +397,51 @@ export default function ClientDetailPage() {
                   {client.slug}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Reset Password */}
+          <div className="admin-card" style={{ marginTop: 0 }}>
+            <div className="admin-card-title">Reset Client Password</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="admin-field">
+                <label className="admin-label">New Password</label>
+                <input className="admin-input" type="text" placeholder="Enter new password (min 6 chars)" value={resetPw} onChange={e => setResetPw(e.target.value)} />
+              </div>
+              {resetMsg && <div style={{ fontSize: 13, color: resetMsg.startsWith('✓') ? '#06D6A0' : '#FF6B6B' }}>{resetMsg}</div>}
+              <div>
+                <button className="admin-btn admin-btn-primary" onClick={handleResetPassword} disabled={resetSaving || resetPw.length < 6} style={{ fontSize: 13 }}>
+                  {resetSaving ? 'Saving…' : 'Reset Password'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 16, width: '100%', maxWidth: 420, padding: 28 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#FF6B6B', marginBottom: 8 }}>Delete Client?</div>
+            <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
+              This will permanently delete <strong style={{ color: 'var(--text)' }}>{client.name}</strong> and all their projects, sections, documents, contracts, and messages. <strong style={{ color: '#FF6B6B' }}>This cannot be undone.</strong>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteClient}
+                disabled={deleting}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: '#FF6B6B', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}
+              >
+                {deleting ? 'Deleting…' : 'Yes, Delete Client'}
+              </button>
             </div>
           </div>
         </div>
@@ -383,6 +484,15 @@ export default function ClientDetailPage() {
                       <select className="admin-select" value={projectType} onChange={e => setProjectType(e.target.value)}>
                         {CLIENT_TYPES.map(t => (
                           <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="admin-field">
+                      <label className="admin-label">Platform</label>
+                      <select className="admin-select" value={projectPlatform} onChange={e => setProjectPlatform(e.target.value)}>
+                        <option value="">— Select platform —</option>
+                        {PLATFORMS.map(p => (
+                          <option key={p.value} value={p.value}>{p.label}</option>
                         ))}
                       </select>
                     </div>

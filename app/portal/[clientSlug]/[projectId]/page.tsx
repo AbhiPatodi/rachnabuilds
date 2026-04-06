@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { getVisibleTabs } from '@/lib/portal-config';
 import PortalPasswordGate from '../PortalPasswordGate';
 import ProjectPortalView from './ProjectPortalView';
 
@@ -68,16 +69,35 @@ export default async function ProjectPortalPage({ params }: PageProps) {
     );
   }
 
+  const activeProjectCount = await prisma.clientProject.count({
+    where: { clientId: client.id, status: { not: 'draft' } },
+  });
+  const hasMultipleProjects = activeProjectCount > 1;
+
+  const visibleTabs = getVisibleTabs(
+    project.clientType,
+    project.platform ?? null,
+    project.tabConfig,
+  ).map(t => t.id);
+
   return (
     <ProjectPortalView
       clientSlug={clientSlug}
       clientName={client.name}
+      hasMultipleProjects={hasMultipleProjects}
+      visibleTabs={visibleTabs}
       project={{
         id: project.id,
         name: project.name,
         clientType: project.clientType,
         status: project.status,
-        adminProfile: project.adminProfile as Record<string, unknown> | null,
+        adminProfile: (() => {
+          if (!project.adminProfile) return null;
+          // Strip internal fields before sending to client component
+          const { notes, internalNotes, adminNotes, ...safeProfile } = project.adminProfile as Record<string, unknown>;
+          void notes; void internalNotes; void adminNotes;
+          return safeProfile;
+        })(),
         sections: project.sections.map(s => ({
           id: s.id,
           projectId: s.projectId,

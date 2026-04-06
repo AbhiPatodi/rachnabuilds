@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPushToAll } from '@/lib/webpush';
+import { notifyClientComment } from '@/lib/email';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
@@ -64,6 +65,14 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     `${author.trim()}: ${text.trim().slice(0, 80)}`,
     `/admin/clients/${clientSlug}/projects/${project.id}`
   ).catch(() => {});
+
+  // Fire-and-forget: email Rachna about the new client comment
+  notifyClientComment(
+    project.name,
+    author.trim(),
+    text.trim(),
+    `https://rachnabuilds.com/admin/projects/${project.id}`,
+  ).catch(console.error);
 
   return NextResponse.json(comment, { status: 201 });
 }

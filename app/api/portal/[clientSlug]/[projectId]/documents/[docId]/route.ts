@@ -31,12 +31,23 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     where: { id: docId, projectId: project.id },
   });
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  if (doc.docType !== 'client_upload') {
+  if (doc.docType !== 'client_upload' && doc.docType !== 'client_required') {
     return NextResponse.json({ error: 'Can only edit client-uploaded documents' }, { status: 403 });
   }
 
   const body = await req.json();
   const { url, notes } = body as { url?: string; notes?: string };
+
+  if (url !== undefined && url !== '') {
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return NextResponse.json({ error: 'URL must use http or https' }, { status: 400 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    }
+  }
 
   const updateData: Record<string, unknown> = {};
   if (url !== undefined) updateData.url = url.trim();

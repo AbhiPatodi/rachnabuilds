@@ -180,17 +180,18 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
                   gap: '14px',
                   padding: '24px',
                   borderRadius: '14px',
-                  border: '1px solid var(--portal-border, rgba(255,255,255,0.07))',
-                  background: 'var(--portal-card-bg, rgba(255,255,255,0.03))',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-card)',
+                  boxShadow: 'var(--shadow)',
                   transition: 'border-color 0.15s, transform 0.15s',
                   textAlign: 'left',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = '#06D6A0';
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
                   (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--portal-border, rgba(255,255,255,0.07))';
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
                   (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
                 }}
               >
@@ -201,9 +202,9 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
                     fontWeight: 600,
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
-                    color: '#06D6A0',
-                    background: 'rgba(6,214,160,0.1)',
-                    border: '1px solid rgba(6,214,160,0.2)',
+                    color: 'var(--accent)',
+                    background: 'var(--accent-bg)',
+                    border: '1px solid var(--accent-border)',
                     borderRadius: '6px',
                     padding: '3px 8px',
                   }}>
@@ -214,7 +215,7 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
                     fontWeight: 600,
                     letterSpacing: '0.05em',
                     textTransform: 'uppercase',
-                    color: STATUS_COLORS[project.status] || '#8B95A8',
+                    color: STATUS_COLORS[project.status] || 'var(--text-muted)',
                     background: `${STATUS_COLORS[project.status] || '#8B95A8'}18`,
                     border: `1px solid ${STATUS_COLORS[project.status] || '#8B95A8'}30`,
                     borderRadius: '6px',
@@ -229,7 +230,7 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
                   fontFamily: 'Space Grotesk, -apple-system, sans-serif',
                   fontSize: '17px',
                   fontWeight: 700,
-                  color: 'var(--portal-heading, #E8ECF4)',
+                  color: 'var(--text-primary)',
                   lineHeight: 1.35,
                 }}>
                   {project.name}
@@ -237,20 +238,20 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
 
                 {/* Stats row */}
                 <div style={{ display: 'flex', gap: '16px' }}>
-                  <span style={{ fontSize: '13px', color: '#8B95A8' }}>
-                    <strong style={{ color: 'var(--portal-text, #C8D0DC)' }}>{project.sectionCount}</strong> section{project.sectionCount !== 1 ? 's' : ''}
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>{project.sectionCount}</strong> section{project.sectionCount !== 1 ? 's' : ''}
                   </span>
-                  <span style={{ fontSize: '13px', color: '#8B95A8' }}>
-                    <strong style={{ color: 'var(--portal-text, #C8D0DC)' }}>{project.documentCount}</strong> doc{project.documentCount !== 1 ? 's' : ''}
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>{project.documentCount}</strong> doc{project.documentCount !== 1 ? 's' : ''}
                   </span>
                 </div>
 
                 {/* Last updated + arrow */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                  <span style={{ fontSize: '12px', color: '#8B95A8' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     Updated {formatDate(project.updatedAt)}
                   </span>
-                  <svg width="16" height="16" fill="none" stroke="#06D6A0" strokeWidth={2} viewBox="0 0 24 24">
+                  <svg width="16" height="16" fill="none" stroke="var(--accent)" strokeWidth={2} viewBox="0 0 24 24">
                     <line x1="5" y1="12" x2="19" y2="12"/>
                     <polyline points="12,5 19,12 12,19"/>
                   </svg>

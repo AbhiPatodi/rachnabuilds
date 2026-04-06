@@ -21,6 +21,15 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'title and url required' }, { status: 400 });
   }
 
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return NextResponse.json({ error: 'URL must use http or https' }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+  }
+
   // Verify project belongs to client
   const client = await prisma.client.findUnique({ where: { slug: clientSlug }, select: { id: true } });
   if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -47,7 +56,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   sendPushToAll(
     'File Submitted',
     `Client submitted: ${title.trim()}`,
-    `/admin/clients/${clientSlug}/projects/${project.id}`
+    `/admin/clients/${client.id}/projects/${project.id}`
   ).catch(() => {});
 
   return NextResponse.json(doc, { status: 201 });

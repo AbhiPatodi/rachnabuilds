@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
   if (!auth(req, clientSlug)) return NextResponse.json({ ok: false }, { status: 401 });
 
-  let body: { sessionId: string; userAgent?: string };
+  let body: { sessionId: string; userAgent?: string; duration?: number };
   try {
     const text = await req.text();
     body = JSON.parse(text);
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { sessionId, userAgent = '' } = body;
+  const { sessionId, userAgent = '', duration } = body;
   if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 });
 
   const project = await getProject(projectId, clientSlug);
@@ -81,34 +81,49 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
   const existing = await prisma.projectSession.findUnique({ where: { sessionId } });
   if (existing) {
-    await prisma.projectSession.update({
-      where: { sessionId },
-      data: { lastActiveAt: new Date() },
-    });
+    // sendBeacon on unload fires POST (not PATCH) — handle duration update here too
+    const updateData: { lastActiveAt: Date; totalDuration?: number } = { lastActiveAt: new Date() };
+    if (typeof duration === 'number' && duration > existing.totalDuration) {
+      updateData.totalDuration = duration;
+    }
+    await prisma.projectSession.update({ where: { sessionId }, data: updateData });
     return NextResponse.json({ ok: true, returning: true });
   }
 
   const ip = getIp(req);
-  const [geo, ua] = await Promise.all([
-    geolocate(ip),
-    Promise.resolve(parseUserAgent(userAgent)),
-  ]);
+  const ua = parseUserAgent(userAgent);
 
-  await prisma.projectSession.upsert({
+  // Create session immediately with empty geo fields
+  const session = await prisma.projectSession.upsert({
     where: { sessionId },
     create: {
       id: crypto.randomBytes(12).toString('hex'),
       projectId: project.id,
       sessionId,
       ip,
-      country: geo.country,
-      countryCode: geo.countryCode,
-      city: geo.city,
+      country: null,
+      countryCode: null,
+      city: null,
       device: ua.device,
       browser: ua.browser,
     },
     update: { lastActiveAt: new Date() },
   });
+
+  // Update geo in background (fire and forget)
+  if (ip && ip !== '0.0.0.0' && !ip.startsWith('127.') && !ip.startsWith('192.168.') && !ip.startsWith('10.') && ip !== '::1' && !ip.startsWith('172.')) {
+    fetch(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,city`, { next: { revalidate: 3600 } })
+      .then(r => r.json())
+      .then(async (geo) => {
+        if (geo.status === 'success') {
+          await prisma.projectSession.update({
+            where: { id: session.id },
+            data: { country: geo.country ?? null, countryCode: geo.countryCode ?? null, city: geo.city ?? null },
+          });
+        }
+      })
+      .catch(() => {}); // silently ignore geo failures
+  }
 
   return NextResponse.json({ ok: true, returning: false });
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ContractBuilder from './ContractBuilder';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ const DOC_TYPES = [
   { value: 'mockup', label: 'Mockup' },
   { value: 'competitor_ref', label: 'Competitor Reference' },
   { value: 'brand_assets', label: 'Brand Assets' },
+  { value: 'client_required', label: 'Required from Client' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -36,6 +38,14 @@ const CLIENT_TYPES: Record<string, string> = {
   migration: 'Migration',
 };
 
+const PLATFORMS = [
+  { value: 'shopify',     label: 'Shopify' },
+  { value: 'wordpress',   label: 'WordPress' },
+  { value: 'woocommerce', label: 'WooCommerce' },
+  { value: 'webflow',     label: 'Webflow' },
+  { value: 'custom',      label: 'Custom / Other' },
+];
+
 const EVENT_ICONS: Record<string, string> = {
   tab_view: '👁',
   doc_open: '📄',
@@ -44,7 +54,7 @@ const EVENT_ICONS: Record<string, string> = {
   login: '🔑',
 };
 
-type Tab = 'overview' | 'sections' | 'documents' | 'sessions' | 'contract' | 'settings';
+type Tab = 'overview' | 'milestones' | 'sections' | 'documents' | 'sessions' | 'contract' | 'settings' | 'messages';
 
 interface Section {
   id: string;
@@ -60,6 +70,8 @@ interface Document {
   title: string;
   url: string;
   notes?: string | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
 }
 
 interface PortalSession {
@@ -100,6 +112,28 @@ interface PortalComment {
   createdAt: string;
 }
 
+interface ProjectMessage {
+  id: string;
+  projectId: string;
+  senderType: string;
+  text: string;
+  readByAdmin: boolean;
+  readByClient: boolean;
+  createdAt: string;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+}
+
+interface Milestone {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  dueDate: string | null;
+  order: number;
+  createdAt: string;
+}
+
 interface AdminProfile {
   email?: string;
   phone?: string;
@@ -116,6 +150,7 @@ interface Project {
   id: string;
   name: string;
   clientType: string;
+  platform?: string | null;
   status: string;
   isActive?: boolean;
   viewCount?: number;
@@ -129,7 +164,7 @@ interface Project {
     email?: string | null;
     phone?: string | null;
     slug: string;
-    passwordPlain?: string | null;
+    clientProfile?: Record<string, unknown> | null;
   };
   sections: Section[];
   documents: Document[];
@@ -137,6 +172,7 @@ interface Project {
     commentCount: number;
     eventCounts: { eventType: string; _count: { eventType: number } }[];
   };
+  milestones?: Milestone[];
 }
 
 function formatDate(str: string) {
@@ -226,15 +262,43 @@ export default function ProjectManagePage() {
   const [proposalToggling, setProposalToggling] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [platform, setPlatform] = useState<string>('');
+  const [platformSaving, setPlatformSaving] = useState(false);
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
+  const [templateMsg, setTemplateMsg] = useState('');
 
   // Contract
-  type ContractData = { id: string; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; sentAt?: string | null };
-  const [contract, setContract] = useState<ContractData | null>(null);
+  type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; sentAt?: string | null; advancePaid?: boolean; balancePaid?: boolean };
+  const [contracts, setContracts] = useState<ContractData[]>([]);
+  const [contractsLoaded, setContractsLoaded] = useState(false);
   const [contractLoading, setContractLoading] = useState(false);
-  const [contractSaving, setContractSaving] = useState(false);
-  const [contractSaved, setContractSaved] = useState(false);
-  const [contractContent, setContractContent] = useState('');
-  const [contractSending, setContractSending] = useState(false);
+  const [paymentSaving, setPaymentSaving] = useState<string | null>(null);
+
+  // Messages
+  const [messages, setMessages] = useState<ProjectMessage[]>([]);
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [newMsg, setNewMsg] = useState('');
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgUnreadCount, setMsgUnreadCount] = useState(0);
+  const [msgAttachFile, setMsgAttachFile] = useState<File | null>(null);
+  const [msgAttachError, setMsgAttachError] = useState('');
+  const msgFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Milestones
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestonesLoaded, setMilestonesLoaded] = useState(false);
+  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
+  const [msTitle, setMsTitle] = useState('');
+  const [msDesc, setMsDesc] = useState('');
+  const [msStatus, setMsStatus] = useState('pending');
+  const [msDueDate, setMsDueDate] = useState('');
+  const [msLoading, setMsLoading] = useState(false);
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [editMsTitle, setEditMsTitle] = useState('');
+  const [editMsDesc, setEditMsDesc] = useState('');
+  const [editMsStatus, setEditMsStatus] = useState('pending');
+  const [editMsDueDate, setEditMsDueDate] = useState('');
+  const [editMsLoading, setEditMsLoading] = useState(false);
 
   // Overview — edit client info
   const [editingClientInfo, setEditingClientInfo] = useState(false);
@@ -263,6 +327,7 @@ export default function ProjectManagePage() {
       setTabConfigText(JSON.stringify(data.tabConfig ?? {}, null, 2));
       setProposalVisible(!!(data.adminProfile as Record<string, unknown>)?.proposalVisible);
       setAdminNotes((data.adminProfile as Record<string, unknown>)?.notes as string ?? '');
+      setPlatform(data.platform ?? '');
     } catch {
       setError('Failed to load project');
     } finally {
@@ -297,21 +362,60 @@ export default function ProjectManagePage() {
 
   // Load contract when tab is opened
   useEffect(() => {
-    if (activeTab !== 'contract' || contract !== null) return;
+    if (activeTab !== 'contract' || contractsLoaded) return;
     setContractLoading(true);
     fetch(`/api/admin/projects/${projectId}/contract`)
       .then(r => r.json())
-      .then(d => { setContract(d); setContractContent(d.content ?? ''); })
+      .then(d => {
+        setContracts(d.contracts ?? []);
+        setContractsLoaded(true);
+      })
       .catch(() => {})
       .finally(() => setContractLoading(false));
-  }, [activeTab, projectId, contract]);
+  }, [activeTab, projectId, contractsLoaded]);
+
+  // Load messages when tab is opened
+  useEffect(() => {
+    if (activeTab !== 'messages' || messagesLoaded) return;
+    fetch(`/api/admin/projects/${projectId}/messages`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: ProjectMessage[]) => {
+        setMessages(data);
+        setMsgUnreadCount(0); // cleared by the GET (marked as read)
+        setMessagesLoaded(true);
+      })
+      .catch(() => setMessagesLoaded(true));
+  }, [activeTab, projectId, messagesLoaded]);
+
+  // Track unread count when on other tabs (initial load only)
+  useEffect(() => {
+    if (activeTab === 'messages') return;
+    fetch(`/api/admin/projects/${projectId}/messages`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: ProjectMessage[]) => {
+        const unread = data.filter((m: ProjectMessage) => m.senderType === 'client' && !m.readByAdmin).length;
+        setMsgUnreadCount(unread);
+      })
+      .catch(() => {});
+  // Only run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load milestones when tab is opened
+  useEffect(() => {
+    if (activeTab !== 'milestones' || milestonesLoaded) return;
+    fetch(`/api/admin/projects/${projectId}/milestones`)
+      .then(r => r.ok ? r.json() : { milestones: [] })
+      .then(d => setMilestones(d.milestones ?? []))
+      .catch(() => {})
+      .finally(() => setMilestonesLoaded(true));
+  }, [activeTab, projectId, milestonesLoaded]);
 
   // ─── Share modal helpers ───────────────────────────────────────────────────
   const openShareModal = (p: Project) => {
-    const pw = p.client.passwordPlain
-      || (typeof localStorage !== 'undefined' ? localStorage.getItem(`share_pw_${p.client.slug}`) : '')
-      || '';
-    setSharePassword(pw);
+    const storedPw = (typeof localStorage !== 'undefined' ? localStorage.getItem(`share_pw_${p.client.slug}`) : '') || '';
+    const profilePw = (p.client.clientProfile?.portalPassword as string) || '';
+    setSharePassword(storedPw || profilePw);
     setShowShareModal(true);
   };
 
@@ -515,39 +619,56 @@ export default function ProjectManagePage() {
     setProject(p => p ? { ...p, documents: p.documents.filter(d => d.id !== docId) } : p);
   };
 
-  // ─── Contract save / send ─────────────────────────────────────────────────
-  const saveContract = async () => {
-    setContractSaving(true);
+  // ─── Milestones ────────────────────────────────────────────────────────────
+  const handleAddMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!msTitle.trim()) return;
+    setMsLoading(true);
     try {
-      const res = await fetch(`/api/admin/projects/${projectId}/contract`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/admin/projects/${projectId}/milestones`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: contractContent }),
+        body: JSON.stringify({ title: msTitle.trim(), description: msDesc.trim() || null, status: msStatus, dueDate: msDueDate || null, order: milestones.length }),
       });
       if (res.ok) {
-        const d = await res.json();
-        setContract(d);
-        setContractSaved(true);
-        setTimeout(() => setContractSaved(false), 2000);
+        const m = await res.json();
+        setMilestones(prev => [...prev, m]);
+        setMsTitle(''); setMsDesc(''); setMsStatus('pending'); setMsDueDate('');
+        setShowMilestoneForm(false);
       }
-    } finally {
-      setContractSaving(false);
-    }
+    } finally { setMsLoading(false); }
   };
 
-  const sendContract = async () => {
-    if (!confirm('Send this contract to the client? They will see it in their portal.')) return;
-    setContractSending(true);
+  const startEditMilestone = (m: Milestone) => {
+    setEditingMilestoneId(m.id);
+    setEditMsTitle(m.title);
+    setEditMsDesc(m.description ?? '');
+    setEditMsStatus(m.status);
+    setEditMsDueDate(m.dueDate ?? '');
+  };
+
+  const cancelEditMilestone = () => setEditingMilestoneId(null);
+
+  const handleSaveMilestone = async (id: string) => {
+    setEditMsLoading(true);
     try {
-      const res = await fetch(`/api/admin/projects/${projectId}/contract`, {
+      const res = await fetch(`/api/admin/projects/${projectId}/milestones/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'sent' }),
+        body: JSON.stringify({ title: editMsTitle.trim(), description: editMsDesc.trim() || null, status: editMsStatus, dueDate: editMsDueDate || null }),
       });
-      if (res.ok) setContract(await res.json());
-    } finally {
-      setContractSending(false);
-    }
+      if (res.ok) {
+        const updated = await res.json();
+        setMilestones(prev => prev.map(m => m.id === id ? updated : m));
+        setEditingMilestoneId(null);
+      }
+    } finally { setEditMsLoading(false); }
+  };
+
+  const handleDeleteMilestone = async (id: string) => {
+    if (!confirm('Delete this milestone?')) return;
+    await fetch(`/api/admin/projects/${projectId}/milestones/${id}`, { method: 'DELETE' });
+    setMilestones(prev => prev.filter(m => m.id !== id));
   };
 
   // ─── Settings save ────────────────────────────────────────────────────────
@@ -574,12 +695,40 @@ export default function ProjectManagePage() {
     }
   };
 
+  const savePlatform = async () => {
+    setPlatformSaving(true);
+    try {
+      await fetch(`/api/admin/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: platform || null }),
+      });
+      fetchProject();
+    } catch { /* silent */ } finally {
+      setPlatformSaving(false);
+    }
+  };
+
+  const applyTemplate = async () => {
+    setApplyingTemplate(true);
+    setTemplateMsg('');
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/apply-template`, { method: 'POST' });
+      const d = await res.json();
+      setTemplateMsg(d.message ?? 'Done');
+      if (d.added > 0) fetchProject();
+    } catch {
+      setTemplateMsg('Failed to apply template');
+    } finally {
+      setApplyingTemplate(false);
+    }
+  };
 
   // ─── Guards ───────────────────────────────────────────────────────────────
   if (loading) return <div className="admin-content"><div className="admin-empty">Loading…</div></div>;
   if (error || !project) return <div className="admin-content"><div className="admin-alert admin-alert-error">{error || 'Not found'}</div></div>;
 
-  const portalUrl = `rachnabuilds.com/portal/${project.client.slug}/${project.id}`;
+  const portalUrl = `rachnabuilds.com/portal/${project.client.slug}`;
 
   return (
     <div className="admin-content">
@@ -670,16 +819,22 @@ export default function ProjectManagePage() {
 
       {/* Tabs */}
       <div className="settings-tabs">
-        {(['overview', 'sections', 'documents', 'sessions', 'contract', 'settings'] as Tab[]).map(tab => (
+        {(['overview', 'milestones', 'sections', 'documents', 'sessions', 'contract', 'settings', 'messages'] as Tab[]).map(tab => (
           <button
             key={tab}
             className={`settings-tab${activeTab === tab ? ' active' : ''}`}
             onClick={() => setActiveTab(tab)}
-            style={{ textTransform: 'capitalize' }}
+            style={{ textTransform: 'capitalize', position: 'relative' }}
           >
             {tab}
+            {tab === 'milestones' && ` (${milestones.length})`}
             {tab === 'sections' && ` (${project.sections.length})`}
             {tab === 'documents' && ` (${project.documents.length})`}
+            {tab === 'messages' && msgUnreadCount > 0 && (
+              <span style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 18, height: 18, borderRadius: 100, background: '#06D6A0', color: '#0B0F1A', fontSize: 10, fontWeight: 700, padding: '0 4px' }}>
+                {msgUnreadCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1001,15 +1156,19 @@ export default function ProjectManagePage() {
                     </div>
                   </div>
                   <div className="admin-field">
-                    <label className="admin-label">URL *</label>
+                    <label className="admin-label">URL {docType !== 'client_required' && '*'}</label>
                     <input
                       className="admin-input"
-                      type="url"
-                      placeholder="https://drive.google.com/..."
                       value={docUrl}
                       onChange={e => setDocUrl(e.target.value)}
-                      required
+                      placeholder={docType === 'client_required' ? 'Leave empty — client will fill this in' : 'https://…'}
+                      required={docType !== 'client_required'}
                     />
+                    {docType === 'client_required' && (
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                        Client will see this in their portal and submit the file/link.
+                      </p>
+                    )}
                   </div>
                   <div className="admin-field">
                     <label className="admin-label">Notes</label>
@@ -1071,19 +1230,36 @@ export default function ProjectManagePage() {
                     <div style={{ flexDirection: 'column', gap: 0 }} className="admin-section-item">
                       <div style={{ display: 'flex', width: '100%', alignItems: 'flex-start' }}>
                         <div className="admin-section-item-info" style={{ flex: 1 }}>
-                          <div className="admin-section-item-title">{doc.title}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <div className="admin-section-item-title">{doc.title}</div>
+                            {doc.approvedAt && doc.approvedBy && (
+                              <span
+                                title={`Reviewed by ${doc.approvedBy} on ${new Date(doc.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 100, padding: '2px 8px', whiteSpace: 'nowrap' }}
+                              >
+                                <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                Reviewed · {doc.approvedBy}
+                              </span>
+                            )}
+                          </div>
                           <div className="admin-section-item-meta">
                             {DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType}
                             {doc.notes ? ` · ${doc.notes}` : ''}
                           </div>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
-                            {doc.url.length > 60 ? `${doc.url.slice(0, 60)}…` : doc.url}
-                          </a>
+                          {doc.url && !doc.url.startsWith('text://') ? (
+                            <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', marginTop: 2 }}>
+                              {doc.url.length > 60 ? `${doc.url.slice(0, 60)}…` : doc.url}
+                            </a>
+                          ) : doc.url.startsWith('text://') ? (
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontStyle: 'italic' }}>Text response — see note above</span>
+                          ) : null}
                         </div>
                         <div className="admin-section-item-actions">
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
-                            Open ↗
-                          </a>
+                          {doc.url && !doc.url.startsWith('text://') && (
+                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                              Open ↗
+                            </a>
+                          )}
                           <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDoc(doc)}>
                             Edit
                           </button>
@@ -1187,7 +1363,7 @@ export default function ProjectManagePage() {
                     </button>
                   </div>
                   {expandedSession === sess.id && (() => {
-                    const sessEvents = events.filter(ev => ev.sessionId === sess.id);
+                    const sessEvents = events.filter(ev => ev.sessionId === sess.sessionId);
                     return (
                       <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', width: '100%' }}>
                         <div className="admin-section-item-meta" style={{ marginBottom: 6 }}>Tabs viewed:</div>
@@ -1207,13 +1383,25 @@ export default function ProjectManagePage() {
                                 const icon = EVENT_ICONS[ev.eventType] ?? '•';
                                 const m = ev.meta && typeof ev.meta === 'object' ? ev.meta as Record<string, unknown> : {};
                                 const tab = m.tab as string | undefined;
+                                const dur = m.prevTabDuration as number | undefined;
+                                const scroll = m.scrollDepth as number | undefined;
                                 return (
-                                  <div key={ev.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 12 }}>
+                                  <div key={ev.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, flexWrap: 'wrap' }}>
                                     <span style={{ flexShrink: 0 }}>{icon}</span>
                                     <span style={{ color: 'var(--text)', fontWeight: 500 }}>
                                       {ev.eventType.replace(/_/g, ' ')}
                                       {tab && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>→ {tab}</span>}
                                     </span>
+                                    {dur != null && dur > 0 && (
+                                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'rgba(6,214,160,0.1)', color: '#06D6A0', border: '1px solid rgba(6,214,160,0.2)', flexShrink: 0 }}>
+                                        {formatDuration(dur * 1000)}
+                                      </span>
+                                    )}
+                                    {scroll != null && (
+                                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'rgba(167,139,250,0.1)', color: '#A78BFA', border: '1px solid rgba(167,139,250,0.2)', flexShrink: 0 }}>
+                                        {scroll}% scroll
+                                      </span>
+                                    )}
                                     <span style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
                                       {timeAgo(ev.createdAt)}
                                     </span>
@@ -1252,72 +1440,176 @@ export default function ProjectManagePage() {
 
       {/* ─── CONTRACT ─── */}
       {activeTab === 'contract' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {contractLoading ? (
-            <div className="admin-empty">Loading contract…</div>
+        contractLoading ? (
+          <div className="admin-empty">Loading contract…</div>
+        ) : (
+          <>
+            <ContractBuilder
+              projectId={projectId}
+              clientName={project.client.name}
+              projectName={project.name}
+              initialContracts={contracts}
+              onContractsChange={setContracts}
+            />
+            {contracts.length > 0 && (
+              <div style={{ marginTop: 24, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Payment Tracking</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {contracts.map(c => (
+                    <div key={c.phase} style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 80 }}>Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}</div>
+                      {(['advance', 'balance'] as const).map(type => {
+                        const field = type === 'advance' ? 'advancePaid' : 'balancePaid';
+                        const isPaid = c[field as keyof typeof c] as boolean;
+                        const savingKey = `${c.phase}-${field}`;
+                        return (
+                          <button
+                            key={type}
+                            disabled={paymentSaving === savingKey}
+                            onClick={async () => {
+                              setPaymentSaving(savingKey);
+                              await fetch(`/api/admin/projects/${projectId}/contract?phase=${c.phase}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ [field]: !isPaid }),
+                              });
+                              setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, [field]: !isPaid } : pc));
+                              setPaymentSaving(null);
+                            }}
+                            style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${isPaid ? '#06D6A0' : 'var(--border)'}`, background: isPaid ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', color: isPaid ? '#06D6A0' : 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {isPaid ? '✓' : '○'} {type === 'advance' ? 'Advance' : 'Balance'} {isPaid ? 'Paid' : 'Unpaid'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )
+      )}
+
+      {/* ── Milestones Tab ─────────────────────────────────── */}
+      {activeTab === 'milestones' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="admin-section-title" style={{ margin: 0 }}>Project Milestones</h2>
+            <button className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} onClick={() => setShowMilestoneForm(v => !v)}>
+              {showMilestoneForm ? 'Cancel' : '+ Add Milestone'}
+            </button>
+          </div>
+
+          {showMilestoneForm && (
+            <form onSubmit={handleAddMilestone} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label className="admin-label">Title *</label>
+                  <input className="admin-input" value={msTitle} onChange={e => setMsTitle(e.target.value)} placeholder="e.g. Design Phase Complete" required />
+                </div>
+                <div>
+                  <label className="admin-label">Status</label>
+                  <select className="admin-select" value={msStatus} onChange={e => setMsStatus(e.target.value)}>
+                    <option value="pending">⏳ Pending</option>
+                    <option value="in_progress">🔄 In Progress</option>
+                    <option value="completed">✅ Completed</option>
+                    <option value="blocked">🚫 Blocked</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                <div>
+                  <label className="admin-label">Description</label>
+                  <input className="admin-input" value={msDesc} onChange={e => setMsDesc(e.target.value)} placeholder="Optional details…" />
+                </div>
+                <div>
+                  <label className="admin-label">Due Date</label>
+                  <input type="date" className="admin-input" value={msDueDate} onChange={e => setMsDueDate(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" className="admin-btn admin-btn-primary" disabled={msLoading || !msTitle.trim()} style={{ fontSize: 13 }}>
+                  {msLoading ? 'Adding…' : 'Add Milestone'}
+                </button>
+                <button type="button" className="admin-btn admin-btn-ghost" style={{ fontSize: 13 }} onClick={() => setShowMilestoneForm(false)}>Cancel</button>
+              </div>
+            </form>
+          )}
+
+          {milestones.length === 0 ? (
+            <div className="admin-empty">No milestones yet. Add one to track project progress.</div>
           ) : (
-            <>
-              {/* Status bar */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ padding: '4px 12px', borderRadius: 100, fontSize: 12, fontWeight: 700, background: contract?.status === 'signed' ? 'rgba(6,214,160,0.15)' : contract?.status === 'sent' ? 'rgba(251,191,36,0.15)' : 'var(--bg-elevated)', color: contract?.status === 'signed' ? '#06D6A0' : contract?.status === 'sent' ? '#F59E0B' : 'var(--text-secondary)', border: '1px solid', borderColor: contract?.status === 'signed' ? '#06D6A0' : contract?.status === 'sent' ? '#F59E0B' : 'var(--border)' }}>
-                  {contract?.status === 'signed' ? '✓ Signed' : contract?.status === 'sent' ? '📤 Sent to Client' : '📝 Draft'}
-                </div>
-                {contract?.sentAt && (
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sent {timeAgo(contract.sentAt)}</div>
-                )}
-                {contract?.status === 'signed' && contract.signedAt && (
-                  <div style={{ fontSize: 11, color: '#06D6A0' }}>Signed by <strong>{contract.clientSignature}</strong> on {new Date(contract.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                )}
-              </div>
-
-              {/* Editor */}
-              <div className="admin-card">
-                <div className="admin-card-title">
-                  Contract Content
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {contractSaved && <span style={{ fontSize: 12, color: '#06D6A0' }}>✓ Saved</span>}
-                    <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={saveContract} disabled={contractSaving || contract?.status === 'signed'}>
-                      {contractSaving ? 'Saving…' : 'Save Draft'}
-                    </button>
-                    {contract?.status === 'draft' && (
-                      <button className="admin-btn admin-btn-primary admin-btn-icon" style={{ fontSize: 12 }} onClick={sendContract} disabled={contractSending || !contractContent.trim()}>
-                        {contractSending ? 'Sending…' : '📤 Send to Client'}
-                      </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+              {milestones.map((m, idx) => {
+                const statusColor = { pending: '#94A3B8', in_progress: '#F59E0B', completed: '#06D6A0', blocked: '#FF6B6B' }[m.status] ?? '#94A3B8';
+                const statusLabel = { pending: '⏳ Pending', in_progress: '🔄 In Progress', completed: '✅ Completed', blocked: '🚫 Blocked' }[m.status] ?? m.status;
+                const isEditing = editingMilestoneId === m.id;
+                return (
+                  <div key={m.id} style={{ display: 'flex', gap: 16, paddingBottom: 20, position: 'relative' }}>
+                    {/* Timeline line */}
+                    {idx < milestones.length - 1 && (
+                      <div style={{ position: 'absolute', left: 11, top: 28, bottom: 0, width: 2, background: 'var(--border)' }} />
                     )}
-                    {contract?.status === 'sent' && (
-                      <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={sendContract} disabled={contractSending}>
-                        {contractSending ? '…' : '↺ Resend'}
-                      </button>
-                    )}
+                    {/* Status dot */}
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: statusColor, border: '3px solid var(--bg)', flexShrink: 0, marginTop: 4, zIndex: 1, boxShadow: `0 0 0 2px var(--bg)` }} />
+                    {/* Content */}
+                    <div style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+                      {isEditing ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div>
+                              <label className="admin-label">Title</label>
+                              <input className="admin-input" value={editMsTitle} onChange={e => setEditMsTitle(e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="admin-label">Status</label>
+                              <select className="admin-select" value={editMsStatus} onChange={e => setEditMsStatus(e.target.value)}>
+                                <option value="pending">⏳ Pending</option>
+                                <option value="in_progress">🔄 In Progress</option>
+                                <option value="completed">✅ Completed</option>
+                                <option value="blocked">🚫 Blocked</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                            <div>
+                              <label className="admin-label">Description</label>
+                              <input className="admin-input" value={editMsDesc} onChange={e => setEditMsDesc(e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="admin-label">Due Date</label>
+                              <input type="date" className="admin-input" value={editMsDueDate} onChange={e => setEditMsDueDate(e.target.value)} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} onClick={() => handleSaveMilestone(m.id)} disabled={editMsLoading}>
+                              {editMsLoading ? 'Saving…' : 'Save'}
+                            </button>
+                            <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={cancelEditMilestone}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: m.description ? 4 : 0 }}>{m.title}</div>
+                            {m.description && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>{m.description}</div>}
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: statusColor }}>{statusLabel}</span>
+                              {m.dueDate && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>📅 Due {new Date(m.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditMilestone(m)}>Edit</button>
+                            <button className="admin-btn admin-btn-danger admin-btn-icon" style={{ fontSize: 12 }} onClick={() => handleDeleteMilestone(m.id)}>Del</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {contract?.status === 'signed' ? (
-                  <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 14, color: 'var(--text)', lineHeight: 1.7, opacity: 0.8 }}>
-                    {contractContent}
-                  </div>
-                ) : (
-                  <textarea
-                    className="admin-textarea"
-                    value={contractContent}
-                    onChange={e => setContractContent(e.target.value)}
-                    rows={30}
-                    placeholder="Write your contract here using Markdown formatting…"
-                    style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, lineHeight: 1.6 }}
-                  />
-                )}
-              </div>
-
-              {/* Signature block (if signed) */}
-              {contract?.status === 'signed' && (
-                <div className="admin-card" style={{ borderColor: '#06D6A0' }}>
-                  <div className="admin-card-title" style={{ color: '#06D6A0' }}>✓ Contract Signed</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ fontSize: 14, color: 'var(--text)' }}><strong>Client Signature:</strong> {contract.clientSignature}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Signed on {contract.signedAt ? new Date(contract.signedAt).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                  </div>
-                </div>
-              )}
-            </>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
@@ -1325,8 +1617,50 @@ export default function ProjectManagePage() {
       {/* ─── SETTINGS ─── */}
       {activeTab === 'settings' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Platform card */}
           <div className="admin-card">
-            <div className="admin-card-title">Tab Config</div>
+            <div className="admin-card-title">Platform</div>
+            <div className="admin-slug-hint" style={{ marginBottom: 12 }}>
+              Sets which tabs are shown to the client and enables document templates.
+              Leave blank to show all tabs (legacy behaviour).
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="admin-field" style={{ flex: 1, marginBottom: 0 }}>
+                <label className="admin-label">Platform</label>
+                <select className="admin-select" value={platform} onChange={e => setPlatform(e.target.value)}>
+                  <option value="">— No platform set (show all tabs) —</option>
+                  {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
+              <button className="admin-btn admin-btn-primary" onClick={savePlatform} disabled={platformSaving} style={{ flexShrink: 0 }}>
+                {platformSaving ? 'Saving…' : 'Save Platform'}
+              </button>
+            </div>
+            {platform && (
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <div className="admin-slug-hint" style={{ marginBottom: 8 }}>
+                  Document template for <strong>{CLIENT_TYPES[project.clientType] ?? project.clientType}</strong> + <strong>{PLATFORMS.find(p => p.value === platform)?.label}</strong>
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    className="admin-btn admin-btn-primary"
+                    onClick={applyTemplate}
+                    disabled={applyingTemplate}
+                  >
+                    {applyingTemplate ? 'Applying…' : '✦ Apply Document Template'}
+                  </button>
+                  <span className="admin-slug-hint">Adds missing required docs — won&apos;t duplicate existing ones.</span>
+                </div>
+                {templateMsg && (
+                  <div className="admin-alert admin-alert-success" style={{ marginTop: 10 }}>{templateMsg}</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="admin-card">
+            <div className="admin-card-title">Tab Config Override (Advanced)</div>
             <div className="admin-field">
               <label className="admin-label">tabConfig (JSON)</label>
               <textarea
@@ -1336,7 +1670,7 @@ export default function ProjectManagePage() {
                 rows={10}
                 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
               />
-              <div className="admin-slug-hint">Controls which tabs are visible in the client portal.</div>
+              <div className="admin-slug-hint">Per-project override. Set <code>{`{"tabs":["submissions","proposal","contract"]}`}</code> to force specific tabs regardless of platform setting.</div>
             </div>
           </div>
 
@@ -1376,6 +1710,204 @@ export default function ProjectManagePage() {
             >
               {settingsSaving ? 'Saving…' : 'Save Settings'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MESSAGES ─── */}
+      {activeTab === 'messages' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: 600 }}>
+          <div className="admin-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="admin-card-title" style={{ flexShrink: 0 }}>
+              Messages with {project.client.name}
+            </div>
+
+            {/* Thread */}
+            <div
+              style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0 12px' }}
+            >
+              {!messagesLoaded && (
+                <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 24 }}>Loading…</div>
+              )}
+              {messagesLoaded && messages.length === 0 && (
+                <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 24 }}>No messages yet. Send the first one!</div>
+              )}
+              {messages.map(m => {
+                const isAdmin = m.senderType === 'admin';
+                return (
+                  <div
+                    key={m.id}
+                    style={{ display: 'flex', justifyContent: isAdmin ? 'flex-end' : 'flex-start' }}
+                  >
+                    <div style={{ maxWidth: '72%' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3, textAlign: isAdmin ? 'right' : 'left' }}>
+                        {isAdmin ? 'Admin' : project.client.name} · {new Date(m.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(m.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <div style={{
+                        background: isAdmin ? '#06D6A0' : 'var(--bg-elevated)',
+                        color: isAdmin ? '#0B0F1A' : 'var(--text)',
+                        borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                        padding: '10px 14px',
+                        fontSize: 14,
+                        lineHeight: 1.5,
+                        border: isAdmin ? 'none' : '1px solid var(--border)',
+                        wordBreak: 'break-word',
+                      }}>
+                        {m.text}
+                        {m.attachmentUrl && (
+                          <a
+                            href={m.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              marginTop: m.text ? 8 : 0,
+                              padding: '4px 10px',
+                              borderRadius: 20,
+                              background: isAdmin ? 'rgba(0,0,0,0.15)' : 'rgba(6,214,160,0.12)',
+                              color: isAdmin ? '#0B0F1A' : '#06D6A0',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              textDecoration: 'none',
+                              border: isAdmin ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(6,214,160,0.3)',
+                            }}
+                          >
+                            📎 {m.attachmentName || 'Attachment'}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Input */}
+            <div style={{ flexShrink: 0, borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Attachment preview */}
+              {msgAttachFile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.3)', borderRadius: 20, alignSelf: 'flex-start', fontSize: 12 }}>
+                  <span style={{ color: '#06D6A0', fontWeight: 600 }}>📎 {msgAttachFile.name}</span>
+                  <button
+                    onClick={() => { setMsgAttachFile(null); setMsgAttachError(''); if (msgFileInputRef.current) msgFileInputRef.current.value = ''; }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                    title="Remove attachment"
+                  >✕</button>
+                </div>
+              )}
+              {msgAttachError && (
+                <div style={{ fontSize: 12, color: '#FF6B6B' }}>{msgAttachError}</div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <textarea
+                  className="admin-textarea"
+                  rows={2}
+                  placeholder="Type a message…"
+                  value={newMsg}
+                  onChange={e => setNewMsg(e.target.value)}
+                  onKeyDown={async e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if ((!newMsg.trim() && !msgAttachFile) || msgSending) return;
+                      setMsgSending(true);
+                      setMsgAttachError('');
+                      let attachmentUrl: string | undefined;
+                      let attachmentName: string | undefined;
+                      if (msgAttachFile) {
+                        const fd = new FormData();
+                        fd.append('file', msgAttachFile);
+                        const upRes = await fetch(`/api/portal/upload?slug=${project?.client.slug}`, { method: 'POST', body: fd });
+                        if (!upRes.ok) {
+                          setMsgAttachError('Upload failed. Please try again.');
+                          setMsgSending(false);
+                          return;
+                        }
+                        const upData = await upRes.json() as { url: string };
+                        attachmentUrl = upData.url;
+                        attachmentName = msgAttachFile.name;
+                      }
+                      const res = await fetch(`/api/admin/projects/${projectId}/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: newMsg.trim(), ...(attachmentUrl ? { attachmentUrl, attachmentName } : {}) }),
+                      });
+                      if (res.ok) {
+                        const msg = await res.json() as ProjectMessage;
+                        setMessages(prev => [...prev, msg]);
+                        setNewMsg('');
+                        setMsgAttachFile(null);
+                        if (msgFileInputRef.current) msgFileInputRef.current.value = '';
+                      }
+                      setMsgSending(false);
+                    }
+                  }}
+                  style={{ flex: 1, resize: 'none', fontSize: 13 }}
+                />
+                {/* Hidden file input */}
+                <input
+                  ref={msgFileInputRef}
+                  type="file"
+                  accept="*/*"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files?.[0] ?? null;
+                    setMsgAttachFile(file);
+                    setMsgAttachError('');
+                  }}
+                />
+                {/* Paperclip button */}
+                <button
+                  className="admin-btn admin-btn-ghost admin-btn-icon"
+                  title="Attach file"
+                  onClick={() => msgFileInputRef.current?.click()}
+                  style={{ alignSelf: 'flex-end', padding: '8px 10px', fontSize: 16 }}
+                >
+                  📎
+                </button>
+                <button
+                  className="admin-btn admin-btn-primary"
+                  disabled={msgSending || (!newMsg.trim() && !msgAttachFile)}
+                  style={{ alignSelf: 'flex-end', padding: '8px 18px', fontSize: 13 }}
+                  onClick={async () => {
+                    if ((!newMsg.trim() && !msgAttachFile) || msgSending) return;
+                    setMsgSending(true);
+                    setMsgAttachError('');
+                    let attachmentUrl: string | undefined;
+                    let attachmentName: string | undefined;
+                    if (msgAttachFile) {
+                      const fd = new FormData();
+                      fd.append('file', msgAttachFile);
+                      const upRes = await fetch(`/api/portal/upload?slug=${project?.client.slug}`, { method: 'POST', body: fd });
+                      if (!upRes.ok) {
+                        setMsgAttachError('Upload failed. Please try again.');
+                        setMsgSending(false);
+                        return;
+                      }
+                      const upData = await upRes.json() as { url: string };
+                      attachmentUrl = upData.url;
+                      attachmentName = msgAttachFile.name;
+                    }
+                    const res = await fetch(`/api/admin/projects/${projectId}/messages`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ text: newMsg.trim(), ...(attachmentUrl ? { attachmentUrl, attachmentName } : {}) }),
+                    });
+                    if (res.ok) {
+                      const msg = await res.json() as ProjectMessage;
+                      setMessages(prev => [...prev, msg]);
+                      setNewMsg('');
+                      setMsgAttachFile(null);
+                      if (msgFileInputRef.current) msgFileInputRef.current.value = '';
+                    }
+                    setMsgSending(false);
+                  }}
+                >
+                  {msgSending ? '…' : 'Send'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { logDocAction } from '@/lib/docLog';
+import { notifyDocumentAdded } from '@/lib/email';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
@@ -23,8 +24,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { docType, title, url, notes } = await req.json();
 
-    if (!docType || !title || !url) {
-      return NextResponse.json({ error: 'docType, title, and url are required' }, { status: 400 });
+    if (!docType || !title || (docType !== 'client_required' && !url)) {
+      return NextResponse.json({ error: 'docType and title are required' }, { status: 400 });
     }
 
     const doc = await prisma.projectDocument.create({
@@ -32,12 +33,30 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         projectId,
         docType,
         title,
-        url,
+        url: url || '',
         notes: notes || null,
       },
     });
 
     logDocAction({ projectId, documentId: doc.id, action: 'added', actorType: 'admin', docTitle: title, meta: { docType, url } });
+
+    // Fire-and-forget: notify client when admin shares a document (not when requesting one from them)
+    if (docType !== 'client_required') {
+      const project = await prisma.clientProject.findUnique({
+        where: { id: projectId },
+        include: { client: true },
+      });
+      if (project?.client?.email) {
+        const portalUrl = `https://rachnabuilds.com/portal/${project.client.slug}/${projectId}`;
+        notifyDocumentAdded(
+          project.client.email,
+          project.client.name,
+          title,
+          project.name,
+          portalUrl,
+        ).catch(console.error);
+      }
+    }
 
     return NextResponse.json(doc, { status: 201 });
   } catch (err) {

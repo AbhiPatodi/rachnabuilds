@@ -31,7 +31,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
   }
 
-  const filename = `portal/${slug}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const randomHex = crypto.randomBytes(16).toString('hex');
+  const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filename = `portal/${slug}/${randomHex}-${sanitizedFilename}`;
   const blob = await put(filename, file, { access: 'public' });
 
   return NextResponse.json({ url: blob.url });

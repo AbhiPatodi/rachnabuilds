@@ -20,6 +20,7 @@ export default async function ClientPortalPage({ params, searchParams }: PagePro
     where: { slug: clientSlug },
     include: {
       projects: {
+        where: { status: { not: 'draft' } },
         orderBy: { displayOrder: 'asc' },
         include: {
           _count: {

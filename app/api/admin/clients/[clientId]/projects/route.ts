@@ -2,7 +2,9 @@
 // POST /api/admin/clients/[clientId]/projects  — create a project for a client
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { getDocumentTemplate, getSectionTemplate } from '@/lib/portal-config';
 
 interface RouteContext {
   params: Promise<{ clientId: string }>;
@@ -40,21 +42,55 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientId } = await params;
 
   try {
-    const { name, clientType, status, displayOrder } = await req.json();
+    const { name, clientType, platform, status, displayOrder } = await req.json();
 
     if (!name) {
       return NextResponse.json({ error: 'name is required' }, { status: 400 });
     }
 
+    const resolvedType = clientType ?? 'new_build';
+    const resolvedPlatform = platform || null;
+
     const project = await prisma.clientProject.create({
       data: {
         clientId,
         name,
-        clientType: clientType ?? 'new_build',
+        clientType: resolvedType,
+        platform: resolvedPlatform,
         status: status ?? 'active',
         displayOrder: displayOrder ?? 0,
       },
     });
+
+    // Auto-create document checklist from template
+    const docTemplate = getDocumentTemplate(resolvedType, resolvedPlatform);
+    if (docTemplate.length > 0) {
+      await prisma.projectDocument.createMany({
+        data: docTemplate.map(t => ({
+          id: crypto.randomBytes(12).toString('hex'),
+          projectId: project.id,
+          docType: 'client_required',
+          title: t.title,
+          url: '',
+          notes: t.notes,
+        })),
+      });
+    }
+
+    // Auto-create default sections from template
+    const sectionTemplate = getSectionTemplate(resolvedType);
+    if (sectionTemplate.length > 0) {
+      await prisma.projectSection.createMany({
+        data: sectionTemplate.map(s => ({
+          id: crypto.randomBytes(12).toString('hex'),
+          projectId: project.id,
+          sectionType: s.sectionType,
+          title: s.title,
+          content: { items: [] },
+          displayOrder: s.displayOrder,
+        })),
+      });
+    }
 
     return NextResponse.json(project, { status: 201 });
   } catch (err: unknown) {

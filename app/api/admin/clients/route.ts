@@ -65,11 +65,12 @@ export async function POST(req: NextRequest) {
         phone: phone || null,
         slug,
         passwordHash,
-        passwordPlain: password,
+        clientProfile: { portalPassword: password },
       },
     });
 
-    return NextResponse.json(client, { status: 201 });
+    const { passwordHash: _ph, ...safeClient } = client;
+    return NextResponse.json(safeClient, { status: 201 });
   } catch (err: unknown) {
     const error = err as { code?: string };
     if (error.code === 'P2002') {
