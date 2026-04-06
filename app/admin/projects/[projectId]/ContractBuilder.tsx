@@ -135,8 +135,8 @@ function openPrintWindow(
   }).join('');
 
   const sigBlock = clientSignature
-    ? `<div class="sig-block"><div class="sig-parties"><div><div class="sig-label">CLIENT SIGNATURE</div><div class="sig-name">${esc(clientSignature)}</div><div class="sig-meta">Signed digitally on ${signedAt ? new Date(signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</div></div><div><div class="sig-label">SERVICE PROVIDER</div><div class="sig-line"></div><div class="sig-meta">${esc(data.meta.preparedBy)}</div></div></div></div>`
-    : `<div class="sig-block"><div class="sig-parties"><div><div class="sig-label">CLIENT SIGNATURE</div><div class="sig-line"></div><div class="sig-meta">${esc(data.meta.clientName)}</div></div><div><div class="sig-label">SERVICE PROVIDER</div><div class="sig-line"></div><div class="sig-meta">${esc(data.meta.preparedBy)}</div></div></div></div>`;
+    ? `<div class="sig-block"><div class="sig-parties"><div><div class="sig-label">CLIENT SIGNATURE</div><div class="sig-name">${esc(clientSignature)}</div><div class="sig-meta">Signed digitally on ${signedAt ? new Date(signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</div></div><div><div class="sig-label">SERVICE PROVIDER</div><div class="sig-name">Rachna Jain</div><div class="sig-meta">${esc(data.meta.preparedBy)}</div></div></div></div>`
+    : `<div class="sig-block"><div class="sig-parties"><div><div class="sig-label">CLIENT SIGNATURE</div><div class="sig-line"></div><div class="sig-meta">${esc(data.meta.clientName)}</div></div><div><div class="sig-label">SERVICE PROVIDER</div><div class="sig-name">Rachna Jain</div><div class="sig-meta">${esc(data.meta.preparedBy)}</div></div></div></div>`;
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Service Agreement — ${esc(data.meta.projectName)}</title><style>
 * { margin: 0; padding: 0; box-sizing: border-box; }

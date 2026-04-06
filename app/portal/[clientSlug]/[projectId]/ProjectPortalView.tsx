@@ -1947,14 +1947,26 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       {/* Contract body */}
                       <div id="contract-print-area" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: '28px 32px' }}>
                         {renderContractBody(contract.content)}
-                        {/* Signature block — included in print */}
-                        {contract.status === 'signed' && contract.clientSignature && (
-                          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
-                            <div style={{ fontSize: 11, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Digital Signature</div>
-                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: C.text, marginBottom: 4 }}>{contract.clientSignature}</div>
-                            <div style={{ fontSize: 12, color: C.textLight }}>Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                        {/* Signature block — always shown, included in print */}
+                        <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Client Signature</div>
+                            {contract.status === 'signed' && contract.clientSignature ? (
+                              <>
+                                <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: C.text, marginBottom: 4 }}>{contract.clientSignature}</div>
+                                <div style={{ fontSize: 11, color: C.textLight }}>Signed {new Date(contract.signedAt!).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                              </>
+                            ) : (
+                              <div style={{ borderBottom: `1px solid ${C.border}`, height: 32, marginBottom: 6 }} />
+                            )}
+                            <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>{contract.clientSignature ? '' : 'Client'}</div>
                           </div>
-                        )}
+                          <div>
+                            <div style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Service Provider</div>
+                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: C.text, marginBottom: 4 }}>Rachna Jain</div>
+                            <div style={{ fontSize: 12, color: C.textMid, marginTop: 4 }}>Rachna Jain</div>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Sign block OR signed confirmation */}
