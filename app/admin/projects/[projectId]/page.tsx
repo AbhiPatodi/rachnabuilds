@@ -317,6 +317,8 @@ export default function ProjectManagePage() {
   const [sharePassword, setSharePassword] = useState('');
   const [msgCopied, setMsgCopied] = useState(false);
   const [pwCopied, setPwCopied] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSaved, setPwSaved] = useState(false);
 
   const fetchProject = useCallback(async () => {
     try {
@@ -421,9 +423,26 @@ export default function ProjectManagePage() {
 
   const updateSharePassword = (val: string, slug: string) => {
     setSharePassword(val);
+    setPwSaved(false);
     if (typeof localStorage !== 'undefined') {
       if (val) localStorage.setItem(`share_pw_${slug}`, val);
       else localStorage.removeItem(`share_pw_${slug}`);
+    }
+  };
+
+  const saveSharePasswordToDB = async (val: string, clientId: string) => {
+    if (!val.trim() || val.trim().length < 6) return;
+    setPwSaving(true);
+    try {
+      await fetch(`/api/admin/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: val.trim() }),
+      });
+      setPwSaved(true);
+      setTimeout(() => setPwSaved(false), 3000);
+    } catch { /* silent */ } finally {
+      setPwSaving(false);
     }
   };
 
@@ -1951,6 +1970,7 @@ export default function ProjectManagePage() {
                     placeholder="e.g. client2026"
                     value={sharePassword}
                     onChange={e => updateSharePassword(e.target.value, project.client.slug)}
+                    onBlur={e => saveSharePasswordToDB(e.target.value, project.client.id)}
                     style={{ flex: 1 }}
                   />
                   <button
@@ -1962,6 +1982,9 @@ export default function ProjectManagePage() {
                   >
                     {pwCopied ? '✓' : '📋'}
                   </button>
+                </div>
+                <div style={{ fontSize: 11, color: pwSaved ? '#06D6A0' : 'var(--text-muted)', marginTop: 5, minHeight: 16 }}>
+                  {pwSaving ? 'Saving…' : pwSaved ? '✓ Password saved — portal login updated' : sharePassword.length >= 6 ? 'Tab away to save to DB' : sharePassword.length > 0 ? 'Min 6 characters' : ''}
                 </div>
               </div>
 
