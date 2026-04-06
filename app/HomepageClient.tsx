@@ -492,8 +492,8 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             </button>
-            <a href="/free-audit" className="nav-cta">
-              Free Audit
+            <a href="/start" className="nav-cta">
+              Start a Project
             </a>
           </div>
           <button className="burger" id="burger" aria-label="Menu">
@@ -511,7 +511,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
         <a href="/tools" className="ml">Free Tools</a>
         <a href="/blog" className="ml">Blog</a>
         <a href="#contact" className="ml">Contact</a>
-        <a href="/free-audit" className="ml">Free Audit</a>
+        <a href="/start" className="ml" style={{ color: 'var(--accent)', fontWeight: 600 }}>Start a Project</a>
       </div>
 
       {/* HERO */}
@@ -594,7 +594,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
             <div className="hero-left-col">
               <div className="hero-ctas">
                 <a href="#work" className="btn-primary">See my work <span className="btn-arrow">→</span></a>
-                <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener" className="btn-ghost">Start a project</a>
+                <a href="/start" className="btn-ghost">Start a project</a>
               </div>
               <div className="upwork-badge">
                 <svg viewBox="0 0 24 24" fill="#6CB438">
@@ -762,12 +762,12 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
                       <li key={fi}>{f}</li>
                     ))}
                   </ul>
-                  <a href="#contact" className="price-cta">{p.ctaText ?? 'Get started →'}</a>
+                  <a href="/start" className="price-cta">{p.ctaText ?? 'Get started →'}</a>
                 </div>
               );
             })}
           </div>
-          <p className="pricing-note rv">Not sure which fits your project? <a href="#contact">Tell me about it</a> — I&apos;ll recommend the right scope.</p>
+          <p className="pricing-note rv">Not sure which fits your project? <a href="/start">Tell me about it</a> — I&apos;ll recommend the right scope.</p>
         </div>
       </section>
 
@@ -818,7 +818,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
               </div>
             </div>
             <div className="audit-right">
-              <a href="#contact" className="btn-primary" style={{ fontSize: '16px', padding: '18px 36px' }}>Request Free Audit →</a>
+              <a href="/start" className="btn-primary" style={{ fontSize: '16px', padding: '18px 36px' }}>Start Your Project →</a>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px', fontFamily: 'var(--mono)', letterSpacing: '.04em' }}>No obligation · Response within 24hrs</p>
             </div>
           </div>
