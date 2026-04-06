@@ -65,7 +65,7 @@ function defaultContract(clientName: string, projectName: string): ContractStruc
       clientName,
       projectName,
       date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-      preparedBy: 'Rachna Jain — Rachna Builds',
+      preparedBy: 'Rachna Jain',
     },
     sections: [
       { id: 's1', type: 'bullets', title: 'Scope of Work', items: [''] },
