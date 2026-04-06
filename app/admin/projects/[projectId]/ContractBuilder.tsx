@@ -26,6 +26,12 @@ interface PaymentSection {
   totalFee: string;
   schedule: { label: string; amount: string; timing: string }[];
   latePenalty?: string;
+  paymentMethods?: {
+    upiId?: string;
+    paypalLink?: string;
+    bankDetails?: string;
+    qrCodeUrl?: string;
+  };
 }
 interface TextSection {
   id: string; type: 'text'; title: string; body: string;
@@ -112,7 +118,15 @@ function openPrintWindow(
     }
     if (s.type === 'payment') {
       const scheduleRows = s.schedule.map(r => `<tr><td>${esc(r.label)}</td><td><strong>${esc(r.amount)}</strong></td><td>${esc(r.timing)}</td></tr>`).join('');
-      return `<div class="section"><h2>${num}. ${esc(s.title)}</h2><div class="fee-box"><div class="fee-label">Total Fee</div><div class="fee-amount">${esc(s.totalFee)}</div></div><table><thead><tr><th>Payment</th><th>Amount</th><th>Due</th></tr></thead><tbody>${scheduleRows}</tbody></table>${s.latePenalty ? `<p class="note">Late payment: ${esc(s.latePenalty)}</p>` : ''}</div>`;
+      const pm = s.paymentMethods;
+      const pmRows = [
+        pm?.upiId ? `<tr><td><strong>UPI ID</strong></td><td>${esc(pm.upiId)}</td></tr>` : '',
+        pm?.paypalLink ? `<tr><td><strong>PayPal</strong></td><td><a href="${esc(pm.paypalLink)}">${esc(pm.paypalLink)}</a></td></tr>` : '',
+        pm?.bankDetails ? `<tr><td><strong>Bank Details</strong></td><td style="white-space:pre-line">${esc(pm.bankDetails)}</td></tr>` : '',
+      ].filter(Boolean).join('');
+      const pmBlock = pmRows ? `<h3 style="margin:20px 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;">How to Pay</h3><table>${pmRows}</table>` : '';
+      const qrBlock = pm?.qrCodeUrl ? `<div style="margin-top:12px"><p style="font-size:12px;color:#64748b;margin-bottom:6px">Scan QR to pay:</p><img src="${esc(pm.qrCodeUrl)}" style="width:140px;height:140px;border-radius:8px;border:1px solid #e2e8f0" /></div>` : '';
+      return `<div class="section"><h2>${num}. ${esc(s.title)}</h2><div class="fee-box"><div class="fee-label">Total Fee</div><div class="fee-amount">${esc(s.totalFee)}</div></div><table><thead><tr><th>Payment</th><th>Amount</th><th>Due</th></tr></thead><tbody>${scheduleRows}</tbody></table>${s.latePenalty ? `<p class="note">Late payment: ${esc(s.latePenalty)}</p>` : ''}${pmBlock}${qrBlock}</div>`;
     }
     if (s.type === 'text') {
       return `<div class="section"><h2>${num}. ${esc(s.title)}</h2><p>${esc(s.body)}</p></div>`;
@@ -294,6 +308,37 @@ function ContractPreview({ data, clientSignature, signedAt }: { data: ContractSt
                 </tbody>
               </table>
               {s.latePenalty && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, fontStyle: 'italic' }}>Late payment: {s.latePenalty}</p>}
+              {s.paymentMethods && (s.paymentMethods.upiId || s.paymentMethods.paypalLink || s.paymentMethods.bankDetails || s.paymentMethods.qrCodeUrl) && (
+                <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 12 }}>How to Pay</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {s.paymentMethods.upiId && (
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', minWidth: 80 }}>UPI ID</span>
+                        <span style={{ fontSize: 13, fontFamily: 'var(--mono)', color: 'var(--text)', background: 'var(--bg)', padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>{s.paymentMethods.upiId}</span>
+                      </div>
+                    )}
+                    {s.paymentMethods.paypalLink && (
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', minWidth: 80 }}>PayPal</span>
+                        <a href={s.paymentMethods.paypalLink} target="_blank" rel="noopener" style={{ fontSize: 13, color: 'var(--accent)', wordBreak: 'break-all' }}>{s.paymentMethods.paypalLink}</a>
+                      </div>
+                    )}
+                    {s.paymentMethods.bankDetails && (
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', minWidth: 80 }}>Bank</span>
+                        <span style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'pre-line', lineHeight: 1.6 }}>{s.paymentMethods.bankDetails}</span>
+                      </div>
+                    )}
+                    {s.paymentMethods.qrCodeUrl && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>Scan to pay:</div>
+                        <img src={s.paymentMethods.qrCodeUrl} alt="Payment QR" style={{ width: 120, height: 120, borderRadius: 8, border: '1px solid var(--border)' }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
           {s.type === 'text' && (
@@ -811,6 +856,27 @@ export default function ContractBuilder({
                         </button>
                       </div>
                       <div><label className="admin-label">Late Payment Note</label><input className="admin-input" value={section.latePenalty ?? ''} onChange={e => updateSection(section.id, { latePenalty: e.target.value })} placeholder="e.g. 2% per month after 7-day grace period" /></div>
+                      <div style={{ paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Payment Methods (shown to client)</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div>
+                            <label className="admin-label">UPI ID</label>
+                            <input className="admin-input" value={section.paymentMethods?.upiId ?? ''} onChange={e => updateSection(section.id, { paymentMethods: { ...section.paymentMethods, upiId: e.target.value } })} placeholder="e.g. rachna@upi or 9876543210@paytm" />
+                          </div>
+                          <div>
+                            <label className="admin-label">PayPal Link</label>
+                            <input className="admin-input" value={section.paymentMethods?.paypalLink ?? ''} onChange={e => updateSection(section.id, { paymentMethods: { ...section.paymentMethods, paypalLink: e.target.value } })} placeholder="e.g. https://paypal.me/rachnabuilds" />
+                          </div>
+                          <div>
+                            <label className="admin-label">Bank Details</label>
+                            <textarea className="admin-input" value={section.paymentMethods?.bankDetails ?? ''} onChange={e => updateSection(section.id, { paymentMethods: { ...section.paymentMethods, bankDetails: e.target.value } })} placeholder={"Account Name: Rachna Jain\nBank: HDFC Bank\nAccount No: 1234567890\nIFSC: HDFC0001234"} rows={4} style={{ resize: 'vertical', width: '100%', fontFamily: 'var(--mono)', fontSize: 12 }} />
+                          </div>
+                          <div>
+                            <label className="admin-label">QR Code Image URL (optional)</label>
+                            <input className="admin-input" value={section.paymentMethods?.qrCodeUrl ?? ''} onChange={e => updateSection(section.id, { paymentMethods: { ...section.paymentMethods, qrCodeUrl: e.target.value } })} placeholder="Paste image URL of your UPI QR code" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
