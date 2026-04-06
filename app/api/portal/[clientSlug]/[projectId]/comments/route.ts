@@ -8,7 +8,8 @@ import { notifyClientComment } from '@/lib/email';
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
 function verifyPortalCookie(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
+  const secret = process.env.ADMIN_PASSWORD;
+  if (!secret) return false;
   const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
   return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
 }
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   sendPushToAll(
     'New Comment',
     `${author.trim()}: ${text.trim().slice(0, 80)}`,
-    `/admin/clients/${clientSlug}/projects/${project.id}`
+    `/admin/projects/${project.id}`
   ).catch(() => {});
 
   // Fire-and-forget: email Rachna about the new client comment

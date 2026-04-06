@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         phone: lead.phone ?? undefined,
         slug,
         passwordHash,
-        clientProfile: { portalPassword: rawPassword },
+        clientProfile: {},
       },
     });
 

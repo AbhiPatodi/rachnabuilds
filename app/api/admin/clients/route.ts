@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         phone: phone || null,
         slug,
         passwordHash,
-        clientProfile: { portalPassword: password },
+        clientProfile: {},
       },
     });
 

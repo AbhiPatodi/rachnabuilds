@@ -98,6 +98,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const url = new URL(req.url);
   const phaseParam = url.searchParams.get('phase');
   const phase = phaseParam ? parseInt(phaseParam, 10) : 1;
+  if (!Number.isInteger(phase) || phase < 1 || phase > 20) {
+    return NextResponse.json({ error: 'Invalid phase number' }, { status: 400 });
+  }
 
   const body = await req.json();
   const { content, status, phaseLabel, advancePaid, balancePaid, advanceReceiptUrl, balanceReceiptUrl } = body;

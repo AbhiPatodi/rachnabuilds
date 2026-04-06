@@ -37,7 +37,7 @@ export default async function ProjectPortalPage({ params }: PageProps) {
   }
 
   // HMAC cookie check (v2)
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
+  const secret = process.env.ADMIN_PASSWORD ?? '';
   const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
   const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;
 
@@ -102,8 +102,9 @@ export default async function ProjectPortalPage({ params }: PageProps) {
         status: project.status,
         adminProfile: (() => {
           // Strip internal fields before sending to client component
-          const { notes, internalNotes, adminNotes, ...safeProfile } = (project.adminProfile ?? {}) as Record<string, unknown>;
-          void notes; void internalNotes; void adminNotes;
+          const profile = (project.adminProfile ?? {}) as Record<string, unknown>;
+          const { notes: _n, internalNotes: _in, adminNotes: _an, ...safeProfile } = profile;
+          void _n; void _in; void _an;
           // Merge Client.email / Client.phone so admin-set contact info shows in portal
           if (client.email && !safeProfile.email) safeProfile.email = client.email;
           if (client.phone && !safeProfile.phone) safeProfile.phone = client.phone;

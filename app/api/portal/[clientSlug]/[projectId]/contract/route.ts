@@ -9,7 +9,8 @@ import { notifyContractSigned } from '@/lib/email';
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
 function portalAuth(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
+  const secret = process.env.ADMIN_PASSWORD;
+  if (!secret) return false;
   const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
   return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
 }

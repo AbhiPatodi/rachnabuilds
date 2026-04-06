@@ -10,7 +10,8 @@ interface RouteContext { params: Promise<{ clientSlug: string; projectId: string
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
+  const secret = process.env.ADMIN_PASSWORD;
+  if (!secret) return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
   if (req.cookies.get(`pc_${clientSlug}`)?.value !== expected) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

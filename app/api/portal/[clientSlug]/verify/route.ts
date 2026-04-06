@@ -38,7 +38,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cli
   const valid = await bcrypt.compare(password, client.passwordHash);
   if (!valid) return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
+  const secret = process.env.ADMIN_PASSWORD;
+  if (!secret) return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
   const token = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
 
   sendPushToAll(
