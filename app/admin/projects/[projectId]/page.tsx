@@ -272,6 +272,8 @@ export default function ProjectManagePage() {
   const [contractsLoaded, setContractsLoaded] = useState(false);
   const [contractLoading, setContractLoading] = useState(false);
   const [paymentSaving, setPaymentSaving] = useState<string | null>(null);
+  const [paymentLinkInputs, setPaymentLinkInputs] = useState<Record<string, string>>({});
+  const [paymentLinkSaving, setPaymentLinkSaving] = useState<string | null>(null);
 
   // Messages
   const [messages, setMessages] = useState<ProjectMessage[]>([]);
@@ -1561,45 +1563,105 @@ export default function ProjectManagePage() {
             />
             {contracts.length > 0 && (
               <div style={{ marginTop: 24, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Payment Tracking</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {contracts.map(c => (
-                    <div key={c.phase} style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 80 }}>Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}</div>
-                      {(['advance', 'balance'] as const).map(type => {
-                        const field = type === 'advance' ? 'advancePaid' : 'balancePaid';
-                        const receiptField = type === 'advance' ? 'advanceReceiptUrl' : 'balanceReceiptUrl';
-                        const isPaid = c[field as keyof typeof c] as boolean;
-                        const receiptUrl = c[receiptField as keyof typeof c] as string | null | undefined;
-                        const savingKey = `${c.phase}-${field}`;
-                        return (
-                          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button
-                              disabled={paymentSaving === savingKey}
-                              onClick={async () => {
-                                setPaymentSaving(savingKey);
-                                await fetch(`/api/admin/projects/${projectId}/contract?phase=${c.phase}`, {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ [field]: !isPaid }),
-                                });
-                                setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, [field]: !isPaid } : pc));
-                                setPaymentSaving(null);
-                              }}
-                              style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${isPaid ? '#06D6A0' : 'var(--border)'}`, background: isPaid ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', color: isPaid ? '#06D6A0' : 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                            >
-                              {isPaid ? '✓' : '○'} {type === 'advance' ? 'Advance' : 'Balance'} {isPaid ? 'Paid' : 'Unpaid'}
-                            </button>
-                            {receiptUrl && (
-                              <a href={receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                📎 Receipt
-                              </a>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>💳 Payment Tracking</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {contracts.map(c => {
+                    let schedule: { label: string; amount: string; timing: string; paymentLink?: string }[] = [];
+                    try {
+                      const parsed = JSON.parse(c.content);
+                      const ps = (parsed.sections ?? []).find((s: { type: string }) => s.type === 'payment');
+                      schedule = ps?.schedule ?? [];
+                    } catch {}
+                    const rows = schedule.length > 0 ? schedule : [
+                      { label: 'Advance', amount: '', timing: 'due on signing' },
+                      { label: 'Balance', amount: '', timing: 'due on delivery' },
+                    ];
+                    return (
+                      <div key={c.phase} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}</div>
+                          <div style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: c.status === 'signed' ? 'rgba(6,214,160,0.1)' : 'rgba(148,163,184,0.1)', color: c.status === 'signed' ? '#06D6A0' : 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.status}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                          {rows.map((row, idx) => {
+                            const type = idx === 0 ? 'advance' : 'balance';
+                            const field = type === 'advance' ? 'advancePaid' : 'balancePaid';
+                            const receiptField = type === 'advance' ? 'advanceReceiptUrl' : 'balanceReceiptUrl';
+                            const isPaid = !!(c[field as keyof typeof c]);
+                            const receiptUrl = c[receiptField as keyof typeof c] as string | null | undefined;
+                            const savingKey = `${c.phase}-${field}`;
+                            const linkKey = `${c.phase}-${idx}`;
+                            const linkVal = paymentLinkInputs[linkKey] ?? row.paymentLink ?? '';
+                            return (
+                              <div key={idx} style={{ padding: '12px 16px', borderBottom: idx < rows.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{row.label}</div>
+                                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{row.timing}</div>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                                    {row.amount && <div style={{ fontSize: 14, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text-primary)' }}>{row.amount}</div>}
+                                    <button
+                                      disabled={paymentSaving === savingKey}
+                                      onClick={async () => {
+                                        setPaymentSaving(savingKey);
+                                        await fetch(`/api/admin/projects/${projectId}/contract?phase=${c.phase}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ [field]: !isPaid }),
+                                        });
+                                        setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, [field]: !isPaid } : pc));
+                                        setPaymentSaving(null);
+                                      }}
+                                      style={{ padding: '5px 14px', borderRadius: 8, border: `1px solid ${isPaid ? '#06D6A0' : 'var(--border)'}`, background: isPaid ? 'rgba(6,214,160,0.1)' : 'var(--bg-card)', color: isPaid ? '#06D6A0' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    >
+                                      {paymentSaving === savingKey ? '...' : isPaid ? '✓ Paid' : 'Mark Paid'}
+                                    </button>
+                                    {receiptUrl && (
+                                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>📎 Receipt</a>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Payment link per row */}
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <input
+                                    className="admin-input"
+                                    style={{ flex: 1, fontSize: 12, padding: '5px 10px' }}
+                                    placeholder="Payment link (e.g. https://paypal.me/rachnabuilds/185)"
+                                    value={linkVal}
+                                    onChange={e => setPaymentLinkInputs(prev => ({ ...prev, [linkKey]: e.target.value }))}
+                                  />
+                                  <button
+                                    disabled={paymentLinkSaving === linkKey}
+                                    onClick={async () => {
+                                      setPaymentLinkSaving(linkKey);
+                                      try {
+                                        const parsed = JSON.parse(c.content);
+                                        const psIdx = (parsed.sections ?? []).findIndex((s: { type: string }) => s.type === 'payment');
+                                        if (psIdx !== -1 && parsed.sections[psIdx].schedule?.[idx] !== undefined) {
+                                          parsed.sections[psIdx].schedule[idx].paymentLink = linkVal;
+                                          await fetch(`/api/admin/projects/${projectId}/contract?phase=${c.phase}`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ content: JSON.stringify(parsed) }),
+                                          });
+                                          setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, content: JSON.stringify(parsed) } : pc));
+                                        }
+                                      } catch {}
+                                      setPaymentLinkSaving(null);
+                                    }}
+                                    style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                  >
+                                    {paymentLinkSaving === linkKey ? '...' : '💾 Save Link'}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
