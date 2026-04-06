@@ -1567,6 +1567,37 @@ export default function ProjectManagePage() {
                 </button>
               </div>
             )}
+            {/* Signature status summary */}
+            {contracts.length > 0 && (
+              <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {contracts.map(c => {
+                  const label = c.phaseLabel ? `Phase ${c.phase} — ${c.phaseLabel}` : `Phase ${c.phase}`;
+                  if (c.status === 'signed') return (
+                    <div key={c.phase} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, background: 'rgba(6,214,160,0.07)', border: '1px solid rgba(6,214,160,0.25)' }}>
+                      <svg width="16" height="16" fill="none" stroke="#06D6A0" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#06D6A0' }}>✓ Signed</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>{label}</span>
+                        {c.clientSignature && <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>by "{c.clientSignature}"</span>}
+                      </div>
+                      {c.signedAt && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{new Date(c.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                    </div>
+                  );
+                  if (c.status === 'sent') return (
+                    <div key={c.phase} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                      <svg width="16" height="16" fill="none" stroke="#F59E0B" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#F59E0B' }}>⏳ Awaiting signature</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>{label}</span>
+                      </div>
+                      {c.sentAt && <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>Sent {new Date(c.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>}
+                    </div>
+                  );
+                  return null;
+                })}
+              </div>
+            )}
+
             <ContractBuilder
               projectId={projectId}
               clientName={project.client.name}
