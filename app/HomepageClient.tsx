@@ -484,7 +484,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
             <a href="#pricing">Pricing</a>
             <a href="/tools">Free Tools</a>
             <a href="/blog">Blog</a>
-            <a href="#contact">Contact</a>
+            <a href="/free-audit">Free Audit</a>
           </div>
           <div className="nav-actions">
             <button className="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -510,7 +510,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
         <a href="#pricing" className="ml">Pricing</a>
         <a href="/tools" className="ml">Free Tools</a>
         <a href="/blog" className="ml">Blog</a>
-        <a href="#contact" className="ml">Contact</a>
+        <a href="/free-audit" className="ml">Free Audit</a>
         <a href="/start" className="ml" style={{ color: 'var(--accent)', fontWeight: 600 }}>Start a Project</a>
       </div>
 
@@ -945,7 +945,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
               </svg>
               Chat on WhatsApp
             </a>
-            <a href="#contact" className="btn-primary">Send a brief <span className="btn-arrow">→</span></a>
+            <a href="/start" className="btn-primary">Send a brief <span className="btn-arrow">→</span></a>
           </div>
           <a href={`mailto:${email}`} className="cta-email rv rv-d2">{email}</a>
         </div>
@@ -987,57 +987,14 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
               </div>
             </div>
             <div className="rv rv-d2">
-              <div className="contact-form-card">
-                <form className="c-form" id="cForm" action={`https://formsubmit.co/${email}`} method="POST">
-                  <input type="hidden" name="_subject" value="New Project Inquiry from rachnabuilds.com" />
-                  <input type="hidden" name="_captcha" value="false" />
-                  <input type="hidden" name="_next" value="https://rachnabuilds.com/#contact" />
-                  <input type="text" name="_honey" style={{ display: "none" }} />
-                  <div className="field"><input type="text" name="name" placeholder="Your name *" required /></div>
-                  <div className="field"><input type="email" name="email" placeholder="Your email *" required /></div>
-                  <div className="field"><input type="url" name="website" placeholder="Website (optional)" /></div>
-                  <div className="field-row">
-                    <div className="field">
-                      <span className="fl">Project Type</span>
-                      <select name="type" required defaultValue="">
-                        <option value="" disabled>Select</option>
-                        <option>New Shopify Store</option>
-                        <option>Shopify Redesign / Fix</option>
-                        <option>WordPress / WooCommerce</option>
-                        <option>Webflow Site</option>
-                        <option>Speed Optimization</option>
-                        <option>Klaviyo Email Setup</option>
-                        <option>Something Else</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <span className="fl">Budget</span>
-                      <select name="budget" defaultValue="">
-                        <option value="" disabled>Select</option>
-                        <option>Under $500</option>
-                        <option>$500 - $1,000</option>
-                        <option>$1,000 - $2,500</option>
-                        <option>$2,500+</option>
-                        <option>Let&apos;s discuss</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="field"><textarea name="msg" rows={3} placeholder="About your project"></textarea></div>
-                  <div className="field">
-                    <span className="fl">How did you find me?</span>
-                    <select name="src" defaultValue="">
-                      <option value="" disabled>Select</option>
-                      <option>Upwork</option>
-                      <option>Google</option>
-                      <option>LinkedIn</option>
-                      <option>Instagram</option>
-                      <option>Referral</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
-                  <button type="submit" className="submit">Send my brief →</button>
-                </form>
-                <div className="form-ok" id="formOk"><p>✦ Received. I&apos;ll be in touch within 24 hours.</p></div>
+              <div className="contact-form-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24, padding: '48px 36px', textAlign: 'center' }}>
+                <div style={{ fontSize: 48 }}>✦</div>
+                <h3 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>Ready to build something great?</h3>
+                <p style={{ margin: 0, fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.7 }}>Fill in a quick brief — tell me about your project, timeline, and goals. I&apos;ll review it personally and get back within 24 hours.</p>
+                <a href="/start" className="btn-primary" style={{ fontSize: 16, padding: '16px 36px', width: '100%', textAlign: 'center', display: 'block' }}>
+                  Start Your Project →
+                </a>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--mono)', letterSpacing: '.04em' }}>Takes 2 minutes · No obligation · Response in 24hrs</p>
               </div>
             </div>
           </div>
@@ -1066,7 +1023,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
               <p>Building stores that sell.</p>
             </div>
             <div className="foot-links">
-              <a href="#work">Work</a><a href="#services">Services</a><a href="#process">Process</a><a href="#about">About</a><a href="#contact">Contact</a>
+              <a href="#work">Work</a><a href="#services">Services</a><a href="#process">Process</a><a href="#about">About</a><a href="/start">Start a Project</a>
             </div>
             <div className="foot-socials">
               <a href="https://linkedin.com/in/rachna-jain-a2150110b" target="_blank" rel="noopener" aria-label="LinkedIn">
