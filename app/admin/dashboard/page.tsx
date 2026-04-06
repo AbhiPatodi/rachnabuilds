@@ -15,6 +15,7 @@ export default async function DashboardPage() {
     socialCount,
     recentLeads,
     newLeadsCount,
+    recentSigned,
   ] = await Promise.all([
     prisma.report.findMany({
       orderBy: { createdAt: 'desc' },
@@ -31,6 +32,12 @@ export default async function DashboardPage() {
       take: 5,
     }),
     prisma.contactLead.count({ where: { status: 'new' } }),
+    prisma.projectContract.findMany({
+      where: { status: 'signed' },
+      orderBy: { signedAt: 'desc' },
+      take: 5,
+      include: { project: { include: { client: true } } },
+    }),
   ]);
 
   const totalReports = reports.length;
@@ -48,8 +55,9 @@ export default async function DashboardPage() {
         .dash-stat-value.accent { color: var(--accent); }
         .dash-stat-value.coral { color: var(--coral); }
         .dash-stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
-        .dash-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
-        @media (max-width: 900px) { .dash-row { grid-template-columns: 1fr; } }
+        .dash-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+        @media (max-width: 1100px) { .dash-row { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 700px) { .dash-row { grid-template-columns: 1fr; } }
         .dash-section-title { font-family: var(--heading); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
         .dash-section-title a { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; }
         .dash-section-title a:hover { text-decoration: underline; }
@@ -73,6 +81,14 @@ export default async function DashboardPage() {
         .dash-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
         .dash-notice { background: rgba(6,214,160,.06); border: 1px solid rgba(6,214,160,.2); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .dash-notice strong { color: var(--accent); }
+        .dash-notice.signed { background: rgba(167,139,250,.06); border-color: rgba(167,139,250,.25); }
+        .dash-notice.signed strong { color: #a78bfa; }
+        .signed-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+        .signed-row:last-child { border-bottom: none; }
+        .signed-badge { width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; flex-shrink: 0; }
+        .signed-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .signed-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+        .signed-time { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
       `}</style>
 
       <div className="admin-page-header">
@@ -85,6 +101,19 @@ export default async function DashboardPage() {
           New Report →
         </Link>
       </div>
+
+      {recentSigned.length > 0 && (() => {
+        const newest = recentSigned[0];
+        const hoursAgo = newest.signedAt ? Math.floor((Date.now() - new Date(newest.signedAt).getTime()) / 3600000) : null;
+        const isRecent = hoursAgo !== null && hoursAgo < 48;
+        return isRecent ? (
+          <div className="dash-notice signed">
+            <svg width="14" height="14" fill="none" stroke="#a78bfa" viewBox="0 0 24 24" strokeWidth={2}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span><strong>{newest.project.client.name}</strong> just signed the contract for <strong>{newest.project.name}</strong> — {hoursAgo === 0 ? 'just now' : `${hoursAgo}h ago`}</span>
+            <Link href={`/admin/projects/${newest.projectId}`} style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: '#a78bfa', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
+          </div>
+        ) : null;
+      })()}
 
       {newLeadsCount > 0 && (
         <div className="dash-notice">
@@ -156,6 +185,29 @@ export default async function DashboardPage() {
               <div className="dash-quick-link-title">+ New Report</div>
             </Link>
           </div>
+        </div>
+
+        {/* Signed Contracts */}
+        <div className="admin-card">
+          <div className="dash-section-title">
+            ✍️ Signed Contracts
+          </div>
+          {recentSigned.length === 0 ? (
+            <div className="dash-empty">No signed contracts yet.</div>
+          ) : (
+            recentSigned.map(c => (
+              <Link key={c.id} href={`/admin/projects/${c.projectId}`} style={{ textDecoration: 'none' }}>
+                <div className="signed-row">
+                  <div className="signed-badge" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="signed-name">{c.project.client.name}</div>
+                    <div className="signed-meta">{c.project.name}{c.phaseLabel ? ` · Phase ${c.phase} — ${c.phaseLabel}` : c.phase > 1 ? ` · Phase ${c.phase}` : ''}</div>
+                  </div>
+                  <div className="signed-time">{c.signedAt ? new Date(c.signedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}</div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
 
         {/* Recent Leads */}
