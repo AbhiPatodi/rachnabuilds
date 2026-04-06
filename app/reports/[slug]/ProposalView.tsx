@@ -477,89 +477,9 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ProposalView({ sections }: { sections?: ReportSection[] }) {
-  const [showTable, setShowTable] = useState(false);
-  const [selected, setSelected]   = useState<'A' | 'B'>('B');
-
-  // Data-driven two-option layout — only when actual 'proposal' sections exist in DB
   const hasProposalSections = sections && sections.some(s => s.sectionType === 'proposal');
   if (hasProposalSections) {
     return <DataProposalView sections={sections!} />;
   }
-
-  // Original Sage & Veda two-option layout
-  return (
-    <div className="prop-root">
-      <div className="prop-header">
-        <div className="prop-header-badge">PROPOSAL · MARCH 2026</div>
-        <h1 className="prop-title">CRO, SEO &amp; Shopify Optimisation Proposal</h1>
-        <p className="prop-subtitle">Prepared by Rachna Builds &middot; Valid for 30 days</p>
-        <p className="prop-note">
-          Review both options and click to select the one that fits best. Both include an optional monthly retainer for ongoing growth.
-        </p>
-      </div>
-
-      <div className="prop-cards">
-        <OptionCard opt={OPTION_A} letter="A" selected={selected === 'A'} onSelect={() => setSelected('A')} />
-        <OptionCard opt={OPTION_B} letter="B" selected={selected === 'B'} onSelect={() => setSelected('B')} />
-      </div>
-
-      <div className={`prop-selection-banner prop-selection-banner--${selected.toLowerCase()}`}>
-        <span className="prop-selection-icon">✓</span>
-        <div>
-          <strong>Option {selected} selected</strong> — {selected === 'B' ? 'Custom Theme Build · ₹95,000 one-time + ₹35,000/mo retainer' : 'Optimise Current Theme · ₹49,999 one-time + ₹28,000/mo retainer'}
-        </div>
-        <span className="prop-selection-hint">Reply to this portal or reach out to confirm</span>
-      </div>
-
-      <div className="prop-compare-wrap">
-        <button className="prop-compare-toggle" onClick={() => setShowTable(p => !p)}>
-          {showTable ? '▲ Hide' : '▼ Show'} Competition Comparison
-        </button>
-        {showTable && (
-          <div className="prop-table-wrap">
-            <p className="prop-table-note">* Competitor = Aroha Studios proposal, March 2026. Their one-time is ₹40,000 (6–8 wks, no theme build). Their retainer is ₹34,000/mo with 3-month minimum commitment.</p>
-            <table className="prop-table">
-              <thead>
-                <tr>
-                  <th className="prop-th prop-th--feature">Feature</th>
-                  <th className="prop-th prop-th--comp">Competitor*</th>
-                  <th className="prop-th prop-th--a">Option A</th>
-                  <th className="prop-th prop-th--b">Option B ★</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON.map((row, i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'prop-tr-even' : ''}>
-                    <td className="prop-td prop-td--feature">{row.feature}</td>
-                    <td className="prop-td prop-td--center"><Cell val={row.competitor} /></td>
-                    <td className="prop-td prop-td--center"><Cell val={row.optionA} /></td>
-                    <td className="prop-td prop-td--center prop-td--b"><Cell val={row.optionB} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="prop-payment">
-        <div className="prop-payment-title">💳 Payment Terms</div>
-        <div className="prop-payment-grid">
-          <div className="prop-payment-item">
-            <div className="prop-payment-label">One-time fixed fee</div>
-            <div className="prop-payment-detail">50% at project kickoff &middot; 50% on final delivery</div>
-          </div>
-          <div className="prop-payment-divider" />
-          <div className="prop-payment-item">
-            <div className="prop-payment-label">Monthly retainer</div>
-            <div className="prop-payment-detail">50% advance at kickoff &middot; 50% on the 1st of the following month</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="prop-cta">
-        <p className="prop-cta-text">Ready to move forward? Reply via the Comments tab or reach out to Rachna directly.</p>
-      </div>
-    </div>
-  );
+  return null;
 }

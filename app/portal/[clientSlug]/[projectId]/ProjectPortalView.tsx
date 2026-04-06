@@ -1156,7 +1156,7 @@ interface ContractData2 {
   sections: Array<{
     id: string; type: string; title: string;
     items?: string[]; rows?: { milestone?: string; duration?: string; label?: string; amount?: string; timing?: string }[];
-    body?: string; totalFee?: string; schedule?: { label: string; amount: string; timing: string }[];
+    body?: string; totalFee?: string; schedule?: { label: string; amount: string; timing: string; paymentLink?: string }[];
     latePenalty?: string; note?: string;
     paymentMethods?: { upiId?: string; paypalLink?: string; bankDetails?: string; qrCodeUrl?: string };
   }>;
@@ -2052,14 +2052,12 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                   </div>
                 )}
                 {contracts.map(c => {
-                  let ps: { totalFee?: string; schedule?: { label: string; amount: string; timing: string }[]; latePenalty?: string; paymentMethods?: { upiId?: string; paypalLink?: string; bankDetails?: string; qrCodeUrl?: string } } | null = null;
+                  let ps: { totalFee?: string; schedule?: { label: string; amount: string; timing: string; paymentLink?: string }[]; latePenalty?: string; paymentMethods?: { upiId?: string; paypalLink?: string; bankDetails?: string; qrCodeUrl?: string } } | null = null;
                   try {
                     const parsed = JSON.parse(c.content);
                     ps = (parsed.sections ?? []).find((s: { type: string }) => s.type === 'payment') ?? null;
                   } catch { /* ignore */ }
                   const rows = (ps?.schedule ?? []).filter(r => r.label);
-                  const pm = ps?.paymentMethods;
-                  const hasPm = pm && (pm.upiId || pm.paypalLink || pm.bankDetails || pm.qrCodeUrl);
 
                   return (
                     <div key={c.phase} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
@@ -2100,8 +2098,13 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                                     </span>
                                   </div>
                                 </div>
-                                {/* Receipt area */}
+                                {/* Pay Now + Receipt area */}
                                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                  {r.paymentLink && !isPaid && (
+                                    <a href={r.paymentLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, fontWeight: 700, color: '#0B0F1A', background: 'var(--accent)', textDecoration: 'none', padding: '5px 14px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                      Pay Now →
+                                    </a>
+                                  )}
                                   {receiptUrl ? (
                                     <>
                                       <a href={receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(6,214,160,0.3)', background: 'rgba(6,214,160,0.05)' }}>
@@ -2131,39 +2134,6 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
                         {rows.length === 0 && (
                           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Payment details not available yet.</p>
-                        )}
-
-                        {/* Payment methods */}
-                        {hasPm && (
-                          <div style={{ marginTop: 4, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 10 }}>How to Pay</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {pm?.upiId && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 64 }}>UPI ID</span>
-                                  <span style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'var(--text)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>{pm.upiId}</span>
-                                </div>
-                              )}
-                              {pm?.paypalLink && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 64 }}>PayPal</span>
-                                  <a href={pm.paypalLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--accent)', wordBreak: 'break-all' }}>{pm.paypalLink}</a>
-                                </div>
-                              )}
-                              {pm?.bankDetails && (
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 64, paddingTop: 2 }}>Bank</span>
-                                  <pre style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'pre-wrap', background: 'var(--bg-elevated)', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', flex: 1 }}>{pm.bankDetails}</pre>
-                                </div>
-                              )}
-                              {pm?.qrCodeUrl && (
-                                <div style={{ marginTop: 4 }}>
-                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Scan to Pay</span>
-                                  <img src={pm.qrCodeUrl} alt="Payment QR" style={{ width: 120, height: 120, borderRadius: 8, border: '1px solid var(--border)' }} />
-                                </div>
-                              )}
-                            </div>
-                          </div>
                         )}
 
                         {ps?.latePenalty && (

@@ -24,7 +24,7 @@ interface TimelineSection {
 interface PaymentSection {
   id: string; type: 'payment'; title: string;
   totalFee: string;
-  schedule: { label: string; amount: string; timing: string }[];
+  schedule: { label: string; amount: string; timing: string; paymentLink?: string }[];
   latePenalty?: string;
   paymentMethods?: {
     upiId?: string;
@@ -562,7 +562,7 @@ export default function ContractBuilder({
   };
 
   // ── Payment helpers ─────────────────────────────────────────────────────────
-  const updatePaymentScheduleRow = (sectionId: string, idx: number, field: 'label' | 'amount' | 'timing', value: string) => {
+  const updatePaymentScheduleRow = (sectionId: string, idx: number, field: 'label' | 'amount' | 'timing' | 'paymentLink', value: string) => {
     updateActiveData(d => ({ ...d, sections: d.sections.map(s => {
       if (s.id !== sectionId || s.type !== 'payment') return s;
       const schedule = [...s.schedule];
@@ -571,7 +571,7 @@ export default function ContractBuilder({
     })}));
   };
   const addPaymentRow = (sectionId: string) => {
-    updateActiveData(d => ({ ...d, sections: d.sections.map(s => s.id === sectionId && s.type === 'payment' ? { ...s, schedule: [...s.schedule, { label: '', amount: '', timing: '' }] } : s) }));
+    updateActiveData(d => ({ ...d, sections: d.sections.map(s => s.id === sectionId && s.type === 'payment' ? { ...s, schedule: [...s.schedule, { label: '', amount: '', timing: '', paymentLink: '' }] } : s) }));
   };
   const removePaymentRow = (sectionId: string, idx: number) => {
     updateActiveData(d => ({ ...d, sections: d.sections.map(s => {
@@ -839,14 +839,15 @@ export default function ContractBuilder({
                       <div><label className="admin-label">Total Fee</label><input className="admin-input" value={section.totalFee} onChange={e => updateSection(section.id, { totalFee: e.target.value })} placeholder="e.g. ₹1,20,000 + GST (18%)" /></div>
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Payment Schedule</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, marginBottom: 4 }}>
-                          {['Label', 'Amount', 'Due', ''].map(h => <div key={h} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</div>)}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr auto', gap: 8, marginBottom: 4 }}>
+                          {['Label', 'Amount', 'Due', 'Payment Link', ''].map(h => <div key={h} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{h}</div>)}
                         </div>
                         {section.schedule.map((row, idx) => (
-                          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr auto', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                             <input className="admin-input" value={row.label} onChange={e => updatePaymentScheduleRow(section.id, idx, 'label', e.target.value)} placeholder="50% advance" />
                             <input className="admin-input" value={row.amount} onChange={e => updatePaymentScheduleRow(section.id, idx, 'amount', e.target.value)} placeholder="₹60,000" />
                             <input className="admin-input" value={row.timing} onChange={e => updatePaymentScheduleRow(section.id, idx, 'timing', e.target.value)} placeholder="due on signing" />
+                            <input className="admin-input" value={row.paymentLink ?? ''} onChange={e => updatePaymentScheduleRow(section.id, idx, 'paymentLink', e.target.value)} placeholder="https://paypal.me/..." />
                             <button onClick={() => removePaymentRow(section.id, idx)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14 }}>✕</button>
                           </div>
                         ))}
