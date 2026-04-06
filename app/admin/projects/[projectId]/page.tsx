@@ -274,6 +274,7 @@ export default function ProjectManagePage() {
   const [paymentSaving, setPaymentSaving] = useState<string | null>(null);
   const [paymentLinkInputs, setPaymentLinkInputs] = useState<Record<string, string>>({});
   const [paymentLinkSaving, setPaymentLinkSaving] = useState<string | null>(null);
+  const [paymentLinkSaved, setPaymentLinkSaved] = useState<Record<string, boolean>>({});
 
   // Messages
   const [messages, setMessages] = useState<ProjectMessage[]>([]);
@@ -1649,10 +1650,12 @@ export default function ProjectManagePage() {
                                         }
                                       } catch {}
                                       setPaymentLinkSaving(null);
+                                      setPaymentLinkSaved(prev => ({ ...prev, [linkKey]: true }));
+                                      setTimeout(() => setPaymentLinkSaved(prev => ({ ...prev, [linkKey]: false })), 2000);
                                     }}
-                                    style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${paymentLinkSaved[linkKey] ? '#06D6A0' : 'var(--border)'}`, background: paymentLinkSaved[linkKey] ? 'rgba(6,214,160,0.1)' : 'var(--bg-card)', color: paymentLinkSaved[linkKey] ? '#06D6A0' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                                   >
-                                    {paymentLinkSaving === linkKey ? '...' : '💾 Save Link'}
+                                    {paymentLinkSaving === linkKey ? '...' : paymentLinkSaved[linkKey] ? '✓ Saved!' : '💾 Save Link'}
                                   </button>
                                 </div>
                               </div>
