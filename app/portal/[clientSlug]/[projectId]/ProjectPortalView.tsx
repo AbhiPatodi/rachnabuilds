@@ -1162,14 +1162,24 @@ interface ContractData2 {
   }>;
 }
 
+// Contract always renders as a white paper document regardless of portal theme
+const C = {
+  text: '#1A202C',
+  textMid: '#4A5568',
+  textLight: '#718096',
+  border: '#E2E8F0',
+  bg: '#F7FAFC',
+  accent: '#06D6A0',
+};
+
 function PortalContractView({ data }: { data: ContractData2 }) {
-  const h2Style: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', paddingBottom: 6, marginBottom: 12, marginTop: 24, fontFamily: 'Georgia, serif' };
+  const h2Style: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textLight, borderBottom: `1px solid ${C.border}`, paddingBottom: 6, marginBottom: 12, marginTop: 24, fontFamily: 'Georgia, serif' };
   return (
-    <div style={{ fontFamily: 'Georgia, serif' }}>
+    <div style={{ fontFamily: 'Georgia, serif', color: C.text }}>
       {/* Branding */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 16, borderBottom: '2px solid var(--accent)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 16, borderBottom: `2px solid ${C.accent}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <svg viewBox="0 0 64 72" fill="none" width="28" height="32" style={{ color: 'var(--accent)', flexShrink: 0 }}>
+          <svg viewBox="0 0 64 72" fill="none" width="28" height="32" style={{ color: C.accent, flexShrink: 0 }}>
             <rect width="11" height="72" fill="currentColor"/>
             <rect width="42" height="11" fill="currentColor"/>
             <path d="M42 0Q64 0 64 16Q64 32 42 32" stroke="currentColor" strokeWidth="11" fill="none"/>
@@ -1177,23 +1187,23 @@ function PortalContractView({ data }: { data: ContractData2 }) {
             <path d="M36 38L64 72" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
           </svg>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>Rachna Builds</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>rachnabuilds.com</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>Rachna Builds</div>
+            <div style={{ fontSize: 11, color: C.textLight, fontFamily: 'Inter, sans-serif' }}>rachnabuilds.com</div>
           </div>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', fontFamily: 'Inter, sans-serif' }}>
-          <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Service Agreement</div>
+        <div style={{ fontSize: 11, color: C.textLight, textAlign: 'right', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ fontWeight: 600, color: C.textMid }}>Service Agreement</div>
           <div>{data.meta.date}</div>
         </div>
       </div>
 
       {/* Header */}
-      <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 20, marginBottom: 4 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>{data.meta.projectName}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', fontSize: 13, color: 'var(--text-secondary)', textAlign: 'left', maxWidth: 440, margin: '0 auto' }}>
-          <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</span><br /><strong style={{ color: 'var(--text-primary)' }}>{data.meta.clientName}</strong></div>
-          <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</span><br /><strong style={{ color: 'var(--text-primary)' }}>{data.meta.date}</strong></div>
-          <div style={{ gridColumn: '1/-1' }}><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prepared by</span><br /><strong style={{ color: 'var(--text-primary)' }}>{data.meta.preparedBy}</strong></div>
+      <div style={{ textAlign: 'center', borderBottom: `1px solid ${C.border}`, paddingBottom: 20, marginBottom: 4 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 14 }}>{data.meta.projectName}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', fontSize: 13, color: C.textMid, textAlign: 'left', maxWidth: 440, margin: '0 auto' }}>
+          <div><span style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</span><br /><strong style={{ color: C.text }}>{data.meta.clientName}</strong></div>
+          <div><span style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</span><br /><strong style={{ color: C.text }}>{data.meta.date}</strong></div>
+          <div style={{ gridColumn: '1/-1' }}><span style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prepared by</span><br /><strong style={{ color: C.text }}>{data.meta.preparedBy}</strong></div>
         </div>
       </div>
 
@@ -1201,7 +1211,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
         <div key={s.id}>
           <div style={h2Style}>{i + 1}. {s.title}</div>
           {s.type === 'bullets' && s.items && (
-            <ul style={{ paddingLeft: 18, color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8 }}>
+            <ul style={{ paddingLeft: 18, color: C.textMid, fontSize: 14, lineHeight: 1.8 }}>
               {s.items.filter(Boolean).map((item, j) => <li key={j}>{item}</li>)}
             </ul>
           )}
@@ -1210,73 +1220,73 @@ function PortalContractView({ data }: { data: ContractData2 }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr>
-                    {['Milestone', 'Duration'].map(h => <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>{h}</th>)}
+                    {['Milestone', 'Duration'].map(h => <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, textTransform: 'uppercase', color: C.textLight, border: `1px solid ${C.border}`, background: C.bg }}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {s.rows.map((row, j) => (
                     <tr key={j}>
-                      <td style={{ padding: '7px 10px', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: 13 }}>{row.milestone}</td>
-                      <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>{row.duration}</td>
+                      <td style={{ padding: '7px 10px', color: C.text, border: `1px solid ${C.border}`, fontSize: 13 }}>{row.milestone}</td>
+                      <td style={{ padding: '7px 10px', color: C.textMid, border: `1px solid ${C.border}`, fontSize: 13 }}>{row.duration}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {s.note && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, fontStyle: 'italic' }}>{s.note}</p>}
+              {s.note && <p style={{ fontSize: 12, color: C.textLight, marginTop: 6, fontStyle: 'italic' }}>{s.note}</p>}
             </>
           )}
           {s.type === 'payment' && (
             <>
               {s.totalFee && (
-                <div style={{ background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '14px 18px', marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>Total Fee</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{s.totalFee}</div>
+                <div style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '14px 18px', marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.textLight }}>Total Fee</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: C.text, marginTop: 4 }}>{s.totalFee}</div>
                 </div>
               )}
               {s.schedule && (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr>
-                      {['Payment', 'Amount', 'Due'].map(h => <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>{h}</th>)}
+                      {['Payment', 'Amount', 'Due'].map(h => <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, textTransform: 'uppercase', color: C.textLight, border: `1px solid ${C.border}`, background: C.bg }}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {s.schedule.map((row, j) => (
                       <tr key={j}>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>{row.label}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-primary)', border: '1px solid var(--border)', fontWeight: 700 }}>{row.amount}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>{row.timing}</td>
+                        <td style={{ padding: '7px 10px', color: C.text, border: `1px solid ${C.border}` }}>{row.label}</td>
+                        <td style={{ padding: '7px 10px', color: C.text, border: `1px solid ${C.border}`, fontWeight: 700 }}>{row.amount}</td>
+                        <td style={{ padding: '7px 10px', color: C.textMid, border: `1px solid ${C.border}` }}>{row.timing}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
-              {s.latePenalty && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, fontStyle: 'italic' }}>Late payment: {s.latePenalty}</p>}
+              {s.latePenalty && <p style={{ fontSize: 12, color: C.textLight, marginTop: 6, fontStyle: 'italic' }}>Late payment: {s.latePenalty}</p>}
               {s.paymentMethods && (s.paymentMethods.upiId || s.paymentMethods.paypalLink || s.paymentMethods.bankDetails || s.paymentMethods.qrCodeUrl) && (
-                <div style={{ marginTop: 14, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: 10 }}>How to Pay</div>
+                <div style={{ marginTop: 14, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textLight, fontWeight: 700, marginBottom: 10 }}>How to Pay</div>
                   {s.paymentMethods.upiId && (
                     <div style={{ marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPI ID</span>
-                      <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{s.paymentMethods.upiId}</div>
+                      <span style={{ fontSize: 11, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPI ID</span>
+                      <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: C.text, marginTop: 2 }}>{s.paymentMethods.upiId}</div>
                     </div>
                   )}
                   {s.paymentMethods.paypalLink && (
                     <div style={{ marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PayPal</span>
-                      <div style={{ marginTop: 2 }}><a href={s.paymentMethods.paypalLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--accent)', wordBreak: 'break-all' }}>{s.paymentMethods.paypalLink}</a></div>
+                      <span style={{ fontSize: 11, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>PayPal</span>
+                      <div style={{ marginTop: 2 }}><a href={s.paymentMethods.paypalLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: C.accent, wordBreak: 'break-all' }}>{s.paymentMethods.paypalLink}</a></div>
                     </div>
                   )}
                   {s.paymentMethods.bankDetails && (
                     <div style={{ marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bank Transfer</span>
-                      <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, whiteSpace: 'pre-line' }}>{s.paymentMethods.bankDetails}</div>
+                      <span style={{ fontSize: 11, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bank Transfer</span>
+                      <div style={{ fontFamily: 'monospace', fontSize: 12, color: C.textMid, marginTop: 2, whiteSpace: 'pre-line' }}>{s.paymentMethods.bankDetails}</div>
                     </div>
                   )}
                   {s.paymentMethods.qrCodeUrl && (
                     <div style={{ marginTop: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scan to Pay</span>
-                      <div style={{ marginTop: 6 }}><img src={s.paymentMethods.qrCodeUrl} alt="Payment QR" style={{ width: 120, height: 120, borderRadius: 8, border: '1px solid var(--border)' }} /></div>
+                      <span style={{ fontSize: 11, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scan to Pay</span>
+                      <div style={{ marginTop: 6 }}><img src={s.paymentMethods.qrCodeUrl} alt="Payment QR" style={{ width: 120, height: 120, borderRadius: 8, border: `1px solid ${C.border}` }} /></div>
                     </div>
                   )}
                 </div>
@@ -1284,7 +1294,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
             </>
           )}
           {s.type === 'text' && s.body && (
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{s.body}</p>
+            <p style={{ fontSize: 14, color: C.textMid, lineHeight: 1.7 }}>{s.body}</p>
           )}
         </div>
       ))}
@@ -1935,14 +1945,14 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       </div>
 
                       {/* Contract body */}
-                      <div id="contract-print-area" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 32px' }}>
+                      <div id="contract-print-area" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: '28px 32px' }}>
                         {renderContractBody(contract.content)}
                         {/* Signature block — included in print */}
                         {contract.status === 'signed' && contract.clientSignature && (
-                          <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Digital Signature</div>
-                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text-primary)', marginBottom: 4 }}>{contract.clientSignature}</div>
-                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                          <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+                            <div style={{ fontSize: 11, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Digital Signature</div>
+                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: C.text, marginBottom: 4 }}>{contract.clientSignature}</div>
+                            <div style={{ fontSize: 12, color: C.textLight }}>Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                           </div>
                         )}
                       </div>
