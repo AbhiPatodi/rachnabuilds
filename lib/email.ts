@@ -248,6 +248,39 @@ export async function notifyContractReady(
   return sendEmail(clientEmail, `Contract ready to sign — ${projectName}`, html);
 }
 
+/** Contract signed by client — sent to Rachna (admin) */
+export async function notifyContractSigned(
+  clientName: string,
+  projectName: string,
+  phase: number,
+  phaseLabel: string | null | undefined,
+  signedAt: Date,
+  adminUrl: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const phaseDisplay = phaseLabel ? `Phase ${phase} — ${phaseLabel}` : `Phase ${phase}`;
+  const dateStr = signedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const html = base(
+    `${clientName} just signed the contract for ${projectName}.`,
+    `
+    ${heading('Contract signed ✓')}
+    ${subheading(`${clientName} has digitally signed the contract.`)}
+    ${bodyText(`Good news — your client has reviewed and signed the contract. Here are the details:`)}
+    ${infoBox([
+      { label: 'Client', value: clientName },
+      { label: 'Project', value: projectName },
+      { label: 'Phase', value: phaseDisplay },
+      { label: 'Signed at', value: dateStr },
+    ])}
+    ${ctaButton('View Contract in Admin', adminUrl)}
+    ${divider()}
+    ${bodyText(`The contract is now locked. You can view the client's signature and proceed with the project.`)}
+    `,
+  );
+
+  return sendEmail(ADMIN_EMAIL, `✓ Contract signed — ${clientName} · ${projectName}`, html);
+}
+
 /** New document shared by admin — sent to client */
 export async function notifyDocumentAdded(
   clientEmail: string,

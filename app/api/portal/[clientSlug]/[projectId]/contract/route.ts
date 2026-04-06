@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { notifyContractSigned } from '@/lib/email';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
@@ -66,10 +67,31 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Contract is not available for signing' }, { status: 400 });
   }
 
+  const signedAt = new Date();
   const updated = await prisma.projectContract.update({
     where: { projectId_phase: { projectId: project.id, phase } },
-    data: { status: 'signed', clientSignature: signature.trim(), signedAt: new Date() },
+    data: { status: 'signed', clientSignature: signature.trim(), signedAt },
   });
+
+  // Fire-and-forget: notify Rachna that client signed
+  try {
+    const proj = await prisma.clientProject.findUnique({
+      where: { id: project.id },
+      include: { client: true },
+    });
+    if (proj) {
+      const adminUrl = `https://rachnabuilds.com/admin/projects/${project.id}`;
+      notifyContractSigned(
+        proj.client.name,
+        proj.name,
+        phase,
+        contract.phaseLabel,
+        signedAt,
+        adminUrl,
+      ).catch(console.error);
+    }
+  } catch {}
+
   return NextResponse.json({ contract: updated });
 }
 
