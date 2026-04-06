@@ -34,7 +34,9 @@ export async function POST(req: NextRequest) {
   const randomHex = crypto.randomBytes(16).toString('hex');
   const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const filename = `portal/${slug}/${randomHex}-${sanitizedFilename}`;
-  const blob = await put(filename, file, { access: 'public' });
+  // Convert to Buffer to avoid ReadableStream compatibility issues in Node.js runtime
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const blob = await put(filename, buffer, { access: 'public', contentType: file.type });
 
   return NextResponse.json({ url: blob.url });
 }

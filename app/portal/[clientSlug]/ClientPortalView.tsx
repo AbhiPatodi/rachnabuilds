@@ -83,8 +83,7 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
   };
 
   const handleLogout = () => {
-    document.cookie = `pc_${clientSlug}=; path=/; max-age=0`;
-    window.location.reload();
+    window.location.href = `/api/portal/${clientSlug}/logout`;
   };
 
   // Show nothing while redirecting for single project

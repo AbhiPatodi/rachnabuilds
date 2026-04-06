@@ -284,6 +284,7 @@ const TABS = [
   { id: 'proposal',    label: 'Proposal' },
   { id: 'status',      label: 'Project Status' },
   { id: 'contract',    label: 'Contract' },
+  { id: 'payments',    label: 'Payments' },
 ];
 
 const AUDIT_TYPES      = ['executive_summary', 'performance_audit', 'seo_audit', 'cro_audit', 'action_plan'];
@@ -1157,6 +1158,7 @@ interface ContractData2 {
     items?: string[]; rows?: { milestone?: string; duration?: string; label?: string; amount?: string; timing?: string }[];
     body?: string; totalFee?: string; schedule?: { label: string; amount: string; timing: string }[];
     latePenalty?: string; note?: string;
+    paymentMethods?: { upiId?: string; paypalLink?: string; bankDetails?: string; qrCodeUrl?: string };
   }>;
 }
 
@@ -1164,9 +1166,29 @@ function PortalContractView({ data }: { data: ContractData2 }) {
   const h2Style: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', paddingBottom: 6, marginBottom: 12, marginTop: 24, fontFamily: 'Georgia, serif' };
   return (
     <div style={{ fontFamily: 'Georgia, serif' }}>
+      {/* Branding */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 16, borderBottom: '2px solid var(--accent)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <svg viewBox="0 0 64 72" fill="none" width="28" height="32" style={{ color: 'var(--accent)', flexShrink: 0 }}>
+            <rect width="11" height="72" fill="currentColor"/>
+            <rect width="42" height="11" fill="currentColor"/>
+            <path d="M42 0Q64 0 64 16Q64 32 42 32" stroke="currentColor" strokeWidth="11" fill="none"/>
+            <rect y="27" width="38" height="11" fill="currentColor"/>
+            <path d="M36 38L64 72" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
+          </svg>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>Rachna Builds</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>rachnabuilds.com</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Service Agreement</div>
+          <div>{data.meta.date}</div>
+        </div>
+      </div>
+
       {/* Header */}
       <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 20, marginBottom: 4 }}>
-        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: 6 }}>Service Agreement</div>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>{data.meta.projectName}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', fontSize: 13, color: 'var(--text-secondary)', textAlign: 'left', maxWidth: 440, margin: '0 auto' }}>
           <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</span><br /><strong style={{ color: 'var(--text)' }}>{data.meta.clientName}</strong></div>
@@ -1230,6 +1252,35 @@ function PortalContractView({ data }: { data: ContractData2 }) {
                 </table>
               )}
               {s.latePenalty && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, fontStyle: 'italic' }}>Late payment: {s.latePenalty}</p>}
+              {s.paymentMethods && (s.paymentMethods.upiId || s.paymentMethods.paypalLink || s.paymentMethods.bankDetails || s.paymentMethods.qrCodeUrl) && (
+                <div style={{ marginTop: 14, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: 10 }}>How to Pay</div>
+                  {s.paymentMethods.upiId && (
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPI ID</span>
+                      <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginTop: 2 }}>{s.paymentMethods.upiId}</div>
+                    </div>
+                  )}
+                  {s.paymentMethods.paypalLink && (
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PayPal</span>
+                      <div style={{ marginTop: 2 }}><a href={s.paymentMethods.paypalLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--accent)', wordBreak: 'break-all' }}>{s.paymentMethods.paypalLink}</a></div>
+                    </div>
+                  )}
+                  {s.paymentMethods.bankDetails && (
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bank Transfer</span>
+                      <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, whiteSpace: 'pre-line' }}>{s.paymentMethods.bankDetails}</div>
+                    </div>
+                  )}
+                  {s.paymentMethods.qrCodeUrl && (
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scan to Pay</span>
+                      <div style={{ marginTop: 6 }}><img src={s.paymentMethods.qrCodeUrl} alt="Payment QR" style={{ width: 120, height: 120, borderRadius: 8, border: '1px solid var(--border)' }} /></div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
           {s.type === 'text' && s.body && (
@@ -1248,13 +1299,19 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
   const tabs = [...(visibleTabs ? TABS.filter(t => visibleTabs.includes(t.id)) : TABS), { id: 'messages', label: 'Messages' }];
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? 'submissions');
 
-  type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null };
+  type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; advancePaid?: boolean; balancePaid?: boolean; advanceReceiptUrl?: string | null; balanceReceiptUrl?: string | null };
   const [contracts, setContracts] = useState<ContractData[] | undefined>(undefined); // undefined = not loaded
   const [activeContractPhase, setActiveContractPhase] = useState(1);
   const [contractLoading, setContractLoading] = useState(false);
   const [contractSigning, setContractSigning] = useState(false);
   const [signatureName, setSignatureName] = useState('');
   const [signError, setSignError] = useState('');
+
+  // Payments tab
+  const [receiptUploading, setReceiptUploading] = useState<string | null>(null); // `${phase}-advance` or `${phase}-balance`
+  const [receiptError, setReceiptError] = useState('');
+  const paymentReceiptInputRef = useRef<HTMLInputElement>(null);
+  const [pendingReceiptKey, setPendingReceiptKey] = useState<{ phase: number; type: 'advance' | 'balance' } | null>(null);
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
@@ -1306,8 +1363,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
   };
 
   const handleLogout = () => {
-    document.cookie = `pc_${clientSlug}=; path=/; max-age=0`;
-    window.location.href = `/portal/${clientSlug}`;
+    window.location.href = `/api/portal/${clientSlug}/logout`;
   };
 
   // ── Session init ───────────────────────────────────────────────────────────
@@ -1396,7 +1452,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
   // Load contract when tab becomes active
   useEffect(() => {
-    if (activeTab !== 'contract' || contracts !== undefined) return;
+    if ((activeTab !== 'contract' && activeTab !== 'payments') || contracts !== undefined) return;
     setContractLoading(true);
     fetch(`/api/portal/${clientSlug}/${project.id}/contract`)
       .then(r => r.json())
@@ -1409,7 +1465,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
       .finally(() => setContractLoading(false));
   }, [activeTab, clientSlug, project.id, contracts]);
 
-  // Load milestones when status tab is active
+  // Load milestones + contract payment data when status tab is active
   useEffect(() => {
     if (activeTab !== 'status') return;
     setMilestonesLoading(true);
@@ -1418,6 +1474,17 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
       .then(d => setMilestones(d.milestones ?? []))
       .catch(() => setMilestones([]))
       .finally(() => setMilestonesLoading(false));
+    // Also load contract if not yet loaded (to show payment card)
+    if (contracts === undefined) {
+      fetch(`/api/portal/${clientSlug}/${project.id}/contract`)
+        .then(r => r.json())
+        .then(d => {
+          const list = d.contracts ?? [];
+          setContracts(list);
+          if (list.length > 0) setActiveContractPhase(list[0].phase);
+        })
+        .catch(() => setContracts([]));
+    }
   }, [activeTab, clientSlug, project.id]);
 
   // Load and poll messages when on messages tab
@@ -1774,6 +1841,13 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                 sub="Once the proposal is confirmed and the project kicks off, you'll see live progress updates, milestones, and deliverable status here."
               />
             )}
+
+            {contracts && contracts.length > 0 && (
+              <div style={{ marginTop: 16, padding: '10px 16px', background: 'rgba(6,214,160,0.06)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>💳</span>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>View your payment schedule and upload receipts in the <button onClick={() => handleTabChange('payments')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 13 }}>Payments</button> tab.</span>
+              </div>
+            )}
           </>
         )}
 
@@ -1850,9 +1924,27 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                         )}
                       </div>
 
+                      {/* Print button */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }} className="no-print">
+                        <button
+                          onClick={() => window.print()}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          🖨️ Print / Save PDF
+                        </button>
+                      </div>
+
                       {/* Contract body */}
-                      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 32px' }}>
+                      <div id="contract-print-area" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 32px' }}>
                         {renderContractBody(contract.content)}
+                        {/* Signature block — included in print */}
+                        {contract.status === 'signed' && contract.clientSignature && (
+                          <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Digital Signature</div>
+                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text)', marginBottom: 4 }}>{contract.clientSignature}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Sign block OR signed confirmation */}
@@ -1898,6 +1990,195 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
           </>
         )}
 
+
+        {/* ── PAYMENTS TAB ── */}
+        {activeTab === 'payments' && (
+          <>
+            <h1 className="portal-tab-heading">Payments</h1>
+            <p className="portal-tab-sub">Your payment schedule, status, and receipt uploads.</p>
+
+            {/* Hidden file input for receipts */}
+            <input
+              ref={paymentReceiptInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              style={{ display: 'none' }}
+              onChange={async e => {
+                const file = e.target.files?.[0];
+                if (!file || !pendingReceiptKey) return;
+                const { phase, type } = pendingReceiptKey;
+                const key = `${phase}-${type}`;
+                setReceiptUploading(key);
+                setReceiptError('');
+                try {
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  const upRes = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: fd });
+                  if (!upRes.ok) throw new Error('Upload failed');
+                  const { url } = await upRes.json() as { url: string };
+                  const field = type === 'advance' ? 'advanceReceiptUrl' : 'balanceReceiptUrl';
+                  const patchRes = await fetch(`/api/portal/${clientSlug}/${project.id}/contract?phase=${phase}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: url }),
+                  });
+                  if (!patchRes.ok) throw new Error('Failed to save receipt');
+                  const { contract: updated } = await patchRes.json() as { contract: ContractData };
+                  setContracts(prev => prev?.map(c => c.phase === phase ? { ...c, [field]: url } : c) ?? prev);
+                  // clear contract so it reloads with fresh data
+                  void updated;
+                } catch {
+                  setReceiptError('Upload failed. Please try again.');
+                } finally {
+                  setReceiptUploading(null);
+                  setPendingReceiptKey(null);
+                  if (paymentReceiptInputRef.current) paymentReceiptInputRef.current.value = '';
+                }
+              }}
+            />
+
+            {contractLoading || contracts === undefined ? (
+              <div className="portal-empty"><div className="portal-empty-icon">⏳</div><p>Loading…</p></div>
+            ) : contracts.length === 0 ? (
+              <div className="portal-empty">
+                <div className="portal-empty-icon">💳</div>
+                <p>Payment details will appear here once your contract is ready.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {receiptError && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 8, fontSize: 13, color: '#FF6B6B' }}>
+                    {receiptError}
+                  </div>
+                )}
+                {contracts.map(c => {
+                  let ps: { totalFee?: string; schedule?: { label: string; amount: string; timing: string }[]; latePenalty?: string; paymentMethods?: { upiId?: string; paypalLink?: string; bankDetails?: string; qrCodeUrl?: string } } | null = null;
+                  try {
+                    const parsed = JSON.parse(c.content);
+                    ps = (parsed.sections ?? []).find((s: { type: string }) => s.type === 'payment') ?? null;
+                  } catch { /* ignore */ }
+                  const rows = (ps?.schedule ?? []).filter(r => r.label);
+                  const pm = ps?.paymentMethods;
+                  const hasPm = pm && (pm.upiId || pm.paypalLink || pm.bankDetails || pm.qrCodeUrl);
+
+                  return (
+                    <div key={c.phase} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+                      {/* Phase header */}
+                      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+                          Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}
+                        </div>
+                        {ps?.totalFee && (
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>Total: {ps.totalFee}</div>
+                        )}
+                      </div>
+
+                      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {/* Payment rows */}
+                        {rows.map((r, idx) => {
+                          const isAdvance = idx === 0;
+                          const type = isAdvance ? 'advance' : 'balance';
+                          const isPaid = type === 'advance' ? !!c.advancePaid : !!c.balancePaid;
+                          const receiptUrl = type === 'advance' ? c.advanceReceiptUrl : c.balanceReceiptUrl;
+                          const uploadKey = `${c.phase}-${type}`;
+                          const isUploading = receiptUploading === uploadKey;
+
+                          return (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 10, border: `1px solid ${isPaid ? 'rgba(6,214,160,0.25)' : 'var(--border)'}` }}>
+                              {/* Status dot */}
+                              <div style={{ width: 10, height: 10, borderRadius: '50%', background: isPaid ? '#06D6A0' : '#94A3B8', flexShrink: 0, marginTop: 4 }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
+                                  <div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{r.label}</div>
+                                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{r.timing}</div>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                                    {r.amount && <div style={{ fontSize: 16, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text)' }}>{r.amount}</div>}
+                                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: isPaid ? 'rgba(6,214,160,0.12)' : 'rgba(148,163,184,0.12)', color: isPaid ? '#06D6A0' : '#94A3B8', border: `1px solid ${isPaid ? 'rgba(6,214,160,0.3)' : 'rgba(148,163,184,0.3)'}` }}>
+                                      {isPaid ? '✓ Paid' : 'Pending'}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* Receipt area */}
+                                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                  {receiptUrl ? (
+                                    <>
+                                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(6,214,160,0.3)', background: 'rgba(6,214,160,0.05)' }}>
+                                        📎 View Receipt
+                                      </a>
+                                      <button
+                                        onClick={() => { setPendingReceiptKey({ phase: c.phase, type }); paymentReceiptInputRef.current?.click(); }}
+                                        style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                      >
+                                        Replace
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setPendingReceiptKey({ phase: c.phase, type }); paymentReceiptInputRef.current?.click(); }}
+                                      disabled={isUploading}
+                                      style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 6, border: '1px dashed var(--border)', background: 'var(--bg-elevated)', cursor: isUploading ? 'wait' : 'pointer' }}
+                                    >
+                                      {isUploading ? '⏳ Uploading…' : '📤 Upload Receipt'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {rows.length === 0 && (
+                          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Payment details not available yet.</p>
+                        )}
+
+                        {/* Payment methods */}
+                        {hasPm && (
+                          <div style={{ marginTop: 4, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 10 }}>How to Pay</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {pm?.upiId && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 64 }}>UPI ID</span>
+                                  <span style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'var(--text)', background: 'var(--bg-elevated)', padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)' }}>{pm.upiId}</span>
+                                </div>
+                              )}
+                              {pm?.paypalLink && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 64 }}>PayPal</span>
+                                  <a href={pm.paypalLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--accent)', wordBreak: 'break-all' }}>{pm.paypalLink}</a>
+                                </div>
+                              )}
+                              {pm?.bankDetails && (
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 64, paddingTop: 2 }}>Bank</span>
+                                  <pre style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'pre-wrap', background: 'var(--bg-elevated)', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', flex: 1 }}>{pm.bankDetails}</pre>
+                                </div>
+                              )}
+                              {pm?.qrCodeUrl && (
+                                <div style={{ marginTop: 4 }}>
+                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>Scan to Pay</span>
+                                  <img src={pm.qrCodeUrl} alt="Payment QR" style={{ width: 120, height: 120, borderRadius: 8, border: '1px solid var(--border)' }} />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {ps?.latePenalty && (
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', margin: '4px 0 0' }}>
+                            Late payment: {ps.latePenalty}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {activeTab === 'messages' && (
           <>

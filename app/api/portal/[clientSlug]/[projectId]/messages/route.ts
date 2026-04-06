@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto, { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { sendPushToAll } from '@/lib/webpush';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
@@ -91,6 +92,14 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
     return [msg];
   });
+
+  // Fire push notification to admin (non-blocking)
+  const preview = message.text.length > 80 ? message.text.slice(0, 80) + '…' : message.text;
+  sendPushToAll(
+    `💬 New message from ${project.clientName}`,
+    preview,
+    `/admin/projects/${project.id}`
+  ).catch(() => {});
 
   return NextResponse.json(message, { status: 201 });
 }

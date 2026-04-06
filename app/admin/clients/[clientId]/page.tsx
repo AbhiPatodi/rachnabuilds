@@ -80,6 +80,9 @@ export default function ClientDetailPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editWebsite, setEditWebsite] = useState('');
+  const [editInstagram, setEditInstagram] = useState('');
+  const [editBusinessName, setEditBusinessName] = useState('');
   const [infoSaving, setInfoSaving] = useState(false);
   const [copiedPw, setCopiedPw] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -107,6 +110,10 @@ export default function ClientDetailPage() {
       setEditName(data.name);
       setEditEmail(data.email ?? '');
       setEditPhone(data.phone ?? '');
+      const cp = (data.clientProfile ?? {}) as Record<string, unknown>;
+      setEditWebsite((cp.website as string) ?? '');
+      setEditInstagram((cp.instagram as string) ?? '');
+      setEditBusinessName((cp.businessName as string) ?? '');
     } catch {
       setError('Failed to load client');
     } finally {
@@ -120,14 +127,21 @@ export default function ClientDetailPage() {
     if (!client) return;
     setInfoSaving(true);
     try {
+      const existingProfile = (client.clientProfile ?? {}) as Record<string, unknown>;
+      const updatedProfile = {
+        ...existingProfile,
+        website: editWebsite.trim() || undefined,
+        instagram: editInstagram.trim() || undefined,
+        businessName: editBusinessName.trim() || undefined,
+      };
       const res = await fetch(`/api/admin/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, phone: editPhone }),
+        body: JSON.stringify({ name: editName, email: editEmail, phone: editPhone, clientProfile: updatedProfile }),
       });
       if (res.ok) {
         const data = await res.json();
-        setClient(c => c ? { ...c, name: data.name, email: data.email, phone: data.phone } : c);
+        setClient(c => c ? { ...c, name: data.name, email: data.email, phone: data.phone, clientProfile: data.clientProfile } : c);
         setEditingInfo(false);
       }
     } catch {
@@ -304,10 +318,24 @@ export default function ClientDetailPage() {
                     <label className="admin-label">Email</label>
                     <input className="admin-input" type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="client@example.com" />
                   </div>
+                  <div className="admin-field">
+                    <label className="admin-label">Phone</label>
+                    <input className="admin-input" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+91 98765 43210" />
+                  </div>
                 </div>
-                <div className="admin-field" style={{ maxWidth: 300 }}>
-                  <label className="admin-label">Phone</label>
-                  <input className="admin-input" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+91 98765 43210" />
+                <div className="admin-form-row">
+                  <div className="admin-field">
+                    <label className="admin-label">🏢 Business Name</label>
+                    <input className="admin-input" value={editBusinessName} onChange={e => setEditBusinessName(e.target.value)} placeholder="e.g. Sage & Veda" />
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">🌐 Website</label>
+                    <input className="admin-input" type="url" value={editWebsite} onChange={e => setEditWebsite(e.target.value)} placeholder="https://example.com" />
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">📸 Instagram</label>
+                    <input className="admin-input" value={editInstagram} onChange={e => setEditInstagram(e.target.value)} placeholder="@handle or URL" />
+                  </div>
                 </div>
                 <div>
                   <button className="admin-btn admin-btn-primary" onClick={saveInfo} disabled={infoSaving || !editName.trim()} style={{ fontSize: 13 }}>
@@ -321,6 +349,12 @@ export default function ClientDetailPage() {
                   <label>Name</label>
                   <span>{client.name}</span>
                 </div>
+                {(client.clientProfile?.businessName as string) && (
+                  <div className="admin-info-item">
+                    <label>Business</label>
+                    <span>{client.clientProfile?.businessName as string}</span>
+                  </div>
+                )}
                 <div className="admin-info-item">
                   <label>Email</label>
                   <span>{client.email || '—'}</span>
@@ -329,6 +363,22 @@ export default function ClientDetailPage() {
                   <label>Phone</label>
                   <span>{client.phone || '—'}</span>
                 </div>
+                {(client.clientProfile?.website as string) && (
+                  <div className="admin-info-item">
+                    <label>Website</label>
+                    <span>
+                      <a href={client.clientProfile?.website as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                        {client.clientProfile?.website as string}
+                      </a>
+                    </span>
+                  </div>
+                )}
+                {(client.clientProfile?.instagram as string) && (
+                  <div className="admin-info-item">
+                    <label>Instagram</label>
+                    <span>{client.clientProfile?.instagram as string}</span>
+                  </div>
+                )}
                 <div className="admin-info-item">
                   <label>Status</label>
                   <span>

@@ -10,9 +10,17 @@ async function auth() {
   return !!store.get('admin_session')?.value;
 }
 
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { projectId } = await params;
+
+  // ?countOnly=1 — return unread count without marking as read (for polling badge)
+  if (req.nextUrl.searchParams.get('countOnly') === '1') {
+    const count = await prisma.projectMessage.count({
+      where: { projectId, senderType: 'client', readByAdmin: false },
+    });
+    return NextResponse.json({ count });
+  }
 
   const messages = await prisma.projectMessage.findMany({
     where: { projectId },

@@ -18,7 +18,7 @@ export default async function ProjectPortalPage({ params }: PageProps) {
   // Find and verify client
   const client = await prisma.client.findUnique({
     where: { slug: clientSlug },
-    select: { id: true, name: true, isActive: true },
+    select: { id: true, name: true, email: true, phone: true, isActive: true },
   });
 
   if (!client || !client.isActive) {
@@ -92,11 +92,13 @@ export default async function ProjectPortalPage({ params }: PageProps) {
         clientType: project.clientType,
         status: project.status,
         adminProfile: (() => {
-          if (!project.adminProfile) return null;
           // Strip internal fields before sending to client component
-          const { notes, internalNotes, adminNotes, ...safeProfile } = project.adminProfile as Record<string, unknown>;
+          const { notes, internalNotes, adminNotes, ...safeProfile } = (project.adminProfile ?? {}) as Record<string, unknown>;
           void notes; void internalNotes; void adminNotes;
-          return safeProfile;
+          // Merge Client.email / Client.phone so admin-set contact info shows in portal
+          if (client.email && !safeProfile.email) safeProfile.email = client.email;
+          if (client.phone && !safeProfile.phone) safeProfile.phone = client.phone;
+          return Object.keys(safeProfile).length > 0 ? safeProfile : null;
         })(),
         sections: project.sections.map(s => ({
           id: s.id,

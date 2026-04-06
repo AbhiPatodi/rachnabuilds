@@ -331,9 +331,11 @@ model ProjectContract {
   clientSignature String?
   signedAt        DateTime?
   sentAt          DateTime?
-  advancePaid     Boolean   @default(false)
-  balancePaid     Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  advancePaid        Boolean   @default(false)
+  balancePaid        Boolean   @default(false)
+  advanceReceiptUrl  String?
+  balanceReceiptUrl  String?
+  createdAt          DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   project         ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 

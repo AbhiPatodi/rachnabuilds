@@ -195,8 +195,38 @@ export async function notifyContractReady(
   clientName: string,
   projectName: string,
   portalUrl: string,
+  paymentInfo?: {
+    totalFee?: string;
+    schedule?: { label: string; amount: string; timing: string }[];
+    paymentMethods?: { upiId?: string; paypalLink?: string; bankDetails?: string };
+  },
 ): Promise<{ ok: boolean; reason?: string }> {
   const firstName = clientName.split(' ')[0];
+
+  // Build optional payment section for email
+  let paymentBlock = '';
+  if (paymentInfo) {
+    const rows = paymentInfo.schedule?.filter(r => r.label || r.amount) ?? [];
+    const pm = paymentInfo.paymentMethods;
+    const hasPayMethod = pm && (pm.upiId || pm.paypalLink || pm.bankDetails);
+
+    if (paymentInfo.totalFee || rows.length || hasPayMethod) {
+      let pmHtml = '';
+      if (hasPayMethod) {
+        pmHtml += `<p style="margin:12px 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;">How to Pay</p>`;
+        if (pm?.upiId) pmHtml += `<p style="margin:0 0 4px;font-size:13px;color:#334155;"><strong>UPI:</strong> <code style="background:#F1F5F9;padding:2px 6px;border-radius:4px;">${pm.upiId}</code></p>`;
+        if (pm?.paypalLink) pmHtml += `<p style="margin:0 0 4px;font-size:13px;color:#334155;"><strong>PayPal:</strong> <a href="${pm.paypalLink}" style="color:#06D6A0;">${pm.paypalLink}</a></p>`;
+        if (pm?.bankDetails) pmHtml += `<p style="margin:0 0 4px;font-size:13px;color:#334155;white-space:pre-line;"><strong>Bank:</strong> ${pm.bankDetails}</p>`;
+      }
+      paymentBlock = `
+      ${divider()}
+      <p style="margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748B;">Payment Summary</p>
+      ${paymentInfo.totalFee ? `<p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#0F172A;">Total: ${paymentInfo.totalFee}</p>` : ''}
+      ${rows.map(r => `<p style="margin:0 0 4px;font-size:13px;color:#334155;">${r.label}${r.amount ? ` — <strong>${r.amount}</strong>` : ''} <span style="color:#94A3B8;">(${r.timing})</span></p>`).join('')}
+      ${pmHtml}`;
+    }
+  }
+
   const html = base(
     `Your contract for ${projectName} is ready to sign.`,
     `
@@ -209,6 +239,7 @@ export async function notifyContractReady(
       { label: 'Next step', value: 'Review & sign the contract in your portal' },
     ])}
     ${ctaButton('Review & Sign Contract', portalUrl)}
+    ${paymentBlock}
     ${divider()}
     ${bodyText(`If you have any questions before signing, simply reply to this email or message Rachna directly at <a href="mailto:rachnajain2103@gmail.com" style="color:#06D6A0;text-decoration:none;">rachnajain2103@gmail.com</a>.`)}
     `,

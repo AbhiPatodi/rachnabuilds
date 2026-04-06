@@ -1689,3 +1689,21 @@
   font-style: italic;
   white-space: nowrap;
 }
+
+
+/* ── PRINT / SAVE AS PDF ── */
+@media print {
+  body * { visibility: hidden; }
+  #contract-print-area, #contract-print-area * { visibility: visible; }
+  #contract-print-area {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 32px 48px !important;
+    background: white !important;
+    color: black !important;
+  }
+  .no-print { display: none !important; }
+}

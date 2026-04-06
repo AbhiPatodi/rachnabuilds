@@ -100,7 +100,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const phase = phaseParam ? parseInt(phaseParam, 10) : 1;
 
   const body = await req.json();
-  const { content, status, phaseLabel, advancePaid, balancePaid } = body;
+  const { content, status, phaseLabel, advancePaid, balancePaid, advanceReceiptUrl, balanceReceiptUrl } = body;
 
   const data: Record<string, unknown> = {};
   if (content !== undefined) data.content = content;
@@ -111,6 +111,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
   if (advancePaid !== undefined) data.advancePaid = advancePaid;
   if (balancePaid !== undefined) data.balancePaid = balancePaid;
+  if (advanceReceiptUrl !== undefined) data.advanceReceiptUrl = advanceReceiptUrl;
+  if (balanceReceiptUrl !== undefined) data.balanceReceiptUrl = balanceReceiptUrl;
 
   const contract = await prisma.projectContract.upsert({
     where: { projectId_phase: { projectId, phase } },
@@ -126,11 +128,25 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     });
     if (project?.client?.email) {
       const portalUrl = `https://rachnabuilds.com/portal/${project.client.slug}/${projectId}`;
+      // Extract payment info from contract content to include in email
+      let paymentInfo: Parameters<typeof notifyContractReady>[4] = undefined;
+      try {
+        const parsed = JSON.parse(contract.content);
+        const paySection = (parsed.sections ?? []).find((s: { type: string }) => s.type === 'payment');
+        if (paySection) {
+          paymentInfo = {
+            totalFee: paySection.totalFee || undefined,
+            schedule: paySection.schedule?.filter((r: { label: string }) => r.label) ?? [],
+            paymentMethods: paySection.paymentMethods,
+          };
+        }
+      } catch {}
       notifyContractReady(
         project.client.email,
         project.client.name,
         project.name,
         portalUrl,
+        paymentInfo,
       ).catch(console.error);
     }
   }

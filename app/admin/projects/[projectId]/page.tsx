@@ -152,7 +152,6 @@ interface Project {
   clientType: string;
   platform?: string | null;
   status: string;
-  isActive?: boolean;
   viewCount?: number;
   lastViewedAt?: string | null;
   createdAt: string;
@@ -268,7 +267,7 @@ export default function ProjectManagePage() {
   const [templateMsg, setTemplateMsg] = useState('');
 
   // Contract
-  type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; sentAt?: string | null; advancePaid?: boolean; balancePaid?: boolean };
+  type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; sentAt?: string | null; advancePaid?: boolean; balancePaid?: boolean; advanceReceiptUrl?: string | null; balanceReceiptUrl?: string | null };
   const [contracts, setContracts] = useState<ContractData[]>([]);
   const [contractsLoaded, setContractsLoaded] = useState(false);
   const [contractLoading, setContractLoading] = useState(false);
@@ -305,12 +304,18 @@ export default function ProjectManagePage() {
   const [editClientName, setEditClientName] = useState('');
   const [editClientEmail, setEditClientEmail] = useState('');
   const [editClientPhone, setEditClientPhone] = useState('');
+  const [editClientWebsite, setEditClientWebsite] = useState('');
+  const [editClientInstagram, setEditClientInstagram] = useState('');
+  const [editClientBusinessName, setEditClientBusinessName] = useState('');
   const [clientInfoSaving, setClientInfoSaving] = useState(false);
 
   // Overview — edit admin profile
   const [editingAdminProfile, setEditingAdminProfile] = useState(false);
   const [adminDraft, setAdminDraft] = useState<AdminProfile>({});
   const [adminProfileSaving, setAdminProfileSaving] = useState(false);
+
+  // Contract share
+  const [contractShareCopied, setContractShareCopied] = useState(false);
 
   // Share modal
   const [showShareModal, setShowShareModal] = useState(false);
@@ -389,19 +394,27 @@ export default function ProjectManagePage() {
       .catch(() => setMessagesLoaded(true));
   }, [activeTab, projectId, messagesLoaded]);
 
-  // Track unread count when on other tabs (initial load only)
+  // Poll unread message count every 30s (countOnly — does NOT mark as read)
   useEffect(() => {
-    if (activeTab === 'messages') return;
-    fetch(`/api/admin/projects/${projectId}/messages`)
-      .then(r => r.ok ? r.json() : [])
-      .then((data: ProjectMessage[]) => {
-        const unread = data.filter((m: ProjectMessage) => m.senderType === 'client' && !m.readByAdmin).length;
-        setMsgUnreadCount(unread);
-      })
-      .catch(() => {});
-  // Only run once on mount
+    const poll = () => {
+      if (activeTab === 'messages') return; // already reading messages, count is 0
+      fetch(`/api/admin/projects/${projectId}/messages?countOnly=1`)
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(({ count }: { count: number }) => {
+          setMsgUnreadCount(prev => {
+            if (count > prev && prev > 0 && Notification.permission === 'granted') {
+              new Notification('New message', { body: 'A client replied on this project.', icon: '/icon-192.png' });
+            }
+            return count;
+          });
+        })
+        .catch(() => {});
+    };
+    poll(); // run immediately on mount / tab change
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeTab, projectId]);
 
   // Load milestones when tab is opened
   useEffect(() => {
@@ -499,7 +512,7 @@ export default function ProjectManagePage() {
     await fetch(`/api/admin/projects/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: !project.isActive }),
+      body: JSON.stringify({ status: project.status === 'active' ? 'draft' : 'active' }),
     });
     fetchProject();
   };
@@ -507,15 +520,26 @@ export default function ProjectManagePage() {
   // ─── Client info edit ────────────────────────────────────────────────────
   const startEditClientInfo = () => {
     if (!project) return;
+    const cp = (project.client.clientProfile ?? {}) as Record<string, unknown>;
     setEditClientName(project.client.name);
     setEditClientEmail(project.client.email ?? '');
     setEditClientPhone(project.client.phone ?? '');
+    setEditClientWebsite((cp.website as string) ?? '');
+    setEditClientInstagram((cp.instagram as string) ?? '');
+    setEditClientBusinessName((cp.businessName as string) ?? '');
     setEditingClientInfo(true);
   };
 
   const saveClientInfo = async () => {
     if (!project) return;
     setClientInfoSaving(true);
+    const existingProfile = (project.client.clientProfile ?? {}) as Record<string, unknown>;
+    const updatedProfile = {
+      ...existingProfile,
+      website: editClientWebsite.trim() || undefined,
+      instagram: editClientInstagram.trim() || undefined,
+      businessName: editClientBusinessName.trim() || undefined,
+    };
     await fetch(`/api/admin/clients/${project.client.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -523,6 +547,7 @@ export default function ProjectManagePage() {
         name: editClientName.trim(),
         email: editClientEmail.trim() || null,
         phone: editClientPhone.trim() || null,
+        clientProfile: updatedProfile,
       }),
     });
     setClientInfoSaving(false);
@@ -866,11 +891,11 @@ export default function ProjectManagePage() {
             <div className="admin-card-title">
               Project Info
               <button
-                className={`admin-btn admin-btn-icon ${project.isActive ? 'admin-btn-danger' : 'admin-btn-ghost'}`}
+                className={`admin-btn admin-btn-icon ${project.status === 'active' ? 'admin-btn-danger' : 'admin-btn-ghost'}`}
                 onClick={toggleActive}
                 style={{ fontSize: 12 }}
               >
-                {project.isActive ? 'Deactivate' : 'Activate'}
+                {project.status === 'active' ? 'Deactivate' : 'Activate'}
               </button>
             </div>
             <div className="admin-info-grid">
@@ -889,9 +914,9 @@ export default function ProjectManagePage() {
               <div className="admin-info-item">
                 <label>Active</label>
                 <span>
-                  <span className={`badge ${project.isActive ? 'badge-green' : 'badge-red'}`}>
+                  <span className={`badge ${project.status === 'active' ? 'badge-green' : 'badge-red'}`}>
                     <span className="badge-dot" />
-                    {project.isActive ? 'Active' : 'Inactive'}
+                    {project.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
                 </span>
               </div>
@@ -934,6 +959,20 @@ export default function ProjectManagePage() {
                     <input className="admin-input" type="tel" value={editClientPhone} onChange={e => setEditClientPhone(e.target.value)} placeholder="+91 98765 43210" />
                   </div>
                 </div>
+                <div className="admin-form-row">
+                  <div className="admin-field">
+                    <label className="admin-label">🏢 Business Name</label>
+                    <input className="admin-input" value={editClientBusinessName} onChange={e => setEditClientBusinessName(e.target.value)} placeholder="e.g. Sage & Veda" />
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">🌐 Website</label>
+                    <input className="admin-input" type="url" value={editClientWebsite} onChange={e => setEditClientWebsite(e.target.value)} placeholder="https://example.com" />
+                  </div>
+                  <div className="admin-field">
+                    <label className="admin-label">📸 Instagram</label>
+                    <input className="admin-input" value={editClientInstagram} onChange={e => setEditClientInstagram(e.target.value)} placeholder="@handle or URL" />
+                  </div>
+                </div>
                 <div>
                   <button className="admin-btn admin-btn-primary" onClick={saveClientInfo} disabled={clientInfoSaving || !editClientName.trim()} style={{ fontSize: 13 }}>
                     {clientInfoSaving ? 'Saving…' : 'Save Client Info'}
@@ -950,6 +989,12 @@ export default function ProjectManagePage() {
                     </Link>
                   </span>
                 </div>
+                {(project.client.clientProfile?.businessName as string) && (
+                  <div className="admin-info-item">
+                    <label>Business</label>
+                    <span>{project.client.clientProfile?.businessName as string}</span>
+                  </div>
+                )}
                 <div className="admin-info-item">
                   <label>Email</label>
                   <span>{project.client.email || '—'}</span>
@@ -958,6 +1003,22 @@ export default function ProjectManagePage() {
                   <label>Phone</label>
                   <span>{project.client.phone || '—'}</span>
                 </div>
+                {(project.client.clientProfile?.website as string) && (
+                  <div className="admin-info-item">
+                    <label>Website</label>
+                    <span>
+                      <a href={project.client.clientProfile?.website as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                        {project.client.clientProfile?.website as string}
+                      </a>
+                    </span>
+                  </div>
+                )}
+                {(project.client.clientProfile?.instagram as string) && (
+                  <div className="admin-info-item">
+                    <label>Instagram</label>
+                    <span>{project.client.clientProfile?.instagram as string}</span>
+                  </div>
+                )}
                 <div className="admin-info-item">
                   <label>Portal Slug</label>
                   <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{project.client.slug}</span>
@@ -1463,6 +1524,34 @@ export default function ProjectManagePage() {
           <div className="admin-empty">Loading contract…</div>
         ) : (
           <>
+            {contracts.length > 0 && (
+              <div style={{ marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  className="admin-btn admin-btn-ghost"
+                  style={{ fontSize: 13 }}
+                  onClick={async () => {
+                    const contractUrl = `https://rachnabuilds.com/portal/${project.client.slug}/${projectId}`;
+                    const msg = `Hi ${project.client.name}! 👋\n\nYour contract for *${project.name}* is ready to review and sign.\n\n🔗 Sign here: ${contractUrl}\n\nPlease sign at your earliest convenience. Let me know if you have any questions!\n\n— Rachna\nrachnabuilds.com`;
+                    await navigator.clipboard.writeText(msg);
+                    setContractShareCopied(true);
+                    setTimeout(() => setContractShareCopied(false), 2500);
+                  }}
+                >
+                  {contractShareCopied ? '✓ Copied!' : '📋 Copy Contract Message'}
+                </button>
+                <button
+                  className="admin-btn admin-btn-ghost"
+                  style={{ fontSize: 13 }}
+                  onClick={() => {
+                    const contractUrl = `https://rachnabuilds.com/portal/${project.client.slug}/${projectId}`;
+                    const msg = `Hi ${project.client.name}! 👋\n\nYour contract for *${project.name}* is ready to review and sign.\n\n🔗 Sign here: ${contractUrl}\n\nPlease sign at your earliest convenience. Let me know if you have any questions!\n\n— Rachna\nrachnabuilds.com`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                  }}
+                >
+                  💬 WhatsApp Contract
+                </button>
+              </div>
+            )}
             <ContractBuilder
               projectId={projectId}
               clientName={project.client.name}
@@ -1479,26 +1568,34 @@ export default function ProjectManagePage() {
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 80 }}>Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}</div>
                       {(['advance', 'balance'] as const).map(type => {
                         const field = type === 'advance' ? 'advancePaid' : 'balancePaid';
+                        const receiptField = type === 'advance' ? 'advanceReceiptUrl' : 'balanceReceiptUrl';
                         const isPaid = c[field as keyof typeof c] as boolean;
+                        const receiptUrl = c[receiptField as keyof typeof c] as string | null | undefined;
                         const savingKey = `${c.phase}-${field}`;
                         return (
-                          <button
-                            key={type}
-                            disabled={paymentSaving === savingKey}
-                            onClick={async () => {
-                              setPaymentSaving(savingKey);
-                              await fetch(`/api/admin/projects/${projectId}/contract?phase=${c.phase}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ [field]: !isPaid }),
-                              });
-                              setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, [field]: !isPaid } : pc));
-                              setPaymentSaving(null);
-                            }}
-                            style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${isPaid ? '#06D6A0' : 'var(--border)'}`, background: isPaid ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', color: isPaid ? '#06D6A0' : 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            {isPaid ? '✓' : '○'} {type === 'advance' ? 'Advance' : 'Balance'} {isPaid ? 'Paid' : 'Unpaid'}
-                          </button>
+                          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              disabled={paymentSaving === savingKey}
+                              onClick={async () => {
+                                setPaymentSaving(savingKey);
+                                await fetch(`/api/admin/projects/${projectId}/contract?phase=${c.phase}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ [field]: !isPaid }),
+                                });
+                                setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, [field]: !isPaid } : pc));
+                                setPaymentSaving(null);
+                              }}
+                              style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${isPaid ? '#06D6A0' : 'var(--border)'}`, background: isPaid ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', color: isPaid ? '#06D6A0' : 'var(--text-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              {isPaid ? '✓' : '○'} {type === 'advance' ? 'Advance' : 'Balance'} {isPaid ? 'Paid' : 'Unpaid'}
+                            </button>
+                            {receiptUrl && (
+                              <a href={receiptUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                📎 Receipt
+                              </a>
+                            )}
+                          </div>
                         );
                       })}
                     </div>

@@ -17,7 +17,7 @@ export type Platform =
   | 'webflow'
   | 'custom';
 
-export type TabId = 'submissions' | 'audit' | 'competitors' | 'proposal' | 'status' | 'contract';
+export type TabId = 'submissions' | 'audit' | 'competitors' | 'proposal' | 'status' | 'contract' | 'payments';
 
 export interface PortalTab {
   id: TabId;
@@ -31,17 +31,18 @@ export const ALL_TABS: PortalTab[] = [
   { id: 'proposal',   label: 'Proposal' },
   { id: 'status',     label: 'Project Status' },
   { id: 'contract',   label: 'Contract' },
+  { id: 'payments',   label: 'Payments' },
 ];
 
 // Tab visibility matrix — keyed by clientType
 // platform=null means legacy project → show ALL tabs (backward compat)
 const TAB_MATRIX: Record<ClientType, TabId[]> = {
-  new_build:              ['submissions', 'proposal', 'status', 'contract'],
-  existing_optimisation:  ['submissions', 'audit', 'competitors', 'proposal', 'status', 'contract'],
+  new_build:              ['submissions', 'proposal', 'status', 'contract', 'payments'],
+  existing_optimisation:  ['submissions', 'audit', 'competitors', 'proposal', 'status', 'contract', 'payments'],
   audit_only:             ['submissions', 'audit', 'competitors'],
-  landing_page:           ['submissions', 'proposal', 'status', 'contract'],
-  retainer:               ['submissions', 'status', 'contract'],
-  migration:              ['submissions', 'proposal', 'status', 'contract'],
+  landing_page:           ['submissions', 'proposal', 'status', 'contract', 'payments'],
+  retainer:               ['submissions', 'status', 'contract', 'payments'],
+  migration:              ['submissions', 'proposal', 'status', 'contract', 'payments'],
 };
 
 /**

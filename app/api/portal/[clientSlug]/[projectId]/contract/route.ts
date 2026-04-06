@@ -1,5 +1,6 @@
-// GET  — fetch all sent/signed contracts for this project
-// POST — sign a specific phase contract
+// GET   — fetch all sent/signed contracts for this project
+// POST  — sign a specific phase contract
+// PATCH — submit a payment receipt URL (advance or balance) for a phase
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
@@ -70,4 +71,30 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     data: { status: 'signed', clientSignature: signature.trim(), signedAt: new Date() },
   });
   return NextResponse.json({ contract: updated });
+}
+
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const { clientSlug, projectId } = await params;
+  if (!portalAuth(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const project = await getProject(projectId, clientSlug);
+  if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const url = new URL(req.url);
+  const phase = parseInt(url.searchParams.get('phase') ?? '1', 10);
+
+  const body = await req.json();
+  const data: Record<string, unknown> = {};
+  if (body.advanceReceiptUrl !== undefined) data.advanceReceiptUrl = body.advanceReceiptUrl;
+  if (body.balanceReceiptUrl !== undefined) data.balanceReceiptUrl = body.balanceReceiptUrl;
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+  }
+
+  const contract = await prisma.projectContract.update({
+    where: { projectId_phase: { projectId: project.id, phase } },
+    data,
+  });
+  return NextResponse.json({ contract });
 }
