@@ -1177,7 +1177,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
             <path d="M36 38L64 72" stroke="currentColor" strokeWidth="11" strokeLinecap="square"/>
           </svg>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>Rachna Builds</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>Rachna Builds</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>rachnabuilds.com</div>
           </div>
         </div>
@@ -1189,11 +1189,11 @@ function PortalContractView({ data }: { data: ContractData2 }) {
 
       {/* Header */}
       <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 20, marginBottom: 4 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 14 }}>{data.meta.projectName}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>{data.meta.projectName}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', fontSize: 13, color: 'var(--text-secondary)', textAlign: 'left', maxWidth: 440, margin: '0 auto' }}>
-          <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</span><br /><strong style={{ color: 'var(--text)' }}>{data.meta.clientName}</strong></div>
-          <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</span><br /><strong style={{ color: 'var(--text)' }}>{data.meta.date}</strong></div>
-          <div style={{ gridColumn: '1/-1' }}><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prepared by</span><br /><strong style={{ color: 'var(--text)' }}>{data.meta.preparedBy}</strong></div>
+          <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</span><br /><strong style={{ color: 'var(--text-primary)' }}>{data.meta.clientName}</strong></div>
+          <div><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</span><br /><strong style={{ color: 'var(--text-primary)' }}>{data.meta.date}</strong></div>
+          <div style={{ gridColumn: '1/-1' }}><span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prepared by</span><br /><strong style={{ color: 'var(--text-primary)' }}>{data.meta.preparedBy}</strong></div>
         </div>
       </div>
 
@@ -1216,7 +1216,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
                 <tbody>
                   {s.rows.map((row, j) => (
                     <tr key={j}>
-                      <td style={{ padding: '7px 10px', color: 'var(--text)', border: '1px solid var(--border)', fontSize: 13 }}>{row.milestone}</td>
+                      <td style={{ padding: '7px 10px', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: 13 }}>{row.milestone}</td>
                       <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>{row.duration}</td>
                     </tr>
                   ))}
@@ -1230,7 +1230,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
               {s.totalFee && (
                 <div style={{ background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: 10, padding: '14px 18px', marginBottom: 14 }}>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>Total Fee</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>{s.totalFee}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{s.totalFee}</div>
                 </div>
               )}
               {s.schedule && (
@@ -1243,8 +1243,8 @@ function PortalContractView({ data }: { data: ContractData2 }) {
                   <tbody>
                     {s.schedule.map((row, j) => (
                       <tr key={j}>
-                        <td style={{ padding: '7px 10px', color: 'var(--text)', border: '1px solid var(--border)' }}>{row.label}</td>
-                        <td style={{ padding: '7px 10px', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 700 }}>{row.amount}</td>
+                        <td style={{ padding: '7px 10px', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>{row.label}</td>
+                        <td style={{ padding: '7px 10px', color: 'var(--text-primary)', border: '1px solid var(--border)', fontWeight: 700 }}>{row.amount}</td>
                         <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>{row.timing}</td>
                       </tr>
                     ))}
@@ -1258,7 +1258,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
                   {s.paymentMethods.upiId && (
                     <div style={{ marginBottom: 8 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPI ID</span>
-                      <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginTop: 2 }}>{s.paymentMethods.upiId}</div>
+                      <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{s.paymentMethods.upiId}</div>
                     </div>
                   )}
                   {s.paymentMethods.paypalLink && (
@@ -1546,7 +1546,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
     } catch {}
     // Fallback: render as pre-wrap text
     return (
-      <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', fontSize: 15, lineHeight: 1.8, color: 'var(--text)' }}>
+      <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', fontSize: 15, lineHeight: 1.8, color: 'var(--text-primary)' }}>
         {content}
       </div>
     );
@@ -1764,7 +1764,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       </>
                     ) : (
                       <>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Accept this Proposal</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Accept this Proposal</div>
                         <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
                           By entering your name below, you confirm you have reviewed and accept this proposal. This does not replace the service contract.
                         </p>
@@ -1773,7 +1773,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                           placeholder="Your full name"
                           value={proposalAcceptName}
                           onChange={e => setProposalAcceptName(e.target.value)}
-                          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14, marginBottom: 10 }}
+                          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, marginBottom: 10 }}
                         />
                         {proposalAcceptError && <p style={{ fontSize: 12, color: '#FF6B6B', marginBottom: 10 }}>{proposalAcceptError}</p>}
                         <button
@@ -1821,7 +1821,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                         <span style={{ fontSize: 10 }}>{statusIcon}</span>
                       </div>
                       <div style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: m.description ? 6 : 0 }}>{m.title}</div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginBottom: m.description ? 6 : 0 }}>{m.title}</div>
                         {m.description && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>{m.description}</div>}
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, padding: '2px 8px', borderRadius: 100, background: `${statusColor}18`, border: `1px solid ${statusColor}44` }}>{statusLabel}</span>
@@ -1941,7 +1941,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                         {contract.status === 'signed' && contract.clientSignature && (
                           <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
                             <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Digital Signature</div>
-                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text)', marginBottom: 4 }}>{contract.clientSignature}</div>
+                            <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text-primary)', marginBottom: 4 }}>{contract.clientSignature}</div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                           </div>
                         )}
@@ -1951,14 +1951,14 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       {contract.status === 'signed' ? (
                         <div style={{ background: 'rgba(6,214,160,0.06)', border: '1px solid #06D6A0', borderRadius: 14, padding: '20px 24px' }}>
                           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>Digital Signature</div>
-                          <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text)', marginBottom: 6 }}>{contract.clientSignature}</div>
+                          <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text-primary)', marginBottom: 6 }}>{contract.clientSignature}</div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                             Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       ) : (
                         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Sign this contract</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Sign this contract</div>
                           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 18 }}>
                             By typing your full name below, you confirm you have read and agree to the terms of this service agreement.
                           </p>
@@ -1967,7 +1967,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                             placeholder="Your full legal name"
                             value={signatureName}
                             onChange={e => setSignatureName(e.target.value)}
-                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14, marginBottom: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic' }}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, marginBottom: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic' }}
                           />
                           {signError && <p style={{ fontSize: 12, color: '#FF6B6B', marginBottom: 12 }}>{signError}</p>}
                           <button
@@ -2063,7 +2063,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                     <div key={c.phase} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
                       {/* Phase header */}
                       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
                           Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}
                         </div>
                         {ps?.totalFee && (
@@ -2088,11 +2088,11 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
                                   <div>
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{r.label}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</div>
                                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{r.timing}</div>
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                                    {r.amount && <div style={{ fontSize: 16, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text)' }}>{r.amount}</div>}
+                                    {r.amount && <div style={{ fontSize: 16, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text-primary)' }}>{r.amount}</div>}
                                     <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: isPaid ? 'rgba(6,214,160,0.12)' : 'rgba(148,163,184,0.12)', color: isPaid ? '#06D6A0' : '#94A3B8', border: `1px solid ${isPaid ? 'rgba(6,214,160,0.3)' : 'rgba(148,163,184,0.3)'}` }}>
                                       {isPaid ? '✓ Paid' : 'Pending'}
                                     </span>
@@ -2173,7 +2173,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       </div>
                       <div style={{
                         background: isClient ? '#06D6A0' : 'var(--bg-card)',
-                        color: isClient ? '#0B0F1A' : 'var(--text)',
+                        color: isClient ? '#0B0F1A' : 'var(--text-primary)',
                         borderRadius: isClient ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                         padding: '10px 14px',
                         fontSize: 14,
@@ -2271,7 +2271,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       setPortalMsgSending(false);
                     }
                   }}
-                  style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}
+                  style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5 }}
                 />
                 {/* Hidden file input */}
                 <input
