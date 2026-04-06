@@ -76,12 +76,12 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
             <Link href="/#pricing">Pricing</Link>
             <Link href="/tools">Free Tools</Link>
             <Link href="/blog">Blog</Link>
-            <Link href="/#contact">Contact</Link>
+            <Link href="/free-audit">Free Audit</Link>
           </div>
           <div className="nav-actions">
             <ThemeToggle className="theme-toggle" />
-            <Link href="/free-audit" className="nav-cta">
-              Free Audit
+            <Link href="/start" className="nav-cta">
+              Start a Project
             </Link>
           </div>
           <button className="burger" id="siteBurger" aria-label="Menu">
@@ -98,8 +98,8 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
         <Link href="/#pricing" className="ml">Pricing</Link>
         <Link href="/tools" className="ml">Free Tools</Link>
         <Link href="/blog" className="ml">Blog</Link>
-        <Link href="/#contact" className="ml">Contact</Link>
         <Link href="/free-audit" className="ml">Free Audit</Link>
+        <Link href="/start" className="ml" style={{ color: 'var(--accent)', fontWeight: 600 }}>Start a Project</Link>
       </div>
     </>
   );
