@@ -1177,7 +1177,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
   return (
     <div style={{ fontFamily: 'Georgia, serif', color: C.text }}>
       {/* Branding */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 16, borderBottom: `2px solid ${C.accent}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 16, borderBottom: `2px solid ${C.accent}`, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <svg viewBox="0 0 64 72" fill="none" width="28" height="32" style={{ color: C.accent, flexShrink: 0 }}>
             <rect width="11" height="72" fill="currentColor"/>
@@ -1200,7 +1200,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
       {/* Header */}
       <div style={{ textAlign: 'center', borderBottom: `1px solid ${C.border}`, paddingBottom: 20, marginBottom: 4 }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 14 }}>{data.meta.projectName}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 24px', fontSize: 13, color: C.textMid, textAlign: 'left', maxWidth: 440, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '6px 24px', fontSize: 13, color: C.textMid, textAlign: 'left', maxWidth: 440, margin: '0 auto' }}>
           <div><span style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</span><br /><strong style={{ color: C.text }}>{data.meta.clientName}</strong></div>
           <div><span style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</span><br /><strong style={{ color: C.text }}>{data.meta.date}</strong></div>
           <div style={{ gridColumn: '1/-1' }}><span style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prepared by</span><br /><strong style={{ color: C.text }}>{data.meta.preparedBy}</strong></div>
@@ -1308,6 +1308,15 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
   const router = useRouter();
   const tabs = [...(visibleTabs ? TABS.filter(t => visibleTabs.includes(t.id)) : TABS), { id: 'messages', label: 'Messages' }];
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? 'submissions');
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; advancePaid?: boolean; balancePaid?: boolean; advanceReceiptUrl?: string | null; balanceReceiptUrl?: string | null };
   const [contracts, setContracts] = useState<ContractData[] | undefined>(undefined); // undefined = not loaded
@@ -1764,7 +1773,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
               ? (
                 <>
                   <ProposalView sections={proposalSections} />
-                  <div style={{ background: 'var(--bg-card)', border: `1px solid ${proposalAccepted ? '#06D6A0' : 'var(--border)'}`, borderRadius: 14, padding: '24px 28px', marginTop: 20 }}>
+                  <div className="portal-proposal-accept-block" style={{ background: 'var(--bg-card)', border: `1px solid ${proposalAccepted ? '#06D6A0' : 'var(--border)'}`, borderRadius: 14, padding: isMobile ? '16px 18px' : '24px 28px', marginTop: 20 }}>
                     {proposalAccepted ? (
                       <>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#06D6A0', marginBottom: 6 }}>✓ Proposal Accepted</div>
@@ -1945,10 +1954,10 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       </div>
 
                       {/* Contract body */}
-                      <div id="contract-print-area" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: '28px 32px' }}>
+                      <div id="contract-print-area" style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: isMobile ? '16px' : '28px 32px', maxWidth: '100%', overflowX: 'hidden' }}>
                         {renderContractBody(contract.content)}
                         {/* Signature block — always shown, included in print */}
-                        <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                        <div className="portal-contract-sig-grid" style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 20 : 32 }}>
                           <div>
                             <div style={{ fontSize: 10, color: C.textLight, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Client Signature</div>
                             {contract.status === 'signed' && contract.clientSignature ? (

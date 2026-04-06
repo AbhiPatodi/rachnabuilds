@@ -1002,6 +1002,17 @@
   .client-submit-actions { flex-direction: column; }
   .client-submit-save, .client-submit-cancel { width: 100%; text-align: center; justify-content: center; }
   .profile-chip { min-width: 0; }
+
+  /* Contract view on mobile */
+  #contract-print-area { padding: 16px !important; }
+  .portal-contract-sig-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+
+  /* Payment rows on mobile */
+  .portal-payment-row-inner { flex-direction: column !important; align-items: flex-start !important; }
+  .portal-payment-amount-group { width: 100%; }
+
+  /* Profile form grid */
+  .profile-form-grid { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 480px) {
   .portal-header-inner { height: 52px; }
@@ -1029,6 +1040,17 @@
   .profile-form-actions { flex-direction: column-reverse; gap: 8px; }
   .profile-save-btn { width: 100%; text-align: center; }
   .profile-cancel-link { text-align: center; }
+
+  /* Header actions — smaller on tiny screens */
+  .portal-theme-btn { width: 30px; height: 30px; }
+  .portal-logout-btn { padding: 6px 10px; }
+
+  /* Contract */
+  #contract-print-area { padding: 12px !important; border-radius: 8px !important; }
+  .portal-contract-sig-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+
+  /* Proposal accept block */
+  .portal-proposal-accept-block { padding: 16px 18px !important; }
 }
 
 /* ── Profile Card ─────────────────────────────────────────────────────────── */
@@ -1598,6 +1620,19 @@
   .prop-payment-grid { flex-direction: column; gap: 12px; }
   .prop-payment-divider { display: none; }
   .prop-title { font-size: 22px; }
+  .prop-selection-banner { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .prop-selection-hint { white-space: normal; }
+  .prop-root { padding: 0 0 24px; }
+}
+@media (max-width: 480px) {
+  .prop-title { font-size: 18px; }
+  .prop-subtitle { font-size: 12px; }
+  .prop-note { font-size: 12px; }
+  .prop-price-amount { font-size: 18px; }
+  .prop-card-header { padding: 14px 14px 0; }
+  .prop-price-block { padding: 12px 14px; }
+  .prop-deliverables, .prop-retainer { padding: 12px 14px; }
+  .prop-card-select { padding: 10px 14px 12px; }
 }
 
 /* Admin preview banner */

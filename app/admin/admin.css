@@ -782,6 +782,47 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+
+  /* Settings tabs — scrollable on mobile */
+  .settings-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+  }
+  .settings-tabs::-webkit-scrollbar { display: none; }
+  .settings-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  /* Breadcrumb — truncate on mobile */
+  .admin-breadcrumb {
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+
+  /* Admin section title */
+  .admin-section-title {
+    font-size: 16px !important;
+  }
+
+  /* Section item info takes full width */
+  .admin-section-item-info {
+    min-width: 0;
+    flex: 1;
+    word-break: break-word;
+  }
+
+  /* Admin page header buttons wrap */
+  .admin-page-header > div:last-child {
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -799,6 +840,28 @@
 
   .admin-content {
     padding: 12px;
+  }
+
+  /* Settings tabs smaller padding */
+  .settings-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  /* Milestone form grids */
+  .admin-milestone-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Payment tracking rows — stack on tiny screens */
+  .admin-payment-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .admin-payment-actions {
+    width: 100%;
+    flex-wrap: wrap;
   }
 }
 

@@ -7,6 +7,18 @@ import ContractBuilder from './ContractBuilder';
 
 export const dynamic = 'force-dynamic';
 
+// Mobile hook helper — used in the component below
+function useMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
+}
+
 const SECTION_TYPES = [
   { value: 'executive_summary', label: 'Executive Summary' },
   { value: 'performance_audit', label: 'Performance Audit' },
@@ -210,6 +222,7 @@ export default function ProjectManagePage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
+  const isMobile = useMobile();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -840,7 +853,7 @@ export default function ProjectManagePage() {
       </div>
 
       {/* Stats strip */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
           { label: '👁 Views', value: project.viewCount ?? 0 },
           { label: '📅 Last Viewed', value: project.lastViewedAt ? timeAgo(project.lastViewedAt) : 'Never' },
@@ -854,11 +867,10 @@ export default function ProjectManagePage() {
               background: 'var(--bg-elevated)',
               border: '1px solid var(--border)',
               borderRadius: 10,
-              padding: '10px 16px',
-              minWidth: 100,
+              padding: '10px 14px',
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>{stat.value}</div>
+            <div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>{stat.value}</div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>{stat.label}</div>
           </div>
         ))}
@@ -1595,12 +1607,12 @@ export default function ProjectManagePage() {
                             const linkVal = paymentLinkInputs[linkKey] ?? row.paymentLink ?? '';
                             return (
                               <div key={idx} style={{ padding: '12px 16px', borderBottom: idx < rows.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                                <div className="admin-payment-row" style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                                   <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{row.label}</div>
                                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{row.timing}</div>
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                                  <div className="admin-payment-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
                                     {row.amount && <div style={{ fontSize: 14, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text-primary)' }}>{row.amount}</div>}
                                     <button
                                       disabled={paymentSaving === savingKey}
@@ -1684,7 +1696,7 @@ export default function ProjectManagePage() {
 
           {showMilestoneForm && (
             <form onSubmit={handleAddMilestone} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                 <div>
                   <label className="admin-label">Title *</label>
                   <input className="admin-input" value={msTitle} onChange={e => setMsTitle(e.target.value)} placeholder="e.g. Design Phase Complete" required />
@@ -1699,7 +1711,7 @@ export default function ProjectManagePage() {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12 }}>
                 <div>
                   <label className="admin-label">Description</label>
                   <input className="admin-input" value={msDesc} onChange={e => setMsDesc(e.target.value)} placeholder="Optional details…" />
@@ -1738,7 +1750,7 @@ export default function ProjectManagePage() {
                     <div style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
                       {isEditing ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                             <div>
                               <label className="admin-label">Title</label>
                               <input className="admin-input" value={editMsTitle} onChange={e => setEditMsTitle(e.target.value)} />
@@ -1753,7 +1765,7 @@ export default function ProjectManagePage() {
                               </select>
                             </div>
                           </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
                             <div>
                               <label className="admin-label">Description</label>
                               <input className="admin-input" value={editMsDesc} onChange={e => setEditMsDesc(e.target.value)} />
@@ -1897,7 +1909,7 @@ export default function ProjectManagePage() {
 
       {/* ─── MESSAGES ─── */}
       {activeTab === 'messages' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: 600 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: isMobile ? 'calc(100vh - 200px)' : 600 }}>
           <div className="admin-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div className="admin-card-title" style={{ flexShrink: 0 }}>
               Messages with {project.client.name}
