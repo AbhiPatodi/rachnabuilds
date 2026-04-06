@@ -69,9 +69,14 @@ export default async function ProjectPortalPage({ params }: PageProps) {
     );
   }
 
-  const activeProjectCount = await prisma.clientProject.count({
-    where: { clientId: client.id, status: { not: 'draft' } },
-  });
+  const [activeProjectCount, signedContracts] = await Promise.all([
+    prisma.clientProject.count({ where: { clientId: client.id, status: { not: 'draft' } } }),
+    prisma.projectContract.findMany({
+      where: { projectId, status: { in: ['sent', 'signed'] } },
+      orderBy: { phase: 'asc' },
+      select: { id: true, phase: true, phaseLabel: true, content: true, status: true, clientSignature: true, signedAt: true, advancePaid: true, balancePaid: true, advanceReceiptUrl: true, balanceReceiptUrl: true },
+    }),
+  ]);
   const hasMultipleProjects = activeProjectCount > 1;
 
   const visibleTabs = getVisibleTabs(
@@ -86,6 +91,10 @@ export default async function ProjectPortalPage({ params }: PageProps) {
       clientName={client.name}
       hasMultipleProjects={hasMultipleProjects}
       visibleTabs={visibleTabs}
+      initialContracts={signedContracts.map(c => ({
+        ...c,
+        signedAt: c.signedAt?.toISOString() ?? null,
+      }))}
       project={{
         id: project.id,
         name: project.name,

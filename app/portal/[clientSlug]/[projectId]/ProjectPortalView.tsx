@@ -64,6 +64,7 @@ interface ProjectPortalViewProps {
   project: ProjectData;
   hasMultipleProjects?: boolean;
   visibleTabs?: string[]; // if not provided, show all tabs (backward compat)
+  initialContracts?: ContractData[];
 }
 
 // ── Severity finding accordion ─────────────────────────────────────────────
@@ -1304,7 +1305,7 @@ function PortalContractView({ data }: { data: ContractData2 }) {
 
 // ── Main ProjectPortalView ─────────────────────────────────────────────────
 
-export default function ProjectPortalView({ clientSlug, clientName, project, hasMultipleProjects, visibleTabs }: ProjectPortalViewProps) {
+export default function ProjectPortalView({ clientSlug, clientName, project, hasMultipleProjects, visibleTabs, initialContracts }: ProjectPortalViewProps) {
   const router = useRouter();
   const tabs = [...(visibleTabs ? TABS.filter(t => visibleTabs.includes(t.id)) : TABS), { id: 'messages', label: 'Messages' }];
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? 'submissions');
@@ -1319,7 +1320,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
   }, []);
 
   type ContractData = { id: string; phase: number; phaseLabel: string | null; content: string; status: string; clientSignature?: string | null; signedAt?: string | null; advancePaid?: boolean; balancePaid?: boolean; advanceReceiptUrl?: string | null; balanceReceiptUrl?: string | null };
-  const [contracts, setContracts] = useState<ContractData[] | undefined>(undefined); // undefined = not loaded
+  const [contracts, setContracts] = useState<ContractData[] | undefined>(initialContracts ?? undefined);
   const [activeContractPhase, setActiveContractPhase] = useState(1);
   const [contractLoading, setContractLoading] = useState(false);
   const [contractSigning, setContractSigning] = useState(false);
@@ -1711,6 +1712,32 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
           ))}
         </div>
       </nav>
+
+      {/* Contract status banner — always visible */}
+      {contracts && contracts.length > 0 && (() => {
+        const signed = contracts.filter(c => c.status === 'signed');
+        const pending = contracts.filter(c => c.status === 'sent');
+        if (signed.length === 0 && pending.length === 0) return null;
+        return (
+          <div style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', padding: '10px 24px' }}>
+            <div style={{ maxWidth: 880, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              {signed.map(c => (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 100, background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.25)', fontSize: 12, fontWeight: 600, color: '#06D6A0' }}>
+                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Contract Signed{c.phaseLabel ? ` — ${c.phaseLabel}` : c.phase > 1 ? ` (Phase ${c.phase})` : ''}
+                  {c.signedAt && <span style={{ fontWeight: 400, opacity: 0.8 }}>· {new Date(c.signedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                </div>
+              ))}
+              {pending.map(c => (
+                <button key={c.id} onClick={() => handleTabChange('contract')} style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 100, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', fontSize: 12, fontWeight: 600, color: '#F59E0B' }}>
+                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                  Action needed — sign contract{c.phaseLabel ? ` (${c.phaseLabel})` : ''} →
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Content */}
       <main className="portal-content">
