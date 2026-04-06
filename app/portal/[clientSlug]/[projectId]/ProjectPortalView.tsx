@@ -338,19 +338,25 @@ function SectionComments({
   clientName: string;
 }) {
   const [comments, setComments] = useState<CommentData[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   const load = async () => {
-    const res = await fetch(`/api/portal/${clientSlug}/${projectId}/comments?context=${encodeURIComponent(context)}`);
-    if (res.ok) setComments(await res.json());
-    setLoaded(true);
+    setCommentsLoading(true);
+    try {
+      const res = await fetch(`/api/portal/${clientSlug}/${projectId}/comments?context=${encodeURIComponent(context)}`);
+      if (res.ok) setComments(await res.json());
+    } finally {
+      setCommentsLoading(false);
+      setFetched(true);
+    }
   };
 
   const toggle = () => {
-    if (!loaded) load();
+    if (!fetched) load();
     setOpen(v => !v);
   };
 
@@ -380,7 +386,10 @@ function SectionComments({
       </button>
       {open && (
         <div className="section-comments-body">
-          {comments.length === 0 && loaded && (
+          {commentsLoading && (
+            <div style={{fontSize:12,color:'var(--text-muted)',padding:'16px 0'}}>Loading…</div>
+          )}
+          {!commentsLoading && comments.length === 0 && (
             <div className="section-comments-empty">No comments yet. Be the first to add feedback.</div>
           )}
           {comments.map(c => (
@@ -1377,8 +1386,6 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
     if (typeof window === 'undefined') return 'dark';
     const pt = localStorage.getItem('portal_theme');
     if (pt === 'dark' || pt === 'light') return pt;
-    const gt = localStorage.getItem('rb_theme');
-    if (gt === 'dark' || gt === 'light') return gt;
     const h = new Date().getHours();
     return h >= 6 && h < 20 ? 'light' : 'dark';
   });
@@ -1556,6 +1563,11 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
         setContracts(prev => prev ? prev.map(c => c.phase === d.contract.phase ? d.contract : c) : [d.contract]);
         track('contract_signed', { projectId: project.id, phase: activeContractPhase });
       } else {
+        const data = await res.json();
+        if (res.status === 400 && data.error?.includes('not available for signing')) {
+          alert('This contract has already been signed or is not available for signing.');
+          return;
+        }
         setSignError('Failed to sign. Please try again.');
       }
     } catch {
