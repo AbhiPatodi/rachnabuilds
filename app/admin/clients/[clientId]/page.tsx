@@ -85,6 +85,7 @@ export default function ClientDetailPage() {
   const [editBusinessName, setEditBusinessName] = useState('');
   const [infoSaving, setInfoSaving] = useState(false);
   const [copiedPw, setCopiedPw] = useState(false);
+  const [pwVisible, setPwVisible] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [resetPw, setResetPw] = useState('');
   const [resetSaving, setResetSaving] = useState(false);
@@ -422,21 +423,33 @@ export default function ClientDetailPage() {
               <div className="admin-field">
                 <label className="admin-label">Portal Password</label>
                 <div className="admin-link-row">
-                  <span style={{ fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.5px' }}>
-                    {(client.clientProfile?.portalPassword as string) || '—'}
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.5px', flex: 1 }}>
+                    {(client.clientProfile?.portalPassword as string)
+                      ? (pwVisible ? (client.clientProfile!.portalPassword as string) : '••••••••')
+                      : '—'}
                   </span>
                   {!!(client.clientProfile?.portalPassword as string) && (
-                    <button
-                      className="admin-btn admin-btn-ghost admin-btn-icon"
-                      style={{ fontSize: 11, flexShrink: 0 }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(client.clientProfile!.portalPassword as string);
-                        setCopiedPw(true);
-                        setTimeout(() => setCopiedPw(false), 2000);
-                      }}
-                    >
-                      {copiedPw ? '✓ Copied' : 'Copy'}
-                    </button>
+                    <>
+                      <button
+                        className="admin-btn admin-btn-ghost admin-btn-icon"
+                        style={{ fontSize: 11, flexShrink: 0 }}
+                        onClick={() => setPwVisible(v => !v)}
+                        title={pwVisible ? 'Hide' : 'Show'}
+                      >
+                        {pwVisible ? '🙈 Hide' : '👁 Show'}
+                      </button>
+                      <button
+                        className="admin-btn admin-btn-ghost admin-btn-icon"
+                        style={{ fontSize: 11, flexShrink: 0 }}
+                        onClick={() => {
+                          navigator.clipboard.writeText(client.clientProfile!.portalPassword as string);
+                          setCopiedPw(true);
+                          setTimeout(() => setCopiedPw(false), 2000);
+                        }}
+                      >
+                        {copiedPw ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

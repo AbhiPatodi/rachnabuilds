@@ -340,6 +340,7 @@ export default function ProjectManagePage() {
   const [pwCopied, setPwCopied] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [pwSaved, setPwSaved] = useState(false);
+  const [pwVisible, setPwVisible] = useState(false);
 
   const fetchProject = useCallback(async () => {
     try {
@@ -2171,13 +2172,21 @@ export default function ProjectManagePage() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     className="admin-input"
-                    type="text"
+                    type={pwVisible ? 'text' : 'password'}
                     placeholder="e.g. client2026"
                     value={sharePassword}
                     onChange={e => updateSharePassword(e.target.value, project.client.slug)}
                     onBlur={e => saveSharePasswordToDB(e.target.value, project.client.id)}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, fontFamily: pwVisible ? 'JetBrains Mono, monospace' : 'inherit' }}
                   />
+                  <button
+                    className="admin-btn admin-btn-ghost admin-btn-icon"
+                    onClick={() => setPwVisible(v => !v)}
+                    style={{ fontSize: 14, flexShrink: 0 }}
+                    title={pwVisible ? 'Hide password' : 'Show password'}
+                  >
+                    {pwVisible ? '🙈' : '👁'}
+                  </button>
                   <button
                     className="admin-btn admin-btn-ghost admin-btn-icon"
                     onClick={copyPassword}
@@ -2191,11 +2200,6 @@ export default function ProjectManagePage() {
                 <div style={{ fontSize: 11, color: pwSaved ? '#06D6A0' : 'var(--text-muted)', marginTop: 5, minHeight: 16 }}>
                   {pwSaving ? 'Saving…' : pwSaved ? '✓ Password saved — portal login updated' : sharePassword.length >= 6 ? 'Tab away to save to DB' : sharePassword.length > 0 ? 'Min 6 characters' : ''}
                 </div>
-                {!sharePassword && (
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontStyle: 'italic', lineHeight: 1.5 }}>
-                    🔒 Passwords are stored encrypted (not in plain text). Type the password you set when creating this client — it will be cached in this browser for next time.
-                  </div>
-                )}
               </div>
 
               <div>

@@ -57,6 +57,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (newPassword?.trim() && newPassword.trim().length >= 6) {
       const hash = await bcryptjs.hash(newPassword.trim(), 10);
       updateData.passwordHash = hash;
+      // Store plain text in clientProfile so admin can retrieve to share with client
+      const existing = await prisma.client.findUnique({ where: { id: clientId }, select: { clientProfile: true } });
+      const existingProfile = (existing?.clientProfile as Record<string, unknown>) ?? {};
+      updateData.clientProfile = { ...existingProfile, portalPassword: newPassword.trim() };
     }
 
     const client = await prisma.client.update({
