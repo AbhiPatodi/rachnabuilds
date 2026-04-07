@@ -1351,6 +1351,10 @@
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   margin-top: 16px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .prop-price-row {
   display: flex;
@@ -1617,6 +1621,7 @@
   .prop-cards { grid-template-columns: 1fr; }
   .prop-price-row { flex-direction: column; align-items: flex-start; gap: 10px; }
   .prop-price-divider { display: none; }
+  .prop-price-block { min-height: auto; }
   .prop-payment-grid { flex-direction: column; gap: 12px; }
   .prop-payment-divider { display: none; }
   .prop-title { font-size: 22px; }

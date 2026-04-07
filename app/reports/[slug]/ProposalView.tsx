@@ -453,16 +453,13 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
               )}
             </div>
             <div className="prop-group">
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #fff)', padding: '10px 0 6px' }}>Everything in Option A ({p1Del.length})</div>
-              <ItemList items={p1Del} expanded={p1OpenInB} />
-              {p1Del.length > PREVIEW_COUNT && (
-                <button className="prop-group-toggle" onClick={() => setP1OpenInB(p => !p)} aria-expanded={p1OpenInB} style={{ marginTop: 4 }}>
-                  <span>{p1OpenInB ? `Show less` : `Show all ${p1Del.length} deliverables`}</span>
-                  <svg className={`prop-chevron ${p1OpenInB ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-              )}
+              <button className="prop-group-toggle" onClick={() => setP1OpenInB(p => !p)} aria-expanded={p1OpenInB} style={{ marginTop: 4 }}>
+                <span>{p1OpenInB ? `Hide Option A deliverables` : `+ Everything in Option A (${p1Del.length})`}</span>
+                <svg className={`prop-chevron ${p1OpenInB ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {p1OpenInB && <ItemList items={p1Del} expanded={true} />}
             </div>
           </div>
           <div className="prop-card-select">
