@@ -32,6 +32,127 @@ const SECTION_TYPES = [
   { value: 'project_status', label: 'Project Status' },
 ];
 
+const EMOJI_PREFIXES = [
+  { value: '✅', label: '✅ Done / Good' },
+  { value: '🟢', label: '🟢 Good' },
+  { value: '🟡', label: '🟡 Medium' },
+  { value: '🟠', label: '🟠 High' },
+  { value: '🔴', label: '🔴 Critical' },
+  { value: '💡', label: '💡 Note / Tip' },
+  { value: '⚠️', label: '⚠️ Warning' },
+  { value: '⬜', label: '⬜ Pending' },
+  { value: '',   label: '— No prefix' },
+];
+
+// Parse a single bullet item like "✅ Hello world" → { emoji: '✅', text: 'Hello world' }
+function parseItem(raw: string): { emoji: string; text: string } {
+  const m = raw.match(/^([✅🟢🟡🟠🔴💡⚠️⬜])\s*(.*)$/u);
+  if (m) return { emoji: m[1], text: m[2] };
+  return { emoji: '', text: raw };
+}
+
+// Build display string from emoji + text
+function buildItem(emoji: string, text: string): string {
+  return emoji ? `${emoji} ${text}` : text;
+}
+
+// ─── BulletBuilder: friendly editor for {items: string[]} sections ─────────
+interface BulletBuilderProps {
+  items: string[];
+  onChange: (items: string[]) => void;
+}
+function BulletBuilder({ items, onChange }: BulletBuilderProps) {
+  const updateItem = (idx: number, emoji: string, text: string) => {
+    const next = [...items];
+    next[idx] = buildItem(emoji, text);
+    onChange(next);
+  };
+  const addItem = () => onChange([...items, '✅ ']);
+  const removeItem = (idx: number) => onChange(items.filter((_, i) => i !== idx));
+  const moveItem = (idx: number, dir: -1 | 1) => {
+    const next = [...items];
+    const j = idx + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[idx], next[j]] = [next[j], next[idx]];
+    onChange(next);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.length === 0 && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0' }}>
+          No bullets yet. Click &quot;+ Add bullet&quot; below to start.
+        </div>
+      )}
+      {items.map((raw, idx) => {
+        const parsed = parseItem(raw);
+        return (
+          <div key={idx} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <select
+              className="admin-select"
+              value={parsed.emoji}
+              onChange={e => updateItem(idx, e.target.value, parsed.text)}
+              style={{ width: 70, fontSize: 16, padding: '6px 4px', flexShrink: 0 }}
+              title="Priority/status emoji"
+            >
+              {EMOJI_PREFIXES.map(p => (
+                <option key={p.value || 'none'} value={p.value}>{p.value || '—'}</option>
+              ))}
+            </select>
+            <textarea
+              className="admin-input"
+              value={parsed.text}
+              onChange={e => updateItem(idx, parsed.emoji, e.target.value)}
+              rows={2}
+              style={{ flex: 1, fontSize: 13, resize: 'vertical', minHeight: 38, fontFamily: 'inherit' }}
+              placeholder="Bullet text…"
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost admin-btn-icon"
+                onClick={() => moveItem(idx, -1)}
+                disabled={idx === 0}
+                style={{ fontSize: 11, padding: '2px 6px', minWidth: 'auto' }}
+                title="Move up"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-ghost admin-btn-icon"
+                onClick={() => moveItem(idx, 1)}
+                disabled={idx === items.length - 1}
+                style={{ fontSize: 11, padding: '2px 6px', minWidth: 'auto' }}
+                title="Move down"
+              >
+                ↓
+              </button>
+            </div>
+            <button
+              type="button"
+              className="admin-btn admin-btn-danger admin-btn-icon"
+              onClick={() => removeItem(idx)}
+              style={{ fontSize: 11, padding: '4px 8px', flexShrink: 0 }}
+              title="Remove bullet"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+      <button
+        type="button"
+        className="admin-btn admin-btn-ghost"
+        onClick={addItem}
+        style={{ fontSize: 12, alignSelf: 'flex-start', marginTop: 4 }}
+      >
+        + Add bullet
+      </button>
+    </div>
+  );
+}
+
 const DOC_TYPES = [
   { value: 'rfp', label: 'RFP' },
   { value: 'mockup', label: 'Mockup' },
@@ -233,18 +354,22 @@ export default function ProjectManagePage() {
   const [showSectionForm, setShowSectionForm] = useState(false);
   const [sectionType, setSectionType] = useState('executive_summary');
   const [sectionTitle, setSectionTitle] = useState('');
+  const [sectionItems, setSectionItems] = useState<string[]>([]);
   const [sectionContent, setSectionContent] = useState('{}');
   const [sectionOrder, setSectionOrder] = useState(0);
   const [sectionLoading, setSectionLoading] = useState(false);
   const [sectionError, setSectionError] = useState('');
+  const [sectionMode, setSectionMode] = useState<'builder' | 'json'>('builder');
   // Inline edit
   const [editSectionId, setEditSectionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editType, setEditType] = useState('executive_summary');
   const [editOrder, setEditOrder] = useState(0);
+  const [editItems, setEditItems] = useState<string[]>([]);
   const [editContent, setEditContent] = useState('{}');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [editMode, setEditMode] = useState<'builder' | 'json'>('builder');
 
   // Documents — add form
   const [showDocForm, setShowDocForm] = useState(false);
@@ -606,10 +731,14 @@ export default function ProjectManagePage() {
     setSectionLoading(true);
     try {
       let parsedContent: unknown;
-      try { parsedContent = JSON.parse(sectionContent); } catch {
-        setSectionError('Content must be valid JSON');
-        setSectionLoading(false);
-        return;
+      if (sectionMode === 'builder') {
+        parsedContent = { items: sectionItems.filter(i => i.trim() !== '' && i.trim() !== '✅' && i.trim() !== '🟡') };
+      } else {
+        try { parsedContent = JSON.parse(sectionContent); } catch {
+          setSectionError('Content must be valid JSON');
+          setSectionLoading(false);
+          return;
+        }
       }
       const res = await fetch(`/api/admin/projects/${projectId}/sections`, {
         method: 'POST',
@@ -619,8 +748,10 @@ export default function ProjectManagePage() {
       if (!res.ok) { setSectionError('Failed to add section'); return; }
       setSectionTitle('');
       setSectionContent('{}');
+      setSectionItems([]);
       setSectionOrder(0);
       setSectionType('executive_summary');
+      setSectionMode('builder');
       setShowSectionForm(false);
       fetchProject();
     } catch {
@@ -642,6 +773,15 @@ export default function ProjectManagePage() {
     setEditType(s.sectionType);
     setEditOrder(s.displayOrder);
     setEditContent(JSON.stringify(s.content, null, 2));
+    // Try to detect bullet items shape
+    const c = s.content as Record<string, unknown> | null;
+    if (c && Array.isArray(c.items) && c.items.every(i => typeof i === 'string')) {
+      setEditItems(c.items as string[]);
+      setEditMode('builder');
+    } else {
+      setEditItems([]);
+      setEditMode('json');
+    }
     setEditError('');
   };
 
@@ -655,8 +795,12 @@ export default function ProjectManagePage() {
     setEditSaving(true);
     try {
       let parsed: unknown;
-      try { parsed = JSON.parse(editContent); }
-      catch { setEditError('Content must be valid JSON'); setEditSaving(false); return; }
+      if (editMode === 'builder') {
+        parsed = { items: editItems.filter(i => i.trim() !== '' && i.trim() !== '✅' && i.trim() !== '🟡') };
+      } else {
+        try { parsed = JSON.parse(editContent); }
+        catch { setEditError('Content must be valid JSON'); setEditSaving(false); return; }
+      }
       const res = await fetch(`/api/admin/projects/${projectId}/sections/${sectionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -1207,14 +1351,36 @@ export default function ProjectManagePage() {
                     />
                   </div>
                   <div className="admin-field">
-                    <label className="admin-label">Content (JSON)</label>
-                    <textarea
-                      className="admin-textarea"
-                      value={sectionContent}
-                      onChange={e => setSectionContent(e.target.value)}
-                      rows={6}
-                      style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <label className="admin-label" style={{ margin: 0 }}>Content</label>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => setSectionMode('builder')}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: sectionMode === 'builder' ? 'var(--accent)' : 'transparent', color: sectionMode === 'builder' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          📝 Bullet Builder
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSectionMode('json')}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: sectionMode === 'json' ? 'var(--accent)' : 'transparent', color: sectionMode === 'json' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          { } Advanced JSON
+                        </button>
+                      </div>
+                    </div>
+                    {sectionMode === 'builder' ? (
+                      <BulletBuilder items={sectionItems} onChange={setSectionItems} />
+                    ) : (
+                      <textarea
+                        className="admin-textarea"
+                        value={sectionContent}
+                        onChange={e => setSectionContent(e.target.value)}
+                        rows={8}
+                        style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
+                      />
+                    )}
                   </div>
                   <div>
                     <button type="submit" className="admin-btn admin-btn-primary" disabled={sectionLoading} style={{ fontSize: 13 }}>
@@ -1296,17 +1462,41 @@ export default function ProjectManagePage() {
                         />
                       </div>
                       <div className="admin-field" style={{ margin: 0 }}>
-                        <label className="admin-label">Content (JSON)</label>
-                        <textarea
-                          className="admin-textarea"
-                          value={editContent}
-                          onChange={e => setEditContent(e.target.value)}
-                          rows={14}
-                          style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
-                        />
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                          Tip: For bullet sections, edit the items inside the <code>items</code> array. Keep emoji prefixes (✅/🟡/🔴/🟠/💡).
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <label className="admin-label" style={{ margin: 0 }}>Content</label>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditMode('builder')}
+                              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: editMode === 'builder' ? 'var(--accent)' : 'transparent', color: editMode === 'builder' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              📝 Bullet Builder
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditMode('json')}
+                              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: editMode === 'json' ? 'var(--accent)' : 'transparent', color: editMode === 'json' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              { } Advanced JSON
+                            </button>
+                          </div>
                         </div>
+                        {editMode === 'builder' ? (
+                          <BulletBuilder items={editItems} onChange={setEditItems} />
+                        ) : (
+                          <>
+                            <textarea
+                              className="admin-textarea"
+                              value={editContent}
+                              onChange={e => setEditContent(e.target.value)}
+                              rows={14}
+                              style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
+                            />
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                              Tip: For non-bullet sections (text, rows, metrics, etc.), use this JSON view.
+                            </div>
+                          </>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button
