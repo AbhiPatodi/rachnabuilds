@@ -341,7 +341,7 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
         {visible.map((item, i) => (
           <li key={i} className="prop-item">
             <span className={`prop-item-dot${cls ? ' prop-item-dot--teal' : ''}`} />
-            {item.replace(/^[✅🟡]\s*/, '')}
+            {item.replace(/^[✅🟡]\s*/u, '')}
           </li>
         ))}
       </ul>
