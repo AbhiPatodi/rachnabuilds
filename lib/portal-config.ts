@@ -26,8 +26,8 @@ export interface PortalTab {
 
 export const ALL_TABS: PortalTab[] = [
   { id: 'submissions', label: 'Your Submissions' },
-  { id: 'audit',       label: 'Audit Report' },
-  { id: 'competitors', label: 'Competitor Analysis' },
+  { id: 'audit',       label: 'Insights' },
+  { id: 'competitors', label: 'References' },
   { id: 'proposal',   label: 'Proposal' },
   { id: 'status',     label: 'Project Status' },
   { id: 'contract',   label: 'Contract' },

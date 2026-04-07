@@ -277,7 +277,7 @@ const SECTION_LABELS: Record<string, string> = {
   performance_audit: 'Performance Audit',
   seo_audit: 'SEO Audit',
   cro_audit: 'CRO Audit',
-  competitor_analysis: 'Competitor Analysis',
+  competitor_analysis: 'Reference',
   pdp_analysis: 'PDP Analysis',
   mockup_review: 'Mockup Review',
   action_plan: 'Action Plan',
@@ -287,8 +287,8 @@ const SECTION_LABELS: Record<string, string> = {
 
 const TABS = [
   { id: 'submissions', label: 'Your Submissions' },
-  { id: 'audit',       label: 'Audit Report' },
-  { id: 'competitors', label: 'Competitor Analysis' },
+  { id: 'audit',       label: 'Insights' },
+  { id: 'competitors', label: 'References' },
   { id: 'proposal',    label: 'Proposal' },
   { id: 'status',      label: 'Project Status' },
   { id: 'contract',    label: 'Contract' },
@@ -1783,7 +1783,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
         {activeTab === 'audit' && (
           <>
-            <h1 className="portal-tab-heading">Audit Report</h1>
+            <h1 className="portal-tab-heading">Insights</h1>
             <p className="portal-tab-sub">Detailed findings from our performance, SEO, and CRO analysis.</p>
             {auditSections.length > 0
               ? <SectionsPanel sections={project.sections} types={AUDIT_TYPES} clientSlug={clientSlug} projectId={project.id} clientName={clientName} />
@@ -1799,7 +1799,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
         {activeTab === 'competitors' && (
           <>
-            <h1 className="portal-tab-heading">Competitor Analysis</h1>
+            <h1 className="portal-tab-heading">References</h1>
             <p className="portal-tab-sub">How your store stacks up against the competition.</p>
             {competitorSections.length > 0
               ? <SectionsPanel sections={project.sections} types={COMPETITOR_TYPES} clientSlug={clientSlug} projectId={project.id} clientName={clientName} />
