@@ -2191,6 +2191,11 @@ export default function ProjectManagePage() {
                 <div style={{ fontSize: 11, color: pwSaved ? '#06D6A0' : 'var(--text-muted)', marginTop: 5, minHeight: 16 }}>
                   {pwSaving ? 'Saving…' : pwSaved ? '✓ Password saved — portal login updated' : sharePassword.length >= 6 ? 'Tab away to save to DB' : sharePassword.length > 0 ? 'Min 6 characters' : ''}
                 </div>
+                {!sharePassword && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontStyle: 'italic', lineHeight: 1.5 }}>
+                    🔒 Passwords are stored encrypted (not in plain text). Type the password you set when creating this client — it will be cached in this browser for next time.
+                  </div>
+                )}
               </div>
 
               <div>
