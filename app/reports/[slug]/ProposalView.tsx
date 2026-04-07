@@ -322,10 +322,15 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
   const p2Price    = parseInfo(p2Info, 'Investment');
   const p2Payment  = parseInfo(p2Info, 'Payment');
   const p2Timeline = parseInfo(p2Info, 'Timeline');
+  // Fallback: if no explicit Investment line for Phase 2, look for any pricing-related 💡 note
+  const p2PriceNote = !p2Price
+    ? p2Info.find(i => /pricing|price|cost|quote/i.test(i))?.replace(/^💡\s*/, '') ?? ''
+    : '';
 
   const [selected, setSelected] = useState<'A' | 'B'>('A');
-  const [p1Open, setP1Open]     = useState(false);
-  const [p2Open, setP2Open]     = useState(false);
+  const [p1Open, setP1Open]         = useState(false);
+  const [p2Open, setP2Open]         = useState(false);
+  const [p1OpenInB, setP1OpenInB]   = useState(false);
 
   const ItemList = ({ items, cls }: { items: string[]; cls?: string }) => (
     <ul className={`prop-items${cls ? ' ' + cls : ''}`} style={{ display: 'block', marginTop: '8px' }}>
@@ -348,9 +353,9 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
       </div>
 
       <div className="prop-cards">
-        {/* Option A — Phase 1 only */}
+        {/* Option A — Phase 1 only — RECOMMENDED */}
         <div
-          className={`prop-card ${selected === 'A' ? 'prop-card--selected' : ''}`}
+          className={`prop-card prop-card--rec ${selected === 'A' ? 'prop-card--selected' : ''}`}
           onClick={() => setSelected('A')}
           role="button" tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && setSelected('A')}
@@ -359,6 +364,7 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
             <div className="prop-badges">
               <span className="prop-badge-letter">A</span>
               <span className="prop-badge-type">PHASE 1 — CORE BUILD</span>
+              <span className="prop-badge-rec">★ RECOMMENDED</span>
               {selected === 'A' && <span className="prop-badge-selected">✓ SELECTED</span>}
             </div>
             <p className="prop-tagline">Everything you need to launch — a complete, polished Shopify store</p>
@@ -393,7 +399,7 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
 
         {/* Option B — Phase 1 + Phase 2 */}
         <div
-          className={`prop-card prop-card--rec ${selected === 'B' ? 'prop-card--selected' : ''}`}
+          className={`prop-card ${selected === 'B' ? 'prop-card--selected' : ''}`}
           onClick={() => setSelected('B')}
           role="button" tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && setSelected('B')}
@@ -402,7 +408,6 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
             <div className="prop-badges">
               <span className="prop-badge-letter">B</span>
               <span className="prop-badge-type">PHASE 1 + PHASE 2</span>
-              <span className="prop-badge-rec">★ RECOMMENDED</span>
               {selected === 'B' && <span className="prop-badge-selected">✓ SELECTED</span>}
             </div>
             <p className="prop-tagline">Full build + premium features — everything from Phase 1, plus the upgrades that set you apart</p>
@@ -410,8 +415,17 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
           <div className="prop-price-block">
             <div className="prop-price-row">
               <div>
-                <div className="prop-price-amount">{p2Price}</div>
-                <div className="prop-price-label">One-time fixed fee</div>
+                {p2Price ? (
+                  <>
+                    <div className="prop-price-amount">{p2Price}</div>
+                    <div className="prop-price-label">One-time fixed fee</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="prop-price-amount" style={{ fontSize: '20px', lineHeight: 1.3 }}>Custom Quote</div>
+                    <div className="prop-price-label">{p2PriceNote || 'Pricing tailored to selected upgrades'}</div>
+                  </>
+                )}
               </div>
             </div>
             {p2Timeline && <div className="prop-timeline-tag">⏱ {p2Timeline}</div>}
@@ -419,13 +433,13 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
           <div className="prop-deliverables" onClick={e => e.stopPropagation()}>
             <div className="prop-section-label">What&apos;s included</div>
             <div className="prop-group">
-              <button className="prop-group-toggle" onClick={() => setP1Open(p => !p)} aria-expanded={p1Open}>
+              <button className="prop-group-toggle" onClick={() => setP1OpenInB(p => !p)} aria-expanded={p1OpenInB}>
                 <span>Everything in Option A</span>
-                <svg className={`prop-chevron ${p1Open ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`prop-chevron ${p1OpenInB ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
-              {p1Open && <ItemList items={p1Del} />}
+              {p1OpenInB && <ItemList items={p1Del} />}
             </div>
             <div className="prop-group">
               <button className="prop-group-toggle" onClick={() => setP2Open(p => !p)} aria-expanded={p2Open}>
@@ -451,7 +465,7 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
         <div>
           <strong>Option {selected} selected</strong> — {selected === 'A'
             ? `Phase 1 Core Build · ${p1Price} one-time`
-            : `Phase 1 + Phase 2 · ${p2Price} one-time`}
+            : p2Price ? `Phase 1 + Phase 2 · ${p2Price} one-time` : 'Phase 1 + Phase 2 · Custom quote'}
         </div>
         <span className="prop-selection-hint">Reply to this portal or reach out to confirm</span>
       </div>
