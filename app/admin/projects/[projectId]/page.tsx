@@ -237,6 +237,14 @@ export default function ProjectManagePage() {
   const [sectionOrder, setSectionOrder] = useState(0);
   const [sectionLoading, setSectionLoading] = useState(false);
   const [sectionError, setSectionError] = useState('');
+  // Inline edit
+  const [editSectionId, setEditSectionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editType, setEditType] = useState('executive_summary');
+  const [editOrder, setEditOrder] = useState(0);
+  const [editContent, setEditContent] = useState('{}');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   // Documents — add form
   const [showDocForm, setShowDocForm] = useState(false);
@@ -479,7 +487,8 @@ export default function ProjectManagePage() {
   const shareMessage = (p: Project) => {
     const link = `https://rachnabuilds.com/portal/${p.client.slug}`;
     const pw = sharePassword || '[password]';
-    return `Hi ${p.client.name}! 👋\n\nYour portal is ready for review.\n\n🔗 Portal: ${link}\n🔑 Password: ${pw}\n\nLet me know if you have any questions!\n\n— Rachna\nrachnabuilds.com`;
+    const firstName = p.client.name.split(' ')[0];
+    return `Hi ${firstName}! 👋\n\nI've put together everything for ${p.name} in one place — the proposal, project scope, timeline, and what we'd need from you to get started.\n\nYou can review it all here:\n\n🔗 ${link}\n🔑 Access: ${pw}\n\nTake your time to look through it. Happy to answer any questions or jump on a quick call if helpful 🤍\n\n— Rachna\nrachnabuilds.com`;
   };
 
   const copyShareMessage = async () => {
@@ -625,6 +634,43 @@ export default function ProjectManagePage() {
     if (!confirm('Delete this section?')) return;
     await fetch(`/api/admin/projects/${projectId}/sections/${sectionId}`, { method: 'DELETE' });
     setProject(p => p ? { ...p, sections: p.sections.filter(s => s.id !== sectionId) } : p);
+  };
+
+  const startEditSection = (s: Section) => {
+    setEditSectionId(s.id);
+    setEditTitle(s.title);
+    setEditType(s.sectionType);
+    setEditOrder(s.displayOrder);
+    setEditContent(JSON.stringify(s.content, null, 2));
+    setEditError('');
+  };
+
+  const cancelEditSection = () => {
+    setEditSectionId(null);
+    setEditError('');
+  };
+
+  const handleSaveSection = async (sectionId: string) => {
+    setEditError('');
+    setEditSaving(true);
+    try {
+      let parsed: unknown;
+      try { parsed = JSON.parse(editContent); }
+      catch { setEditError('Content must be valid JSON'); setEditSaving(false); return; }
+      const res = await fetch(`/api/admin/projects/${projectId}/sections/${sectionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editTitle, sectionType: editType, displayOrder: editOrder, content: parsed }),
+      });
+      if (!res.ok) { setEditError('Failed to save'); return; }
+      const updated = await res.json();
+      setProject(p => p ? { ...p, sections: p.sections.map(s => s.id === sectionId ? updated : s) } : p);
+      setEditSectionId(null);
+    } catch {
+      setEditError('Something went wrong');
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   // ─── Documents ────────────────────────────────────────────────────────────
@@ -1183,22 +1229,104 @@ export default function ProjectManagePage() {
               <div className="admin-empty">No sections yet. Add your first section above.</div>
             ) : (
               [...project.sections].sort((a, b) => a.displayOrder - b.displayOrder).map(section => (
-                <div key={section.id} className="admin-section-item">
-                  <div className="admin-section-item-info">
-                    <div className="admin-section-item-title">{section.title}</div>
-                    <div className="admin-section-item-meta">
-                      {SECTION_TYPES.find(t => t.value === section.sectionType)?.label ?? section.sectionType} · Order: {section.displayOrder}
+                <div key={section.id} className="admin-section-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                    <div className="admin-section-item-info" style={{ flex: 1 }}>
+                      <div className="admin-section-item-title">{section.title}</div>
+                      <div className="admin-section-item-meta">
+                        {SECTION_TYPES.find(t => t.value === section.sectionType)?.label ?? section.sectionType} · Order: {section.displayOrder}
+                      </div>
+                    </div>
+                    <div className="admin-section-item-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {editSectionId === section.id ? (
+                        <button
+                          className="admin-btn admin-btn-ghost admin-btn-icon"
+                          onClick={cancelEditSection}
+                          style={{ fontSize: 12 }}
+                        >
+                          ✕ Cancel
+                        </button>
+                      ) : (
+                        <button
+                          className="admin-btn admin-btn-ghost admin-btn-icon"
+                          onClick={() => startEditSection(section)}
+                          style={{ fontSize: 12 }}
+                        >
+                          ✏️ Edit
+                        </button>
+                      )}
+                      <button
+                        className="admin-btn admin-btn-danger admin-btn-icon"
+                        onClick={() => handleDeleteSection(section.id)}
+                        style={{ fontSize: 12 }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                  <div className="admin-section-item-actions">
-                    <button
-                      className="admin-btn admin-btn-danger admin-btn-icon"
-                      onClick={() => handleDeleteSection(section.id)}
-                      style={{ fontSize: 12 }}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {editSectionId === section.id && (
+                    <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {editError && <div className="admin-alert admin-alert-error">{editError}</div>}
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+                        <div className="admin-field" style={{ margin: 0 }}>
+                          <label className="admin-label">Section Type</label>
+                          <select className="admin-select" value={editType} onChange={e => setEditType(e.target.value)}>
+                            {SECTION_TYPES.map(t => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="admin-field" style={{ margin: 0 }}>
+                          <label className="admin-label">Display Order</label>
+                          <input
+                            type="number"
+                            className="admin-input"
+                            value={editOrder}
+                            onChange={e => setEditOrder(Number(e.target.value))}
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                      <div className="admin-field" style={{ margin: 0 }}>
+                        <label className="admin-label">Title</label>
+                        <input
+                          className="admin-input"
+                          value={editTitle}
+                          onChange={e => setEditTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="admin-field" style={{ margin: 0 }}>
+                        <label className="admin-label">Content (JSON)</label>
+                        <textarea
+                          className="admin-textarea"
+                          value={editContent}
+                          onChange={e => setEditContent(e.target.value)}
+                          rows={14}
+                          style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
+                        />
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                          Tip: For bullet sections, edit the items inside the <code>items</code> array. Keep emoji prefixes (✅/🟡/🔴/🟠/💡).
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => handleSaveSection(section.id)}
+                          disabled={editSaving}
+                          className="admin-btn admin-btn-primary"
+                          style={{ fontSize: 13 }}
+                        >
+                          {editSaving ? 'Saving…' : '💾 Save Changes'}
+                        </button>
+                        <button
+                          onClick={cancelEditSection}
+                          className="admin-btn admin-btn-ghost"
+                          style={{ fontSize: 13 }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
