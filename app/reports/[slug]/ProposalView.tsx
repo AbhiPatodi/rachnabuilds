@@ -327,21 +327,26 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
     ? p2Info.find(i => /pricing|price|cost|quote/i.test(i))?.replace(/^💡\s*/, '') ?? ''
     : '';
 
-  const [selected, setSelected] = useState<'A' | 'B'>('A');
+  const [selected, setSelected]     = useState<'A' | 'B'>('A');
+  const PREVIEW_COUNT = 5;
+  // Default to half-open (showing preview) — true = show all
   const [p1Open, setP1Open]         = useState(false);
   const [p2Open, setP2Open]         = useState(false);
   const [p1OpenInB, setP1OpenInB]   = useState(false);
 
-  const ItemList = ({ items, cls }: { items: string[]; cls?: string }) => (
-    <ul className={`prop-items${cls ? ' ' + cls : ''}`} style={{ display: 'block', marginTop: '8px' }}>
-      {items.map((item, i) => (
-        <li key={i} className="prop-item">
-          <span className={`prop-item-dot${cls ? ' prop-item-dot--teal' : ''}`} />
-          {item.replace(/^[✅🟡]\s*/, '')}
-        </li>
-      ))}
-    </ul>
-  );
+  const ItemList = ({ items, cls, expanded }: { items: string[]; cls?: string; expanded: boolean }) => {
+    const visible = expanded ? items : items.slice(0, PREVIEW_COUNT);
+    return (
+      <ul className={`prop-items${cls ? ' ' + cls : ''}`} style={{ display: 'block', marginTop: '8px' }}>
+        {visible.map((item, i) => (
+          <li key={i} className="prop-item">
+            <span className={`prop-item-dot${cls ? ' prop-item-dot--teal' : ''}`} />
+            {item.replace(/^[✅🟡]\s*/, '')}
+          </li>
+        ))}
+      </ul>
+    );
+  };
 
   return (
     <div className="prop-root">
@@ -381,13 +386,16 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
           <div className="prop-deliverables" onClick={e => e.stopPropagation()}>
             <div className="prop-section-label">What&apos;s included</div>
             <div className="prop-group">
-              <button className="prop-group-toggle" onClick={() => setP1Open(p => !p)} aria-expanded={p1Open}>
-                <span>Phase 1 deliverables</span>
-                <svg className={`prop-chevron ${p1Open ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {p1Open && <ItemList items={p1Del} />}
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #fff)', padding: '10px 0 6px' }}>Phase 1 deliverables ({p1Del.length})</div>
+              <ItemList items={p1Del} expanded={p1Open} />
+              {p1Del.length > PREVIEW_COUNT && (
+                <button className="prop-group-toggle" onClick={() => setP1Open(p => !p)} aria-expanded={p1Open} style={{ marginTop: 4 }}>
+                  <span>{p1Open ? `Show less` : `Show all ${p1Del.length} deliverables`}</span>
+                  <svg className={`prop-chevron ${p1Open ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
           <div className="prop-card-select">
@@ -433,22 +441,28 @@ function DataProposalView({ sections }: { sections: ReportSection[] }) {
           <div className="prop-deliverables" onClick={e => e.stopPropagation()}>
             <div className="prop-section-label">What&apos;s included</div>
             <div className="prop-group">
-              <button className="prop-group-toggle" onClick={() => setP1OpenInB(p => !p)} aria-expanded={p1OpenInB}>
-                <span>Everything in Option A</span>
-                <svg className={`prop-chevron ${p1OpenInB ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {p1OpenInB && <ItemList items={p1Del} />}
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #fff)', padding: '10px 0 6px' }}>Phase 2 upgrades ({p2Del.length})</div>
+              <ItemList items={p2Del} cls="prop-items--retainer" expanded={p2Open} />
+              {p2Del.length > PREVIEW_COUNT && (
+                <button className="prop-group-toggle" onClick={() => setP2Open(p => !p)} aria-expanded={p2Open} style={{ marginTop: 4 }}>
+                  <span>{p2Open ? `Show less` : `Show all ${p2Del.length} upgrades`}</span>
+                  <svg className={`prop-chevron ${p2Open ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
             </div>
             <div className="prop-group">
-              <button className="prop-group-toggle" onClick={() => setP2Open(p => !p)} aria-expanded={p2Open}>
-                <span>Phase 2 upgrades</span>
-                <svg className={`prop-chevron ${p2Open ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {p2Open && <ItemList items={p2Del} cls="prop-items--retainer" />}
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #fff)', padding: '10px 0 6px' }}>Everything in Option A ({p1Del.length})</div>
+              <ItemList items={p1Del} expanded={p1OpenInB} />
+              {p1Del.length > PREVIEW_COUNT && (
+                <button className="prop-group-toggle" onClick={() => setP1OpenInB(p => !p)} aria-expanded={p1OpenInB} style={{ marginTop: 4 }}>
+                  <span>{p1OpenInB ? `Show less` : `Show all ${p1Del.length} deliverables`}</span>
+                  <svg className={`prop-chevron ${p1OpenInB ? 'prop-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
           <div className="prop-card-select">
