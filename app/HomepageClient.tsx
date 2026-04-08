@@ -809,7 +809,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
             <div className="audit-left">
               <div className="audit-label">Free Offer</div>
               <h3 className="audit-title">Get a free store audit.</h3>
-              <p className="audit-desc">I&apos;ll review your Shopify store and send you a personalised report covering speed, UX, mobile experience, and conversion rate — completely free, no strings attached.</p>
+              <p className="audit-desc">I&apos;ll review your Shopify or WordPress store and send you a personalised report covering speed, UX, mobile experience, and conversion rate — completely free, no strings attached.</p>
               <div className="audit-points">
                 <span>PageSpeed analysis</span>
                 <span>UX &amp; mobile review</span>
@@ -873,7 +873,10 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
         <div className="sec-inner">
           <div className="about-grid">
             <div className="about-photo rv">
-              <div className="about-img"><span className="about-initials">RJ</span></div>
+              <div className="about-img">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/rachna-about.jpg" alt="Rachna Jain — Shopify, WordPress & E-Commerce Developer" loading="lazy" />
+              </div>
               <div className="about-float about-float-1">4+ Years Experience</div>
               <div className="about-float about-float-2">✦ Available Now</div>
             </div>
@@ -881,7 +884,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
               <div className="sec-label rv">About</div>
               <h2 className="sec-title rv">Hi, I&apos;m Rachna.</h2>
               <div className="about-body rv">
-                <p>I&apos;m a Shopify and e-commerce developer with 4+ years of experience helping D2C brands, product businesses, and startups launch and grow their online stores.</p>
+                <p>I&apos;m a Shopify, WordPress & e-commerce developer with 4+ years of experience helping D2C brands, product businesses, and startups launch and grow their online stores.</p>
                 <p>I work with clients across India, the US, UK, Australia, and Canada — delivering clean, fast, conversion-focused builds using AI-enhanced workflows that get you to market faster without cutting corners.</p>
                 <p>For me, great e-commerce isn&apos;t just clean code. It&apos;s understanding what your customers need and building experiences that earn their trust from the first click.</p>
                 <p>When I&apos;m not building stores, I&apos;m exploring new tools and workflows to deliver even better results — faster.</p>

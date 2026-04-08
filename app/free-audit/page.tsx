@@ -4,10 +4,10 @@ import SiteNav from '@/app/components/SiteNav';
 import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
-  title: 'Free Shopify Store Audit | Rachna Builds',
-  description: 'Get a free 15-minute personal Loom video audit of your Shopify store. Specific, actionable recommendations — no pitch, no obligation.',
+  title: 'Free Store Audit (Shopify & WordPress) | Rachna Builds',
+  description: 'Get a free 15-minute personal Loom video audit of your Shopify or WordPress store. Specific, actionable recommendations — no pitch, no obligation.',
   openGraph: {
-    title: 'Free Shopify Store Audit',
+    title: 'Free Store Audit — Shopify & WordPress',
     description: 'Personal 15-minute Loom review of your store with specific fixes. Free, no obligation.',
     url: 'https://rachnabuilds.com/free-audit',
   },

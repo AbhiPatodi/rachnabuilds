@@ -14,6 +14,23 @@ interface PricingTier {
   ctaText: string;
 }
 
+interface ServiceItem {
+  iconKey: string;
+  title: string;
+  description: string;
+  tags: string[];
+  featured: boolean;
+}
+
+const SERVICE_ICON_KEYS = [
+  { value: 'shopify',   label: '🛍 Shopify' },
+  { value: 'wordpress', label: 'Ⓦ WordPress' },
+  { value: 'webflow',   label: '◐ Webflow' },
+  { value: 'speed',     label: '⚡ Speed' },
+  { value: 'email',     label: '✉ Email' },
+  { value: 'ai',        label: '✦ AI' },
+];
+
 type TabId = 'general' | 'stats' | 'hero' | 'services' | 'pricing' | 'process' | 'marquee';
 
 const TABS: { id: TabId; label: string }[] = [
@@ -89,11 +106,21 @@ export default function SettingsPage() {
   const [pricingStatus, setPricingStatus] = useState<{ ok?: boolean; msg: string } | null>(null);
   const [pricingSaving, setPricingSaving] = useState(false);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+  const [services, setServicesState] = useState<ServiceItem[]>([]);
 
   const DEFAULT_PRICING: PricingTier[] = [
     { tier: 'Starter', amount: '$500', description: 'Clean, fast Shopify store for new brands and product launches.', features: ['Custom theme setup & configuration','Up to 3 page templates','Mobile-optimised design','Payment gateway setup','3 revision rounds','7-day post-launch support'], featured: false, popular: '', ctaText: 'Get started →' },
     { tier: 'Professional', amount: '$1,500', description: 'Full custom build for brands serious about conversion and growth.', features: ['Everything in Starter','Custom Liquid theme development','Speed optimisation (90+ PageSpeed)','Klaviyo abandoned cart setup','Analytics & Meta Pixel','14-day post-launch support'], featured: true, popular: 'Most Popular', ctaText: 'Get started →' },
-    { tier: 'Enterprise', amount: '$3,000', description: 'Complex builds, migrations, and Shopify Plus solutions.', features: ['Everything in Professional','Platform migrations (WooCommerce / Webflow)','Custom app integrations','Multi-currency & international','Shopify Plus features','Priority support & retainer options'], featured: false, popular: '', ctaText: "Let's discuss →" },
+    { tier: 'Enterprise', amount: '$3,000', description: 'Complex builds, migrations, and Shopify Plus solutions.', features: ['Everything in Professional','Platform migrations (WordPress / WooCommerce / Webflow)','Custom app integrations','Multi-currency & international','Shopify Plus features','Priority support & retainer options'], featured: false, popular: '', ctaText: "Let's discuss →" },
+  ];
+
+  const DEFAULT_SERVICES_LIST: ServiceItem[] = [
+    { iconKey: 'shopify',   title: 'Shopify Development', description: 'Custom Liquid themes, store migrations, app integrations, and product pages engineered to convert.', tags: ['Liquid','Shopify Plus','Migrations','Apps'], featured: true },
+    { iconKey: 'wordpress', title: 'WordPress & WooCommerce', description: 'Full custom WordPress builds with clean PHP, bespoke themes, and seamless WooCommerce payments.', tags: ['PHP','WooCommerce','Custom Themes'], featured: false },
+    { iconKey: 'webflow',   title: 'Webflow Development', description: 'Pixel-perfect Webflow builds with CMS, animations, and lead-capture forms.', tags: ['Webflow','CMS'], featured: false },
+    { iconKey: 'speed',     title: 'Speed Optimization', description: 'Core Web Vitals, LCP, CLS — measurable PageSpeed results, guaranteed.', tags: ['Core Web Vitals','Performance'], featured: false },
+    { iconKey: 'email',     title: 'Email Marketing', description: 'Klaviyo and Mailchimp — welcome flows, abandoned cart, revenue-driving sequences.', tags: ['Klaviyo','Flows'], featured: false },
+    { iconKey: 'ai',        title: 'AI-Enhanced Delivery', description: 'Modern AI tools mean faster builds, more iterations, higher quality.', tags: ['Claude AI','Automation'], featured: false },
   ];
 
   const fetchSettings = useCallback(async () => {
@@ -106,6 +133,10 @@ export default function SettingsPage() {
         if (data['pricing_tiers']) setPricingTiers(JSON.parse(data['pricing_tiers']));
         else setPricingTiers(DEFAULT_PRICING);
       } catch { setPricingTiers(DEFAULT_PRICING); }
+      try {
+        if (data['services']) setServicesState(JSON.parse(data['services']));
+        else setServicesState(DEFAULT_SERVICES_LIST);
+      } catch { setServicesState(DEFAULT_SERVICES_LIST); }
     } catch {
       setLoadError('Failed to load settings');
     } finally {
@@ -180,7 +211,31 @@ export default function SettingsPage() {
   };
 
   const handleSaveServices = () => {
-    saveBulk({ services: get('services') }, setServicesSaving, setServicesStatus);
+    saveBulk({ services: JSON.stringify(services) }, setServicesSaving, setServicesStatus);
+  };
+
+  const updateService = (idx: number, field: keyof ServiceItem, value: string | boolean | string[]) => {
+    setServicesState(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+  };
+  const updateServiceTag = (svcIdx: number, tagIdx: number, value: string) => {
+    setServicesState(prev => prev.map((s, i) => {
+      if (i !== svcIdx) return s;
+      const tags = [...s.tags];
+      tags[tagIdx] = value;
+      return { ...s, tags };
+    }));
+  };
+  const addServiceTag = (svcIdx: number) => {
+    setServicesState(prev => prev.map((s, i) => i === svcIdx ? { ...s, tags: [...s.tags, ''] } : s));
+  };
+  const removeServiceTag = (svcIdx: number, tagIdx: number) => {
+    setServicesState(prev => prev.map((s, i) => i === svcIdx ? { ...s, tags: s.tags.filter((_, ti) => ti !== tagIdx) } : s));
+  };
+  const addService = () => {
+    setServicesState(prev => [...prev, { iconKey: 'shopify', title: 'New Service', description: '', tags: [], featured: false }]);
+  };
+  const removeService = (idx: number) => {
+    setServicesState(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleSaveProcess = () => {
@@ -452,22 +507,73 @@ export default function SettingsPage() {
       {/* ── SERVICES ── */}
       {activeTab === 'services' && (
         <div className="admin-card">
-          <div className="admin-card-title" style={{ marginBottom: 8 }}>Services</div>
-          <div className="admin-slug-hint" style={{ marginBottom: 16 }}>
-            JSON array. Each item: <code>{`{ "iconKey", "title", "description", "tags": [], "featured": true/false }`}</code><br />
-            iconKeys: <code>shopify</code>, <code>wordpress</code>, <code>webflow</code>, <code>speed</code>, <code>email</code>, <code>ai</code>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="admin-card-title">Services</div>
+            <button type="button" className="admin-btn admin-btn-secondary" onClick={addService} style={{ fontSize: 12 }}>
+              + Add Service
+            </button>
           </div>
 
-          <div className="admin-field">
-            <label className="admin-label" htmlFor="servicesJson">Services (JSON array)</label>
-            <textarea
-              id="servicesJson"
-              className="admin-textarea"
-              value={get('services')}
-              onChange={e => set('services', e.target.value)}
-              style={{ minHeight: 260, fontFamily: 'monospace', fontSize: 12 }}
-            />
-          </div>
+          {services.map((svc, si) => (
+            <div key={si} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16, background: svc.featured ? 'var(--accent-dim)' : 'var(--bg-elevated)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Service {si + 1}</span>
+                  {svc.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: '#0B0F1A', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
+                </div>
+                <button type="button" onClick={() => removeService(si)} style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+                  Remove
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
+                <div className="admin-field" style={{ margin: 0 }}>
+                  <label className="admin-label">Icon</label>
+                  <select className="admin-select" value={svc.iconKey} onChange={e => updateService(si, 'iconKey', e.target.value)}>
+                    {SERVICE_ICON_KEYS.map(k => (
+                      <option key={k.value} value={k.value}>{k.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="admin-field" style={{ margin: 0 }}>
+                  <label className="admin-label">Title</label>
+                  <input type="text" className="admin-input" value={svc.title} onChange={e => updateService(si, 'title', e.target.value)} placeholder="Shopify Development" />
+                </div>
+              </div>
+
+              <div className="admin-field" style={{ marginBottom: 12 }}>
+                <label className="admin-label">Description</label>
+                <textarea className="admin-textarea" value={svc.description} onChange={e => updateService(si, 'description', e.target.value)} placeholder="Short description of this service…" rows={3} style={{ resize: 'vertical' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  <Toggle value={svc.featured} onChange={v => updateService(si, 'featured', v)} />
+                  Featured (highlighted card)
+                </label>
+              </div>
+
+              <div>
+                <label className="admin-label" style={{ marginBottom: 8, display: 'block' }}>Tags / Tech</label>
+                {svc.tags.map((tag, ti) => (
+                  <div key={ti} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                    <input
+                      type="text"
+                      className="admin-input"
+                      value={tag}
+                      onChange={e => updateServiceTag(si, ti, e.target.value)}
+                      placeholder={`Tag ${ti + 1}`}
+                      style={{ flex: 1 }}
+                    />
+                    <button type="button" onClick={() => removeServiceTag(si, ti)} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '0 10px', cursor: 'pointer', fontSize: 16 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => addServiceTag(si)} style={{ background: 'transparent', border: '1px dashed var(--border)', color: 'var(--text-secondary)', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, marginTop: 4 }}>
+                  + Add tag
+                </button>
+              </div>
+            </div>
+          ))}
 
           {servicesStatus && (
             <div className={`admin-alert ${servicesStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ marginBottom: 12 }}>

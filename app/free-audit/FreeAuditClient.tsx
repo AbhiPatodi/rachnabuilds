@@ -57,9 +57,9 @@ export default function FreeAuditClient() {
 
       <div className="tool-hero">
         <div className="tool-tag">Free · No Obligation</div>
-        <h1 className="tool-h1">Get Your Free Shopify<br />Store Audit</h1>
+        <h1 className="tool-h1">Get Your Free<br />Store Audit</h1>
         <p className="tool-sub">
-          I'll personally record a 15-minute Loom video reviewing your store and send you specific, actionable fixes.<br />
+          Shopify or WordPress — I&apos;ll personally record a 15-minute Loom video reviewing your store and send you specific, actionable fixes.<br />
           No pitch. No sales call. Just real recommendations.
         </p>
       </div>
@@ -117,7 +117,7 @@ export default function FreeAuditClient() {
             </div>
 
             <div className="tool-field">
-              <label>Shopify Store URL *</label>
+              <label>Store URL * <span style={{ opacity: 0.5, fontWeight: 400 }}>(Shopify or WordPress)</span></label>
               <input type="url" placeholder="https://yourstore.com" required value={form.storeUrl} onChange={e => set('storeUrl', e.target.value)} />
             </div>
 
@@ -170,7 +170,7 @@ export default function FreeAuditClient() {
 
       {/* Social proof */}
       <div className="audit-proof">
-        <p className="audit-proof-label">Trusted by Shopify store owners across</p>
+        <p className="audit-proof-label">Trusted by store owners across</p>
         <div className="audit-proof-countries">🇮🇳 India &nbsp;·&nbsp; 🇬🇧 UK &nbsp;·&nbsp; 🇫🇷 France &nbsp;·&nbsp; 🇺🇸 USA &nbsp;·&nbsp; 🇦🇺 Australia</div>
       </div>
 

@@ -99,7 +99,7 @@ export default async function Home() {
     { num: "05", day: "Day 7", title: "Launch", desc: "Go live. Fully tested. 7-day post-launch support included." },
   ];
 
-  const DEFAULT_MARQUEE = ["Shopify Expert","Custom Themes","WooCommerce","Webflow","Figma to Code","Speed Optimization","Klaviyo","AI-Enhanced","Shopify Plus","CRO Specialist"];
+  const DEFAULT_MARQUEE = ["Shopify Expert","Custom Themes","WordPress","WooCommerce","Webflow","Figma to Code","Speed Optimization","Klaviyo","AI-Enhanced","Shopify Plus","CRO Specialist"];
 
   const DEFAULT_PRICING: HomepagePricingTier[] = [
     {
@@ -122,7 +122,7 @@ export default async function Home() {
       tier: "Enterprise",
       amount: "$3,000",
       description: "Complex builds, migrations, and Shopify Plus solutions.",
-      features: ["Everything in Professional","Platform migrations (WooCommerce / Webflow)","Custom app integrations","Multi-currency & international","Shopify Plus features","Priority support & retainer options"],
+      features: ["Everything in Professional","Platform migrations (WordPress / WooCommerce / Webflow)","Custom app integrations","Multi-currency & international","Shopify Plus features","Priority support & retainer options"],
       ctaText: "Let's discuss →",
     },
   ];

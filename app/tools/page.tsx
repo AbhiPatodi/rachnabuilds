@@ -5,8 +5,8 @@ import SiteNav from '@/app/components/SiteNav';
 import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
-  title: 'Free Shopify Tools | Rachna Builds',
-  description: 'Free tools for Shopify store owners — speed checker, CRO checklist, and personal store audit. No signup required.',
+  title: 'Free E-Commerce Tools | Rachna Builds',
+  description: 'Free tools for Shopify and WordPress store owners — speed checker, CRO checklist, and personal store audit. No signup required.',
 };
 
 export default function ToolsPage() {
@@ -18,10 +18,10 @@ export default function ToolsPage() {
 
       <div className="tool-hero">
         <div className="tool-tag">Free · No Signup Required</div>
-        <h1 className="tool-h1">Free Shopify Tools</h1>
+        <h1 className="tool-h1">Free E-Commerce Tools</h1>
         <p className="tool-sub">
-          Everything you need to diagnose and improve your Shopify store's performance.<br />
-          Built by a Shopify consultant who uses these daily.
+          Everything you need to diagnose and improve your Shopify or WordPress store&apos;s performance.<br />
+          Built by an e-commerce consultant who uses these daily.
         </p>
       </div>
 
@@ -31,8 +31,8 @@ export default function ToolsPage() {
           <div className="tools-card-badge">Most Popular</div>
           <h2>Free Store Audit</h2>
           <p>
-            Get a personal 15-minute Loom video review of your Shopify store with specific,
-            actionable recommendations. No pitch. No obligation.
+            Get a personal 15-minute Loom video review of your Shopify or WordPress store
+            with specific, actionable recommendations. No pitch. No obligation.
           </p>
           <ul className="tools-card-list">
             <li>✓ Personal video walkthrough</li>
