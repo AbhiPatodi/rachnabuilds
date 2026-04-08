@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://rachnabuilds.com'),
   title: "Rachna Builds — Shopify & E-Commerce Developer",
   description:
-    "Rachna Jain — Shopify, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
+    "Rachna Jain — Shopify, WordPress, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Rachna Builds — Shopify & E-Commerce Developer",
     description:
-      "Rachna Jain — Shopify, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
+      "Rachna Jain — Shopify, WordPress, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
     url: "https://rachnabuilds.com",
     siteName: "Rachna Builds",
     type: "website",
@@ -76,7 +76,7 @@ export default function RootLayout({
                 "url": "https://rachnabuilds.com",
                 "image": "https://rachnabuilds.com/og-image.png",
                 "jobTitle": "Shopify & E-Commerce Developer",
-                "description": "Shopify, WooCommerce & Webflow developer with 4+ years experience and 50+ stores launched.",
+                "description": "Shopify, WordPress, WooCommerce & Webflow developer with 4+ years experience and 50+ stores launched.",
                 "sameAs": [
                   "https://www.linkedin.com/in/rachnabuilds",
                   "https://www.instagram.com/rachnabuilds"

@@ -172,8 +172,7 @@ export default function SettingsPage() {
   const handleSaveHero = () => {
     saveBulk(
       {
-        hero_headline: get('hero_headline'),
-        hero_subtext: get('hero_subtext'),
+        hero_typewriter: get('hero_typewriter'),
       },
       setHeroSaving,
       setHeroStatus
@@ -413,27 +412,25 @@ export default function SettingsPage() {
           <div className="admin-card-title" style={{ marginBottom: 20 }}>Hero Section</div>
 
           <div className="admin-field">
-            <label className="admin-label" htmlFor="heroHeadline">Hero Headline</label>
-            <input
-              id="heroHeadline"
-              type="text"
-              className="admin-input"
-              placeholder="I Build Shopify Stores That..."
-              value={get('hero_headline')}
-              onChange={e => set('hero_headline', e.target.value)}
-            />
+            <label className="admin-label">Hero Headline</label>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)', fontStyle: 'italic' }}>
+              🔒 &quot;I build stores that actually sell.&quot; — hardcoded with animation, edit in <code>app/HomepageClient.tsx</code> line 530 if needed.
+            </div>
           </div>
 
           <div className="admin-field">
-            <label className="admin-label" htmlFor="heroSubtext">Hero Typewriter / Subtext</label>
+            <label className="admin-label" htmlFor="heroSubtext">Hero Subtext</label>
             <textarea
               id="heroSubtext"
               className="admin-textarea"
-              placeholder="The description text shown below the headline..."
-              value={get('hero_subtext')}
-              onChange={e => set('hero_subtext', e.target.value)}
+              placeholder="Shopify, WordPress, WooCommerce & Webflow — 4+ years..."
+              value={get('hero_typewriter')}
+              onChange={e => set('hero_typewriter', e.target.value)}
               style={{ minHeight: 100 }}
             />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              Shown below the headline on the homepage. Saves live to the site.
+            </div>
           </div>
 
           {heroStatus && (

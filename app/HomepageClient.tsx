@@ -234,7 +234,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
     const typeEl = document.getElementById("heroTypewriter");
     if (typeEl) {
       const text =
-        stats.hero_typewriter ?? "Shopify, WooCommerce & Webflow — 4+ years, global clients, zero excuses. I build stores that convert, on time, every time.";
+        stats.hero_typewriter ?? "Shopify, WordPress, WooCommerce & Webflow — 4+ years, global clients, zero excuses. I build stores that convert, on time, every time.";
       const cursor = document.createElement("span");
       cursor.className = "typewriter-cursor";
       typeEl.appendChild(cursor);

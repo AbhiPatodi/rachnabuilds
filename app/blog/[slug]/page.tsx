@@ -354,7 +354,7 @@ export default async function BlogPostPage({
             <div className="cta-card-text">
               <h3>Want to work together?</h3>
               <p>
-                Got a Shopify, WooCommerce, or Webflow project in mind? Let&apos;s talk — I&apos;d love to help bring your store to life.
+                Got a Shopify, WordPress, WooCommerce, or Webflow project in mind? Let&apos;s talk — I&apos;d love to help bring your store to life.
               </p>
             </div>
             <Link href="/contact" className="cta-card-btn">
