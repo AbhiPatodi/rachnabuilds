@@ -4,10 +4,16 @@ import DashboardActions from './DashboardActions';
 
 export const dynamic = 'force-dynamic';
 
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  active:    { label: 'Active',    color: '#06D6A0', bg: 'rgba(6,214,160,0.12)'   },
+  prospect:  { label: 'Prospect',  color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'  },
+  completed: { label: 'Completed', color: '#A78BFA', bg: 'rgba(167,139,250,0.12)' },
+  inactive:  { label: 'Inactive',  color: '#FF6B6B', bg: 'rgba(255,107,107,0.12)' },
+};
+
 export default async function DashboardPage() {
   const [
-    reports,
-    projectCount,
+    portfolioCount,
     testimonialCount,
     faqCount,
     blogCount,
@@ -16,21 +22,18 @@ export default async function DashboardPage() {
     recentLeads,
     newLeadsCount,
     recentSigned,
+    recentClients,
+    clientCount,
+    activeClientCount,
+    reports,
   ] = await Promise.all([
-    prisma.report.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { sections: true, documents: true } } },
-    }),
     prisma.project.count({ where: { isVisible: true } }),
     prisma.testimonial.count({ where: { isVisible: true } }),
     prisma.faq.count({ where: { isVisible: true } }),
     prisma.blogPost.count(),
     prisma.blogPost.count({ where: { isPublished: true } }),
     prisma.socialLink.count({ where: { isVisible: true } }),
-    prisma.contactLead.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    }),
+    prisma.contactLead.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
     prisma.contactLead.count({ where: { status: 'new' } }),
     prisma.projectContract.findMany({
       where: { status: 'signed' },
@@ -38,11 +41,46 @@ export default async function DashboardPage() {
       take: 5,
       include: { project: { include: { client: true } } },
     }),
+    prisma.client.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 6,
+      include: {
+        _count: { select: { projects: true } },
+        projects: {
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+          select: { updatedAt: true, name: true, status: true, contracts: { select: { status: true } } },
+        },
+      },
+    }),
+    prisma.client.count(),
+    prisma.client.count({ where: { isActive: true } }),
+    // Keep old reports — Kruti + Amarja still use them
+    prisma.report.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { sections: true } } },
+    }),
   ]);
 
-  const totalReports = reports.length;
-  const activeReports = reports.filter((r) => r.isActive).length;
-  const totalViews = reports.reduce((sum: number, r) => sum + r.viewCount, 0);
+  const totalReportViews = reports.reduce((s, r) => s + r.viewCount, 0);
+  const activeReports = reports.filter(r => r.isActive).length;
+
+  // Derive overallStatus for each recent client (same logic as API)
+  const clientsWithStatus = recentClients.map(c => {
+    const profile = c.clientProfile as Record<string, unknown> | null;
+    const manualStatus = profile?.overallStatus as string | undefined;
+    let overallStatus: string;
+    if (manualStatus) {
+      overallStatus = manualStatus;
+    } else if (!c.isActive) {
+      overallStatus = 'inactive';
+    } else {
+      const hasSignedContract = c.projects.some(p => p.contracts.some(con => con.status === 'signed'));
+      const allCompleted = c.projects.length > 0 && c.projects.every(p => p.status === 'completed');
+      overallStatus = allCompleted ? 'completed' : hasSignedContract ? 'active' : 'prospect';
+    }
+    return { ...c, overallStatus };
+  });
 
   return (
     <div className="admin-content">
@@ -89,6 +127,11 @@ export default async function DashboardPage() {
         .signed-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
         .signed-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
         .signed-time { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+        .client-dash-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); text-decoration: none; }
+        .client-dash-row:last-child { border-bottom: none; }
+        .client-dash-row:hover .client-dash-name { color: var(--accent); }
+        .client-dash-name { font-size: 13px; font-weight: 600; color: var(--text); transition: color .15s; margin-bottom: 2px; }
+        .client-dash-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
       `}</style>
 
       <div className="admin-page-header">
@@ -96,12 +139,13 @@ export default async function DashboardPage() {
           <h1 className="admin-page-title">Dashboard</h1>
           <p className="admin-page-subtitle">Overview of your site and client portal</p>
         </div>
-        <Link href="/admin/reports/new" className="admin-btn admin-btn-primary">
+        <Link href="/admin/clients/new" className="admin-btn admin-btn-primary">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path d="M12 5v14M5 12h14"/></svg>
-          New Report →
+          New Client →
         </Link>
       </div>
 
+      {/* Signed contract alert — only if < 48h */}
       {recentSigned.length > 0 && (() => {
         const newest = recentSigned[0];
         const hoursAgo = newest.signedAt ? Math.floor((Date.now() - new Date(newest.signedAt).getTime()) / 3600000) : null;
@@ -115,6 +159,7 @@ export default async function DashboardPage() {
         ) : null;
       })()}
 
+      {/* New leads alert */}
       {newLeadsCount > 0 && (
         <div className="dash-notice">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -123,16 +168,16 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Stats */}
       <div className="dash-grid">
         <div className="dash-stat">
-          <div className="dash-stat-label">Portfolio Projects</div>
-          <div className="dash-stat-value accent">{projectCount}</div>
-          <div className="dash-stat-sub">visible on site</div>
+          <div className="dash-stat-label">Clients</div>
+          <div className="dash-stat-value accent">{clientCount}</div>
+          <div className="dash-stat-sub">{activeClientCount} active</div>
         </div>
         <div className="dash-stat">
-          <div className="dash-stat-label">Testimonials</div>
-          <div className="dash-stat-value accent">{testimonialCount}</div>
+          <div className="dash-stat-label">Portfolio</div>
+          <div className="dash-stat-value accent">{portfolioCount}</div>
           <div className="dash-stat-sub">visible on site</div>
         </div>
         <div className="dash-stat">
@@ -141,28 +186,29 @@ export default async function DashboardPage() {
           <div className="dash-stat-sub">{blogCount - publishedBlogCount} draft{blogCount - publishedBlogCount !== 1 ? 's' : ''}</div>
         </div>
         <div className="dash-stat">
-          <div className="dash-stat-label">Contact Leads</div>
+          <div className="dash-stat-label">New Leads</div>
           <div className="dash-stat-value coral">{newLeadsCount}</div>
-          <div className="dash-stat-sub">new / unread</div>
+          <div className="dash-stat-sub">unread in inbox</div>
         </div>
       </div>
 
+      {/* Main row: Quick Actions + Signed Contracts + Recent Leads */}
       <div className="dash-row">
         {/* Quick Actions */}
         <div className="admin-card">
           <div className="dash-section-title">Quick Actions</div>
           <div className="dash-quick-grid">
+            <Link href="/admin/clients/new" className="dash-quick-link">
+              <div className="dash-quick-link-label">Portal</div>
+              <div className="dash-quick-link-title">+ New Client</div>
+            </Link>
+            <Link href="/admin/clients" className="dash-quick-link">
+              <div className="dash-quick-link-label">Portal</div>
+              <div className="dash-quick-link-title">All Clients <span style={{color:'var(--text-muted)',fontWeight:400}}>{clientCount}</span></div>
+            </Link>
             <Link href="/admin/portfolio" className="dash-quick-link">
               <div className="dash-quick-link-label">Content</div>
               <div className="dash-quick-link-title">Portfolio</div>
-            </Link>
-            <Link href="/admin/testimonials" className="dash-quick-link">
-              <div className="dash-quick-link-label">Content</div>
-              <div className="dash-quick-link-title">Testimonials</div>
-            </Link>
-            <Link href="/admin/faqs" className="dash-quick-link">
-              <div className="dash-quick-link-label">Content</div>
-              <div className="dash-quick-link-title">FAQs <span style={{color:'var(--text-muted)',fontWeight:400}}>{faqCount}</span></div>
             </Link>
             <Link href="/admin/blog/new" className="dash-quick-link">
               <div className="dash-quick-link-label">Blog</div>
@@ -172,17 +218,21 @@ export default async function DashboardPage() {
               <div className="dash-quick-link-label">Leads</div>
               <div className="dash-quick-link-title">Inbox{newLeadsCount > 0 ? <span style={{color:'var(--accent)',marginLeft:6}}>{newLeadsCount}</span> : ''}</div>
             </Link>
-            <Link href="/admin/settings" className="dash-quick-link">
-              <div className="dash-quick-link-label">Config</div>
-              <div className="dash-quick-link-title">Site Settings</div>
+            <Link href="/admin/testimonials" className="dash-quick-link">
+              <div className="dash-quick-link-label">Content</div>
+              <div className="dash-quick-link-title">Testimonials</div>
+            </Link>
+            <Link href="/admin/faqs" className="dash-quick-link">
+              <div className="dash-quick-link-label">Content</div>
+              <div className="dash-quick-link-title">FAQs <span style={{color:'var(--text-muted)',fontWeight:400}}>{faqCount}</span></div>
             </Link>
             <Link href="/admin/social" className="dash-quick-link">
               <div className="dash-quick-link-label">Presence</div>
               <div className="dash-quick-link-title">Social Links <span style={{color:'var(--text-muted)',fontWeight:400}}>{socialCount}</span></div>
             </Link>
-            <Link href="/admin/reports/new" className="dash-quick-link">
-              <div className="dash-quick-link-label">Client Portal</div>
-              <div className="dash-quick-link-title">+ New Report</div>
+            <Link href="/admin/settings" className="dash-quick-link">
+              <div className="dash-quick-link-label">Config</div>
+              <div className="dash-quick-link-title">Site Settings</div>
             </Link>
           </div>
         </div>
@@ -240,82 +290,156 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Client Reports */}
+      {/* Recent Clients */}
       <div style={{ marginBottom: 8 }}>
         <div className="dash-section-title">
-          Client Reports
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-muted)' }}>
-              {activeReports} active · {totalViews} total views
-            </span>
-            <Link href="/admin/reports/new" style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: 'var(--accent)', letterSpacing: '.06em', textTransform: 'uppercase', textDecoration: 'none' }}>+ New →</Link>
-          </div>
+          Recent Clients
+          <Link href="/admin/clients">View all →</Link>
         </div>
       </div>
-      <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-        {reports.length === 0 ? (
+      <div className="admin-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 28 }}>
+        {clientsWithStatus.length === 0 ? (
           <div className="admin-empty">
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>No client reports yet</div>
-            <div>Create your first report to share with a client.</div>
+            No clients yet. <Link href="/admin/clients/new" style={{ color: 'var(--accent)' }}>Add your first client →</Link>
           </div>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Client</th>
-                <th>Portal Link</th>
-                <th>Created</th>
-                <th>Views</th>
+                <th>Latest Project</th>
+                <th>Projects</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Last Activity</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {reports.map(report => (
-                <tr key={report.id}>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{report.clientName}</div>
-                    {report.clientEmail && (
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{report.clientEmail}</div>
-                    )}
-                  </td>
-                  <td>
-                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--text-secondary)' }}>
-                      /reports/{report.slug}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                      {new Date(report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{report.viewCount}</div>
-                    {report.lastViewedAt && (
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {new Date(report.lastViewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`badge ${report.isActive ? 'badge-green' : 'badge-red'}`}>
-                      <span className="badge-dot" />
-                      {report.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td>
-                    <DashboardActions
-                      reportId={report.id}
-                      reportSlug={report.slug}
-                      isActive={report.isActive}
-                    />
-                  </td>
-                </tr>
-              ))}
+              {clientsWithStatus.map(client => {
+                const cfg = STATUS_CFG[client.overallStatus] ?? STATUS_CFG['prospect'];
+                const latestProject = client.projects[0];
+                return (
+                  <tr key={client.id}>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{client.name}</div>
+                      {client.email && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>{client.email}</div>
+                      )}
+                    </td>
+                    <td>
+                      {latestProject
+                        ? <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{latestProject.name}</span>
+                        : <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
+                      }
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600 }}>{client._count.projects}</span>
+                    </td>
+                    <td>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                        borderRadius: 6, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 5,
+                        color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}44`,
+                      }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.color }} />
+                        {cfg.label}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        {new Date(client.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </td>
+                    <td>
+                      <Link href={`/admin/clients/${client.id}`} className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 11 }}>
+                        Manage →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* Legacy Reports — kept for Kruti + Amarja who use old /reports/[slug] system */}
+      {reports.length > 0 && (
+        <>
+          <div style={{ marginBottom: 8 }}>
+            <div className="dash-section-title">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Legacy Reports
+                <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-muted)', fontWeight: 400, background: 'var(--bg-elevated)', padding: '1px 8px', borderRadius: 100 }}>
+                  old system
+                </span>
+              </span>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-muted)' }}>
+                  {activeReports} active · {totalReportViews} total views
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Portal Link</th>
+                  <th>Created</th>
+                  <th>Views</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map(report => (
+                  <tr key={report.id}>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{report.clientName}</div>
+                      {report.clientEmail && (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{report.clientEmail}</div>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--text-secondary)' }}>
+                        /reports/{report.slug}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
+                        {new Date(report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{report.viewCount}</div>
+                      {report.lastViewedAt && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                          {new Date(report.lastViewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${report.isActive ? 'badge-green' : 'badge-red'}`}>
+                        <span className="badge-dot" />
+                        {report.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <DashboardActions
+                        reportId={report.id}
+                        reportSlug={report.slug}
+                        isActive={report.isActive}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

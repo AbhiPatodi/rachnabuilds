@@ -378,12 +378,6 @@ export default function ClientsPage() {
                                 {CLIENT_TYPE_LABELS[p.clientType] || p.clientType}
                               </span>
 
-                              {/* Sections/docs count */}
-                              {p._count && (
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
-                                  {p._count.sections}s / {p._count.documents}d
-                                </div>
-                              )}
 
                               {/* Open arrow */}
                               <svg width="14" height="14" fill="none" stroke="#06D6A0" strokeWidth={2} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
