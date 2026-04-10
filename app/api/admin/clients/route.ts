@@ -20,24 +20,37 @@ export async function GET(_req: NextRequest) {
         _count: { select: { projects: true } },
         projects: {
           orderBy: { updatedAt: 'desc' },
-          select: { updatedAt: true, status: true, adminProfile: true },
+          select: {
+            updatedAt: true,
+            status: true,
+            contracts: { select: { status: true } },
+          },
         },
       },
     });
 
     const result = clients.map(c => {
-      const statuses = c.projects.map(p => p.status);
-      const hasActive    = statuses.some(s => s === 'active');
-      const hasCompleted = statuses.some(s => s === 'completed');
-      const allCompleted = statuses.length > 0 && statuses.every(s => s === 'completed');
-      // prospect = no active/completed projects, or all projects are draft
-      const isProspect   = !c.isActive || statuses.length === 0 || statuses.every(s => s === 'draft');
+      const profile = c.clientProfile as Record<string, unknown> | null;
 
-      const overallStatus = !c.isActive       ? 'inactive'
-        : allCompleted                         ? 'completed'
-        : hasActive                            ? 'active'
-        : isProspect                           ? 'prospect'
-        : 'draft';
+      // Manual override stored in clientProfile.overallStatus takes priority
+      const manualStatus = profile?.overallStatus as string | undefined;
+
+      let overallStatus: string;
+      if (manualStatus) {
+        overallStatus = manualStatus;
+      } else if (!c.isActive) {
+        overallStatus = 'inactive';
+      } else {
+        const allStatuses   = c.projects.map(p => p.status);
+        const hasSignedContract = c.projects.some(p =>
+          p.contracts.some(con => con.status === 'signed')
+        );
+        const allCompleted  = allStatuses.length > 0 && allStatuses.every(s => s === 'completed');
+
+        overallStatus = allCompleted       ? 'completed'
+          : hasSignedContract              ? 'active'
+          : 'prospect';
+      }
 
       return {
         id: c.id,
@@ -51,6 +64,7 @@ export async function GET(_req: NextRequest) {
         projectCount: c._count.projects,
         lastActivity: c.projects[0]?.updatedAt ?? c.updatedAt,
         overallStatus,
+        statusIsManual: !!manualStatus,
       };
     });
 

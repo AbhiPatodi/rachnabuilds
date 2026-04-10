@@ -51,16 +51,29 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   try {
     const body = await req.json();
-    const { newPassword, ...rest } = body;
+    const { newPassword, overallStatus, ...rest } = body;
     const updateData: Record<string, unknown> = { ...rest };
 
-    if (newPassword?.trim() && newPassword.trim().length >= 6) {
-      const hash = await bcryptjs.hash(newPassword.trim(), 10);
-      updateData.passwordHash = hash;
-      // Store plain text in clientProfile so admin can retrieve to share with client
+    // Handle overallStatus or newPassword — both need to merge into clientProfile
+    if (newPassword?.trim() && newPassword.trim().length >= 6 || 'overallStatus' in body) {
       const existing = await prisma.client.findUnique({ where: { id: clientId }, select: { clientProfile: true } });
       const existingProfile = (existing?.clientProfile as Record<string, unknown>) ?? {};
-      updateData.clientProfile = { ...existingProfile, portalPassword: newPassword.trim() };
+
+      if (newPassword?.trim() && newPassword.trim().length >= 6) {
+        const hash = await bcryptjs.hash(newPassword.trim(), 10);
+        updateData.passwordHash = hash;
+        existingProfile.portalPassword = newPassword.trim();
+      }
+
+      if ('overallStatus' in body) {
+        if (overallStatus) {
+          existingProfile.overallStatus = overallStatus;
+        } else {
+          delete existingProfile.overallStatus; // reset to auto-detect
+        }
+      }
+
+      updateData.clientProfile = existingProfile;
     }
 
     const client = await prisma.client.update({

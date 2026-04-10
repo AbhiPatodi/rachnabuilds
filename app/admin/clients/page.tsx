@@ -58,6 +58,7 @@ interface Client {
   projectCount: number;
   lastActivity: string;
   overallStatus: string;
+  statusIsManual: boolean;
   projects?: Project[];
 }
 
@@ -74,6 +75,24 @@ export default function ClientsPage() {
   const [projectsCache, setProjectsCache] = useState<Record<string, Project[]>>({});
   const [projectsLoading, setProjectsLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [statusChanging, setStatusChanging] = useState<string | null>(null);
+  const [statusOpen, setStatusOpen] = useState<string | null>(null);
+
+  const changeStatus = async (clientId: string, newStatus: string) => {
+    setStatusChanging(clientId);
+    setStatusOpen(null);
+    try {
+      await fetch(`/api/admin/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overallStatus: newStatus }),
+      });
+      setClients(prev => prev.map(c =>
+        c.id === clientId ? { ...c, overallStatus: newStatus, statusIsManual: true } : c
+      ));
+    } catch { /* silent */ }
+    finally { setStatusChanging(null); }
+  };
 
   useEffect(() => {
     fetch('/api/admin/clients')
@@ -228,17 +247,68 @@ export default function ClientsPage() {
                       /portal/{client.slug}
                     </div>
 
-                    {/* Status */}
-                    <span style={{
-                      flexShrink: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-                      textTransform: 'uppercase', borderRadius: 6, padding: '3px 9px',
-                      color: statusCfg.color, background: statusCfg.bg,
-                      border: `1px solid ${statusCfg.color}33`,
-                      display: 'flex', alignItems: 'center', gap: 5,
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, flexShrink: 0 }} />
-                      {statusCfg.label}
-                    </span>
+                    {/* Status — clickable dropdown */}
+                    <div style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => setStatusOpen(statusOpen === client.id ? null : client.id)}
+                        disabled={statusChanging === client.id}
+                        style={{
+                          fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                          textTransform: 'uppercase', borderRadius: 6, padding: '3px 9px',
+                          color: statusCfg.color, background: statusCfg.bg,
+                          border: `1px solid ${statusCfg.color}44`,
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, flexShrink: 0 }} />
+                        {statusChanging === client.id ? '…' : statusCfg.label}
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      {statusOpen === client.id && (
+                        <div style={{
+                          position: 'absolute', top: '110%', right: 0, zIndex: 50,
+                          background: 'var(--bg-card)', border: '1px solid var(--border)',
+                          borderRadius: 10, overflow: 'hidden', minWidth: 140,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                        }}>
+                          {(['prospect', 'active', 'completed', 'inactive'] as const).map(s => {
+                            const cfg = OVERALL_STATUS_CONFIG[s];
+                            const isCurrent = client.overallStatus === s;
+                            return (
+                              <button
+                                key={s}
+                                onClick={() => changeStatus(client.id, s)}
+                                style={{
+                                  width: '100%', textAlign: 'left', padding: '9px 14px',
+                                  background: isCurrent ? 'var(--bg-elevated)' : 'transparent',
+                                  border: 'none', cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', gap: 8,
+                                  color: isCurrent ? cfg.color : 'var(--text-secondary)',
+                                  fontSize: 12, fontWeight: isCurrent ? 700 : 400,
+                                }}
+                              >
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
+                                {cfg.label}
+                                {isCurrent && <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.6 }}>current</span>}
+                              </button>
+                            );
+                          })}
+                          {client.statusIsManual && (
+                            <button
+                              onClick={() => changeStatus(client.id, '')}
+                              style={{
+                                width: '100%', textAlign: 'left', padding: '7px 14px',
+                                background: 'transparent', border: 'none', borderTop: '1px solid var(--border)',
+                                cursor: 'pointer', color: 'var(--text-muted)', fontSize: 11,
+                              }}
+                            >
+                              ↺ Reset to auto-detect
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Last activity */}
                     <div className="client-col-date" style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
