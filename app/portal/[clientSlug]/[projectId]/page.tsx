@@ -100,6 +100,7 @@ export default async function ProjectPortalPage({ params }: PageProps) {
         name: project.name,
         clientType: project.clientType,
         status: project.status,
+        updatedAt: project.updatedAt.toISOString(),
         adminProfile: (() => {
           // Strip internal fields before sending to client component
           const profile = (project.adminProfile ?? {}) as Record<string, unknown>;

@@ -82,14 +82,18 @@ export default function ClientsPage() {
     setStatusChanging(clientId);
     setStatusOpen(null);
     try {
-      await fetch(`/api/admin/clients/${clientId}`, {
+      const res = await fetch(`/api/admin/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ overallStatus: newStatus }),
       });
-      setClients(prev => prev.map(c =>
-        c.id === clientId ? { ...c, overallStatus: newStatus, statusIsManual: true } : c
-      ));
+      if (res.ok) {
+        setClients(prev => prev.map(c =>
+          c.id === clientId
+            ? { ...c, overallStatus: newStatus || c.overallStatus, statusIsManual: !!newStatus }
+            : c
+        ));
+      }
     } catch { /* silent */ }
     finally { setStatusChanging(null); }
   };

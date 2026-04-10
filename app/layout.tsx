@@ -62,7 +62,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <meta name="theme-color" content="#06D6A0" />
-        <link rel="apple-touch-icon" href="/icon.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         {/* JSON-LD: Person + ProfessionalService schema */}
         <script
           type="application/ld+json"

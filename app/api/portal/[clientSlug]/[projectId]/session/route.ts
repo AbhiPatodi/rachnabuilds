@@ -86,12 +86,22 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     if (typeof duration === 'number' && duration > existing.totalDuration) {
       updateData.totalDuration = duration;
     }
-    await prisma.projectSession.update({ where: { sessionId }, data: updateData });
+    await Promise.all([
+      prisma.projectSession.update({ where: { sessionId }, data: updateData }),
+      // Keep lastViewedAt fresh on every visit
+      prisma.clientProject.update({ where: { id: project.id }, data: { lastViewedAt: new Date() } }),
+    ]);
     return NextResponse.json({ ok: true, returning: true });
   }
 
   const ip = getIp(req);
   const ua = parseUserAgent(userAgent);
+
+  // Increment viewCount + lastViewedAt on the project for new sessions
+  await prisma.clientProject.update({
+    where: { id: project.id },
+    data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
+  });
 
   // Create session immediately with empty geo fields
   const session = await prisma.projectSession.upsert({

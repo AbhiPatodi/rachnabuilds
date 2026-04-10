@@ -1249,3 +1249,92 @@
 .session-row {
   flex-wrap: wrap;
 }
+
+/* ── Comprehensive mobile fixes ── */
+@media (max-width: 767px) {
+  /* All tables inside cards — allow horizontal scroll */
+  .admin-card table,
+  .admin-table-wrap {
+    overflow-x: auto;
+    display: block;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep table structure intact inside scroll container */
+  .admin-card table thead,
+  .admin-card table tbody,
+  .admin-card table tr {
+    display: table-row-group;
+  }
+  .admin-card table thead { display: table-header-group; }
+  .admin-card table tr { display: table-row; }
+  .admin-card table th,
+  .admin-card table td { display: table-cell; white-space: nowrap; }
+
+  /* Admin stats — always 2 cols */
+  .admin-stats { grid-template-columns: 1fr 1fr !important; }
+
+  /* Form inputs full width */
+  .admin-input, .admin-select, .admin-textarea {
+    font-size: 16px !important; /* prevent iOS zoom */
+  }
+
+  /* Page header button full width on mobile */
+  .admin-page-header > a.admin-btn,
+  .admin-page-header > button.admin-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Project/report detail pages — stack info grid */
+  .admin-project-header-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Topbar — smaller font */
+  .admin-topbar { padding: 0 14px; }
+  .admin-topbar-title { font-size: 14px; }
+
+  /* Blog/portfolio edit forms — make action rows wrap */
+  .admin-form-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .admin-form-actions button,
+  .admin-form-actions a {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Testimonials/FAQ toggle rows */
+  .admin-toggle-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Badge wrapping in table cells */
+  .admin-table td .badge { white-space: nowrap; }
+
+  /* Dashboard section titles */
+  .dash-section-title { font-size: 14px; }
+
+  /* Dashboard stat value smaller on mobile */
+  .dash-stat-value { font-size: 26px; }
+}
+
+@media (max-width: 480px) {
+  /* Stack topbar items */
+  .admin-topbar-actions { display: none; }
+
+  /* Single column everywhere */
+  .admin-stats { grid-template-columns: 1fr 1fr !important; }
+
+  /* Compact badges */
+  .badge { font-size: 10px; padding: 2px 6px; }
+
+  /* Safe area at bottom for iPhone home indicator */
+  .admin-main { padding-bottom: env(safe-area-inset-bottom); }
+}

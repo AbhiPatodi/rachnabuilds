@@ -102,12 +102,12 @@ const PROJECT_CLASSES = [
 
 // Map displayOrder index to the original image filenames and alt text
 const PROJECT_IMAGES: Record<number, { img: string; alt: string; url: string; num: string }> = {
-  0: { img: "welevate.jpg", alt: "Welevate Club website", url: "https://welevateclub.com", num: "01" },
-  1: { img: "ohlittlewren.jpg", alt: "Oh Little Wren website", url: "https://ohlittlewren.com", num: "02" },
-  2: { img: "galatea.jpg", alt: "Galatea website", url: "https://shop.galatea.com", num: "03" },
-  3: { img: "revoo.jpg", alt: "Revoo Concept website", url: "https://revooconcept.com", num: "04" },
-  4: { img: "mywavex.jpg", alt: "MyWaveX website", url: "https://us.mywavex.com", num: "05" },
-  5: { img: "halo.jpg", alt: "Halo Coffee website", url: "https://halo.coffee", num: "06" },
+  0: { img: "welevate.jpg", alt: "Welevate Club — custom Shopify store built by Rachna Builds", url: "https://welevateclub.com", num: "01" },
+  1: { img: "ohlittlewren.jpg", alt: "Oh Little Wren — Shopify e-commerce store design and development", url: "https://ohlittlewren.com", num: "02" },
+  2: { img: "galatea.jpg", alt: "Galatea — custom Shopify theme development for fashion brand", url: "https://shop.galatea.com", num: "03" },
+  3: { img: "revoo.jpg", alt: "Revoo Concept — Shopify store build with conversion-focused design", url: "https://revooconcept.com", num: "04" },
+  4: { img: "mywavex.jpg", alt: "MyWaveX — Shopify Plus store development by Rachna Builds", url: "https://us.mywavex.com", num: "05" },
+  5: { img: "halo.jpg", alt: "Halo Coffee — Shopify e-commerce store optimised for conversions", url: "https://halo.coffee", num: "06" },
 };
 
 // Map displayOrder index to testimonial animation delay classes

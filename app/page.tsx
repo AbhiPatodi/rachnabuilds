@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import HomepageClient, {
   type HomepageProject,
@@ -12,6 +13,12 @@ import HomepageClient, {
 } from "./HomepageClient";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://rachnabuilds.com',
+  },
+};
 
 export default async function Home() {
   const [projectRows, testimonialRows, faqRows, settingRows, blogRows] = await Promise.all([
@@ -169,12 +176,31 @@ export default async function Home() {
     ],
   };
 
+  const faqSchema = faqs.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(f => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.answer,
+      },
+    })),
+  } : null;
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <HomepageClient
         projects={projects}
         testimonials={testimonials}

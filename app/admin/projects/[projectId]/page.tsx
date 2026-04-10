@@ -791,6 +791,39 @@ export default function ProjectManagePage() {
     setProject(p => p ? { ...p, sections: p.sections.filter(s => s.id !== sectionId) } : p);
   };
 
+  const handleReorderSection = async (sectionId: string, direction: 'up' | 'down') => {
+    if (!project) return;
+    const sorted = [...project.sections].sort((a, b) => a.displayOrder - b.displayOrder);
+    const idx = sorted.findIndex(s => s.id === sectionId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    const a = sorted[idx];
+    const b = sorted[swapIdx];
+    // Swap displayOrders
+    const newOrderA = b.displayOrder;
+    const newOrderB = a.displayOrder;
+    // Optimistic update
+    setProject(p => p ? {
+      ...p,
+      sections: p.sections.map(s =>
+        s.id === a.id ? { ...s, displayOrder: newOrderA }
+        : s.id === b.id ? { ...s, displayOrder: newOrderB }
+        : s
+      ),
+    } : p);
+    // Persist both
+    await Promise.all([
+      fetch(`/api/admin/projects/${projectId}/sections/${a.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayOrder: newOrderA }),
+      }),
+      fetch(`/api/admin/projects/${projectId}/sections/${b.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayOrder: newOrderB }),
+      }),
+    ]);
+  };
+
   const startEditSection = (s: Section) => {
     setEditSectionId(s.id);
     setEditTitle(s.title);
@@ -1418,13 +1451,30 @@ export default function ProjectManagePage() {
             {project.sections.length === 0 ? (
               <div className="admin-empty">No sections yet. Add your first section above.</div>
             ) : (
-              [...project.sections].sort((a, b) => a.displayOrder - b.displayOrder).map(section => (
+              (() => {
+                const sortedSections = [...project.sections].sort((a, b) => a.displayOrder - b.displayOrder);
+                return sortedSections.map((section, sIdx) => (
                 <div key={section.id} className="admin-section-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                    {/* Reorder buttons */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleReorderSection(section.id, 'up')}
+                        disabled={sIdx === 0}
+                        title="Move up"
+                        style={{ padding: '2px 5px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: sIdx === 0 ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: sIdx === 0 ? 'not-allowed' : 'pointer', fontSize: 10, lineHeight: 1 }}
+                      >▲</button>
+                      <button
+                        onClick={() => handleReorderSection(section.id, 'down')}
+                        disabled={sIdx === sortedSections.length - 1}
+                        title="Move down"
+                        style={{ padding: '2px 5px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: sIdx === sortedSections.length - 1 ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: sIdx === sortedSections.length - 1 ? 'not-allowed' : 'pointer', fontSize: 10, lineHeight: 1 }}
+                      >▼</button>
+                    </div>
                     <div className="admin-section-item-info" style={{ flex: 1 }}>
                       <div className="admin-section-item-title">{section.title}</div>
                       <div className="admin-section-item-meta">
-                        {SECTION_TYPES.find(t => t.value === section.sectionType)?.label ?? section.sectionType} · Order: {section.displayOrder}
+                        {SECTION_TYPES.find(t => t.value === section.sectionType)?.label ?? section.sectionType}
                       </div>
                     </div>
                     <div className="admin-section-item-actions" style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -1542,7 +1592,8 @@ export default function ProjectManagePage() {
                     </div>
                   )}
                 </div>
-              ))
+              ));
+              })()
             )}
           </div>
         </div>

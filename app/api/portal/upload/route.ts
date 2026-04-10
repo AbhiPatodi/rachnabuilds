@@ -22,6 +22,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const ALLOWED_TYPES = new Set([
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain', 'text/csv',
+    'application/zip', 'application/x-zip-compressed', 'application/x-zip',
+  ]);
+
   const form = await req.formData();
   const file = form.get('file') as File | null;
   if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -29,6 +42,13 @@ export async function POST(req: NextRequest) {
   // 10 MB limit
   if (file.size > 10 * 1024 * 1024) {
     return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 });
+  }
+
+  // File type validation
+  if (!ALLOWED_TYPES.has(file.type)) {
+    return NextResponse.json({
+      error: 'File type not allowed. Accepted: images, PDF, Word, Excel, PowerPoint, CSV, ZIP',
+    }, { status: 415 });
   }
 
   const randomHex = crypto.randomBytes(16).toString('hex');

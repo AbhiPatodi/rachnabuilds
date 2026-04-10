@@ -109,6 +109,14 @@ export default function LeadsPage() {
 
   return (
     <div className="admin-content">
+      <style>{`
+        @media (max-width: 767px) {
+          .leads-col-service, .leads-col-budget, .leads-col-message { display: none; }
+          .leads-filter-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 2px; }
+          .leads-filter-tabs::-webkit-scrollbar { display: none; }
+          .leads-filter-tabs button { white-space: nowrap; flex-shrink: 0; }
+        }
+      `}</style>
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Leads</h1>
@@ -139,7 +147,7 @@ export default function LeadsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+      <div className="leads-filter-tabs" style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
         {(['all', 'new', 'contacted', 'converted', 'archived'] as FilterTab[]).map(tab => (
           <button
             key={tab}
@@ -178,7 +186,7 @@ export default function LeadsPage() {
       </div>
 
       {/* Table */}
-      <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="admin-card" style={{ padding: 0, overflow: 'clip' }}>
         {filtered.length === 0 ? (
           <div className="admin-empty">
             <div style={{ marginBottom: 8, fontSize: 32 }}>📬</div>
@@ -186,14 +194,15 @@ export default function LeadsPage() {
             <div>Leads from your contact form will appear here.</div>
           </div>
         ) : (
+          <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Email / Phone</th>
-                <th>Service</th>
-                <th>Budget</th>
-                <th>Message</th>
+                <th className="leads-col-service">Service</th>
+                <th className="leads-col-budget">Budget</th>
+                <th className="leads-col-message">Message</th>
                 <th>Status</th>
                 <th>Date</th>
                 <th>Actions</th>
@@ -216,13 +225,13 @@ export default function LeadsPage() {
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{lead.phone}</div>
                       )}
                     </td>
-                    <td>
+                    <td className="leads-col-service">
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{lead.service || '—'}</span>
                     </td>
-                    <td>
+                    <td className="leads-col-budget">
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{lead.budget || '—'}</span>
                     </td>
-                    <td>
+                    <td className="leads-col-message">
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                         {lead.message.length > 60 ? lead.message.slice(0, 60) + '…' : lead.message}
                       </span>
@@ -327,6 +336,7 @@ export default function LeadsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

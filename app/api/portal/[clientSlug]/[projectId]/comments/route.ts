@@ -48,29 +48,34 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const project = await verifyProjectBelongsToClient(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const { context = 'general', author, text } = await req.json();
-  if (!author?.trim() || !text?.trim()) return NextResponse.json({ error: 'author and text required' }, { status: 400 });
+  // Use verified client name from DB — never trust author from request body
+  const clientRow = await prisma.client.findUnique({ where: { slug: clientSlug }, select: { name: true } });
+  const author = clientRow?.name ?? 'Client';
+
+  const { context = 'general', text } = await req.json();
+  if (!text?.trim()) return NextResponse.json({ error: 'text required' }, { status: 400 });
 
   const comment = await prisma.projectComment.create({
     data: {
       id: randomBytes(12).toString('hex'),
       projectId: project.id,
       context,
-      author: author.trim(),
+      author,
       text: text.trim(),
     },
   });
 
+  const isSection = context.startsWith('section:');
   sendPushToAll(
-    'New Comment',
-    `${author.trim()}: ${text.trim().slice(0, 80)}`,
+    isSection ? `New comment on ${project.name}` : 'New Comment',
+    `${author}: ${text.trim().slice(0, 80)}`,
     `/admin/projects/${project.id}`
   ).catch(() => {});
 
   // Fire-and-forget: email Rachna about the new client comment
   notifyClientComment(
     project.name,
-    author.trim(),
+    author,
     text.trim(),
     `https://rachnabuilds.com/admin/projects/${project.id}`,
   ).catch(console.error);

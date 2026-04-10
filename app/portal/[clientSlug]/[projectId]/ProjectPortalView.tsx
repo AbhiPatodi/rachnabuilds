@@ -53,6 +53,7 @@ interface ProjectData {
   name: string;
   clientType: string;
   status: string;
+  updatedAt?: string;
   adminProfile: Record<string, unknown> | null;
   sections: ProjectSection[];
   documents: ProjectDocument[];
@@ -366,7 +367,7 @@ function SectionComments({
     const res = await fetch(`/api/portal/${clientSlug}/${projectId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context, author: clientName, text }),
+      body: JSON.stringify({ context, text }),
     });
     if (res.ok) {
       const c = await res.json();
@@ -700,14 +701,14 @@ function DocumentsPanel({
           onClick={() => setSubTab('files')}
           style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, color: subTab === 'files' ? 'var(--accent)' : 'var(--text-muted)', background: 'none', border: 'none', borderBottom: subTab === 'files' ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', marginBottom: -1 }}
         >
-          📁 Your Files
+          📁 My Submissions
         </button>
         {requiredDocs.length > 0 && (
           <button
             onClick={() => setSubTab('required')}
             style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, color: subTab === 'required' ? 'var(--accent)' : 'var(--text-muted)', background: 'none', border: 'none', borderBottom: subTab === 'required' ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', marginBottom: -1 }}
           >
-            📋 Requested from You
+            📋 What We Need From You
             <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: submittedCount === requiredDocs.length ? 'rgba(6,214,160,0.15)' : 'rgba(245,158,11,0.15)', color: submittedCount === requiredDocs.length ? '#06D6A0' : '#F59E0B' }}>
               {submittedCount}/{requiredDocs.length}
             </span>
@@ -850,8 +851,8 @@ function DocumentsPanel({
                 ) : docUrl && docUrl !== 'pending' && docUrl.startsWith('http') ? (
                   <a href={docUrl} target="_blank" rel="noopener noreferrer" className="portal-doc-link" onClick={() => onDocOpen(doc.id, doc.title)}>View document →</a>
                 ) : null}
-                {/* Mark as Reviewed — shown for any doc with a URL */}
-                {docUrl && docUrl.trim() !== '' && docUrl !== 'pending' && (() => {
+                {/* Mark as Reviewed — only for admin-delivered docs (not client's own uploads) */}
+                {!isClientUpload && docUrl && docUrl.trim() !== '' && docUrl !== 'pending' && (() => {
                   const entry = approvalStates[doc.id];
                   if (entry) {
                     return (
@@ -1323,7 +1324,18 @@ function PortalContractView({ data }: { data: ContractData2 }) {
 
 export default function ProjectPortalView({ clientSlug, clientName, project, hasMultipleProjects, visibleTabs, initialContracts }: ProjectPortalViewProps) {
   const router = useRouter();
-  const tabs = [...(visibleTabs ? TABS.filter(t => visibleTabs.includes(t.id)) : TABS), { id: 'messages', label: 'Messages' }];
+  const tabs = (() => {
+    const filtered = visibleTabs ? TABS.filter(t => visibleTabs.includes(t.id)) : [...TABS];
+    // For audit/optimisation projects, put Insights before Submissions
+    if (['audit_only', 'existing_optimisation'].includes(project.clientType)) {
+      const subIdx = filtered.findIndex(t => t.id === 'submissions');
+      const auditIdx = filtered.findIndex(t => t.id === 'audit');
+      if (subIdx !== -1 && auditIdx !== -1 && auditIdx > subIdx) {
+        [filtered[subIdx], filtered[auditIdx]] = [filtered[auditIdx], filtered[subIdx]];
+      }
+    }
+    return [...filtered, { id: 'messages', label: 'Messages' }];
+  })();
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? 'submissions');
 
   // Mobile detection
@@ -1340,7 +1352,8 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
   const [activeContractPhase, setActiveContractPhase] = useState(1);
   const [contractLoading, setContractLoading] = useState(false);
   const [contractSigning, setContractSigning] = useState(false);
-  const [signatureName, setSignatureName] = useState('');
+  const [signatureName, setSignatureName] = useState(clientName);
+  const [signConfirmed, setSignConfirmed] = useState(false);
   const [signError, setSignError] = useState('');
 
   // Payments tab
@@ -1375,6 +1388,37 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
   const [proposalAcceptedAt, setProposalAcceptedAt] = useState(
     (project.adminProfile?.proposalAcceptedAt as string) ?? ''
   );
+
+  // Password change modal
+  const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwConfirm, setPwConfirm] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handlePasswordChange = async () => {
+    if (!pwCurrent.trim() || !pwNew.trim()) { setPwError('Please fill in all fields'); return; }
+    if (pwNew.trim().length < 6) { setPwError('New password must be at least 6 characters'); return; }
+    if (pwNew !== pwConfirm) { setPwError('New passwords do not match'); return; }
+    setPwError(''); setPwSaving(true);
+    try {
+      const res = await fetch(`/api/portal/${clientSlug}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwCurrent.trim(), newPassword: pwNew.trim() }),
+      });
+      if (res.ok) {
+        setPwSuccess(true);
+        setTimeout(() => { setPwModalOpen(false); setPwSuccess(false); setPwCurrent(''); setPwNew(''); setPwConfirm(''); }, 2000);
+      } else {
+        const d = await res.json();
+        setPwError(d.error ?? 'Failed to change password');
+      }
+    } catch { setPwError('Something went wrong'); }
+    finally { setPwSaving(false); }
+  };
 
   const sessionIdRef    = useRef<string>('');
   const tabStartTimeRef = useRef<number>(Date.now());
@@ -1686,6 +1730,38 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
           <div className="portal-header-right">
             <span className="portal-client-name">{clientName}</span>
             <span className="portal-badge">{project.name}</span>
+            {/* Contact Rachna shortcut */}
+            {(() => {
+              const wa = project.adminProfile?.whatsapp as string | undefined;
+              const ph = project.adminProfile?.phone as string | undefined;
+              if (!wa && !ph) return null;
+              return (
+                <a
+                  href={wa ? `https://wa.me/${wa.replace(/\D/g, '')}` : `tel:${ph}`}
+                  target={wa ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                  title="Contact Rachna"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+                >
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.01 2.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/>
+                  </svg>
+                  Contact Rachna
+                </a>
+              );
+            })()}
+            {/* Change password */}
+            <button
+              className="portal-theme-btn"
+              onClick={() => setPwModalOpen(true)}
+              title="Change password"
+              aria-label="Change password"
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
             <button className="portal-theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
               {theme === 'dark' ? (
                 <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -2046,11 +2122,22 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                             onChange={e => setSignatureName(e.target.value)}
                             style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, marginBottom: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic' }}
                           />
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={signConfirmed}
+                              onChange={e => setSignConfirmed(e.target.checked)}
+                              style={{ marginTop: 2, flexShrink: 0, accentColor: '#06D6A0', width: 16, height: 16 }}
+                            />
+                            <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                              I confirm that I am <strong>{clientName}</strong> and I have read and agree to the terms of this service agreement.
+                            </span>
+                          </label>
                           {signError && <p style={{ fontSize: 12, color: '#FF6B6B', marginBottom: 12 }}>{signError}</p>}
                           <button
                             onClick={handleSign}
-                            disabled={contractSigning || !signatureName.trim()}
-                            style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontWeight: 700, fontSize: 14, cursor: contractSigning ? 'not-allowed' : 'pointer', opacity: contractSigning || !signatureName.trim() ? 0.7 : 1 }}
+                            disabled={contractSigning || !signatureName.trim() || !signConfirmed}
+                            style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontWeight: 700, fontSize: 14, cursor: (contractSigning || !signConfirmed) ? 'not-allowed' : 'pointer', opacity: (contractSigning || !signatureName.trim() || !signConfirmed) ? 0.6 : 1 }}
                           >
                             {contractSigning ? 'Signing…' : '✍ I Agree & Sign'}
                           </button>
@@ -2426,6 +2513,79 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
       </main>
 
+      {/* Password change modal */}
+      {pwModalOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) { setPwModalOpen(false); setPwError(''); } }}
+        >
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Change Password</div>
+              <button onClick={() => { setPwModalOpen(false); setPwError(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>✕</button>
+            </div>
+            {pwSuccess ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>✅</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#06D6A0' }}>Password changed successfully</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Current Password</label>
+                    <input
+                      type="password"
+                      value={pwCurrent}
+                      onChange={e => setPwCurrent(e.target.value)}
+                      placeholder="Enter current password"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>New Password</label>
+                    <input
+                      type="password"
+                      value={pwNew}
+                      onChange={e => setPwNew(e.target.value)}
+                      placeholder="At least 6 characters"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={pwConfirm}
+                      onChange={e => setPwConfirm(e.target.value)}
+                      placeholder="Repeat new password"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14 }}
+                      onKeyDown={e => { if (e.key === 'Enter') handlePasswordChange(); }}
+                    />
+                  </div>
+                </div>
+                {pwError && <p style={{ fontSize: 12, color: '#FF6B6B', marginBottom: 12 }}>{pwError}</p>}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => { setPwModalOpen(false); setPwError(''); }}
+                    style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePasswordChange}
+                    disabled={pwSaving || !pwCurrent.trim() || !pwNew.trim() || !pwConfirm.trim()}
+                    style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontWeight: 700, fontSize: 13, cursor: pwSaving ? 'wait' : 'pointer', opacity: pwSaving ? 0.7 : 1 }}
+                  >
+                    {pwSaving ? 'Saving…' : 'Update Password'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="portal-footer">
         <div className="portal-footer-inner">
@@ -2433,6 +2593,11 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
             Prepared by <strong>Rachna Builds</strong> &middot;{' '}
             <a href="mailto:rachnajain2103@gmail.com">rachnajain2103@gmail.com</a> &middot;{' '}
             <a href="https://rachnabuilds.com" target="_blank" rel="noopener noreferrer">rachnabuilds.com</a>
+            {project.updatedAt && (
+              <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontSize: 11 }}>
+                &middot; Last updated {new Date(project.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            )}
           </div>
           <div className="portal-footer-socials">
             <a href="https://www.linkedin.com/in/rachnabuilds/" target="_blank" rel="noopener noreferrer" className="portal-social-link" aria-label="LinkedIn">

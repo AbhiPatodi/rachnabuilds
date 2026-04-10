@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { JSX } from "react";
@@ -85,6 +86,40 @@ function inlineFormat(text: string): string {
   // Italic: *text*
   result = result.replace(/\*(.+?)\*/g, "<em>$1</em>");
   return result;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await prisma.blogPost.findUnique({
+    where: { slug, isPublished: true },
+    select: { title: true, excerpt: true, coverImage: true, publishedAt: true, slug: true },
+  });
+  if (!post) return {};
+  const ogImage = post.coverImage || 'https://rachnabuilds.com/og-image.png';
+  return {
+    title: `${post.title} | Rachna Builds`,
+    description: post.excerpt ?? undefined,
+    alternates: { canonical: `https://rachnabuilds.com/blog/${post.slug}` },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt ?? undefined,
+      url: `https://rachnabuilds.com/blog/${post.slug}`,
+      type: 'article',
+      publishedTime: post.publishedAt?.toISOString(),
+      authors: ['Rachna Jain'],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt ?? undefined,
+      images: [ogImage],
+    },
+  };
 }
 
 export default async function BlogPostPage({
