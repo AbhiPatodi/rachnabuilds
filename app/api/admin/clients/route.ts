@@ -20,24 +20,39 @@ export async function GET(_req: NextRequest) {
         _count: { select: { projects: true } },
         projects: {
           orderBy: { updatedAt: 'desc' },
-          take: 1,
-          select: { updatedAt: true },
+          select: { updatedAt: true, status: true, adminProfile: true },
         },
       },
     });
 
-    const result = clients.map(c => ({
-      id: c.id,
-      name: c.name,
-      email: c.email,
-      phone: c.phone,
-      slug: c.slug,
-      isActive: c.isActive,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-      projectCount: c._count.projects,
-      lastActivity: c.projects[0]?.updatedAt ?? c.updatedAt,
-    }));
+    const result = clients.map(c => {
+      const statuses = c.projects.map(p => p.status);
+      const hasActive    = statuses.some(s => s === 'active');
+      const hasCompleted = statuses.some(s => s === 'completed');
+      const allCompleted = statuses.length > 0 && statuses.every(s => s === 'completed');
+      // prospect = no active/completed projects, or all projects are draft
+      const isProspect   = !c.isActive || statuses.length === 0 || statuses.every(s => s === 'draft');
+
+      const overallStatus = !c.isActive       ? 'inactive'
+        : allCompleted                         ? 'completed'
+        : hasActive                            ? 'active'
+        : isProspect                           ? 'prospect'
+        : 'draft';
+
+      return {
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+        slug: c.slug,
+        isActive: c.isActive,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        projectCount: c._count.projects,
+        lastActivity: c.projects[0]?.updatedAt ?? c.updatedAt,
+        overallStatus,
+      };
+    });
 
     return NextResponse.json(result);
   } catch (err) {

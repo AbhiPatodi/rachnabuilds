@@ -21,6 +21,23 @@ const STATUS_COLORS: Record<string, string> = {
   completed: '#A78BFA',
 };
 
+const OVERALL_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  active:    { label: 'Active',    color: '#06D6A0', bg: 'rgba(6,214,160,0.12)'    },
+  prospect:  { label: 'Prospect',  color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'   },
+  completed: { label: 'Completed', color: '#A78BFA', bg: 'rgba(167,139,250,0.12)'  },
+  draft:     { label: 'Draft',     color: '#8B95A8', bg: 'rgba(139,149,168,0.12)'  },
+  inactive:  { label: 'Inactive',  color: '#FF6B6B', bg: 'rgba(255,107,107,0.12)'  },
+};
+
+type FilterKey = 'all' | 'active' | 'prospect' | 'completed' | 'inactive';
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: 'all',       label: 'All' },
+  { key: 'active',    label: 'Active' },
+  { key: 'prospect',  label: 'Prospects' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'inactive',  label: 'Inactive' },
+];
+
 interface Project {
   id: string;
   name: string;
@@ -40,6 +57,7 @@ interface Client {
   createdAt: string;
   projectCount: number;
   lastActivity: string;
+  overallStatus: string;
   projects?: Project[];
 }
 
@@ -55,6 +73,7 @@ export default function ClientsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [projectsCache, setProjectsCache] = useState<Record<string, Project[]>>({});
   const [projectsLoading, setProjectsLoading] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>('all');
 
   useEffect(() => {
     fetch('/api/admin/clients')
@@ -80,8 +99,23 @@ export default function ClientsPage() {
     }
   };
 
+  const filteredClients = filter === 'all' ? clients : clients.filter(c => c.overallStatus === filter);
+
+  // Count per filter for badges
+  const counts = FILTERS.reduce((acc, f) => {
+    acc[f.key] = f.key === 'all' ? clients.length : clients.filter(c => c.overallStatus === f.key).length;
+    return acc;
+  }, {} as Record<FilterKey, number>);
+
   return (
     <div className="admin-content">
+      <style>{`
+        @media (max-width: 600px) {
+          .client-col-date { display: none; }
+          .client-col-count { display: none; }
+          .client-row { gap: 10px !important; padding: 14px 14px !important; }
+        }
+      `}</style>
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Clients</h1>
@@ -92,21 +126,60 @@ export default function ClientsPage() {
         </Link>
       </div>
 
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {FILTERS.map(f => {
+          const isActive = filter === f.key;
+          const cfg = f.key !== 'all' ? OVERALL_STATUS_CONFIG[f.key] : null;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: isActive ? `1px solid ${cfg?.color ?? 'var(--accent)'}` : '1px solid var(--border)',
+                background: isActive ? (cfg?.bg ?? 'rgba(6,214,160,0.12)') : 'var(--bg-card)',
+                color: isActive ? (cfg?.color ?? 'var(--accent)') : 'var(--text-secondary)',
+                fontSize: 13, fontWeight: isActive ? 700 : 400,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                transition: 'all 0.15s',
+              }}
+            >
+              {f.label}
+              {counts[f.key] > 0 && (
+                <span style={{
+                  background: isActive ? (cfg?.color ?? 'var(--accent)') : 'var(--bg-elevated)',
+                  color: isActive ? '#0B0F1A' : 'var(--text-muted)',
+                  borderRadius: 100, padding: '1px 7px', fontSize: 11, fontWeight: 700,
+                }}>
+                  {counts[f.key]}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {error && <div className="admin-alert admin-alert-error">{error}</div>}
 
       <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
           <div className="admin-empty">Loading clients…</div>
-        ) : clients.length === 0 ? (
+        ) : filteredClients.length === 0 ? (
           <div className="admin-empty">
-            No clients yet. <Link href="/admin/clients/new" style={{ color: 'var(--accent)' }}>Create your first client →</Link>
+            {filter === 'all'
+              ? <><span>No clients yet. </span><Link href="/admin/clients/new" style={{ color: 'var(--accent)' }}>Create your first client →</Link></>
+              : `No ${FILTERS.find(f => f.key === filter)?.label.toLowerCase()} clients.`
+            }
           </div>
         ) : (
           <div>
-            {clients.map((client, i) => {
+            {filteredClients.map((client, i) => {
               const isExpanded = expanded === client.id;
               const projects = projectsCache[client.id] ?? [];
               const isLoadingProjects = projectsLoading === client.id;
+              const statusCfg = OVERALL_STATUS_CONFIG[client.overallStatus] ?? OVERALL_STATUS_CONFIG['draft'];
 
               return (
                 <div
@@ -115,6 +188,7 @@ export default function ClientsPage() {
                 >
                   {/* Client row */}
                   <div
+                    className="client-row"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -145,7 +219,7 @@ export default function ClientsPage() {
                     </div>
 
                     {/* Project count */}
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
+                    <div className="client-col-count" style={{ fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>
                       <span style={{ fontWeight: 600, color: 'var(--text)' }}>{client.projectCount}</span> project{client.projectCount !== 1 ? 's' : ''}
                     </div>
 
@@ -155,13 +229,19 @@ export default function ClientsPage() {
                     </div>
 
                     {/* Status */}
-                    <span className={`badge ${client.isActive ? 'badge-green' : 'badge-red'}`} style={{ flexShrink: 0 }}>
-                      <span className="badge-dot" />
-                      {client.isActive ? 'Active' : 'Inactive'}
+                    <span style={{
+                      flexShrink: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                      textTransform: 'uppercase', borderRadius: 6, padding: '3px 9px',
+                      color: statusCfg.color, background: statusCfg.bg,
+                      border: `1px solid ${statusCfg.color}33`,
+                      display: 'flex', alignItems: 'center', gap: 5,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, flexShrink: 0 }} />
+                      {statusCfg.label}
                     </span>
 
                     {/* Last activity */}
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    <div className="client-col-date" style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
                       {formatDate(client.lastActivity)}
                     </div>
 
