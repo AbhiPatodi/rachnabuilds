@@ -614,10 +614,30 @@ export default function ProjectManagePage() {
     const pw = sharePassword || '[password]';
     const firstName = p.client.name.split(' ')[0];
     const proposalVisible = p.adminProfile?.proposalVisible === true;
-    const body = proposalVisible
-      ? `I've put together everything for ${p.name} in one place — the proposal, project scope, timeline, and what we'd need from you to get started.`
-      : `I've completed a full audit of your website and put together all the findings in one place — what we found, how you compare to competitors, and what needs to be fixed first.`;
-    return `Hi ${firstName}! 👋\n\n${body}\n\nYou can review it all here:\n\n🔗 ${link}\n🔑 Access: ${pw}\n\nTake your time to look through it. Happy to answer any questions or jump on a quick call if helpful 🤍\n\n— Rachna\nrachnabuilds.com`;
+
+    // Dynamically detect which tabs have content
+    const AUDIT_TYPES = ['executive_summary', 'performance_audit', 'seo_audit', 'cro_audit', 'action_plan'];
+    const COMPETITOR_TYPES = ['competitor_analysis', 'pdp_analysis'];
+    const PROPOSAL_TYPES = ['proposal', 'mockup_review'];
+
+    const hasAudit      = p.sections.some(s => AUDIT_TYPES.includes(s.sectionType));
+    const hasCompetitor = p.sections.some(s => COMPETITOR_TYPES.includes(s.sectionType));
+    const hasProposal   = proposalVisible && p.sections.some(s => PROPOSAL_TYPES.includes(s.sectionType));
+
+    const tabLines: string[] = [];
+    if (hasAudit)      tabLines.push('📊 Insights — full audit findings and what to fix first');
+    if (hasCompetitor) tabLines.push('🏆 References — how you compare to top competitors');
+    if (hasProposal)   tabLines.push('📋 Proposal — recommended scope, timeline, and pricing');
+
+    const intro = hasProposal
+      ? `I've put together your audit and full proposal for ${p.name} in one place.`
+      : `I've completed a full audit of your website and put together all the findings in your client portal.`;
+
+    const tabSection = tabLines.length > 0
+      ? `\n\nHere's what's inside:\n${tabLines.join('\n')}`
+      : '';
+
+    return `Hi ${firstName}! 👋\n\n${intro}${tabSection}\n\nOpen it here:\n\n🔗 ${link}\n🔑 Access: ${pw}\n\nTake your time to look through it. Happy to answer any questions or jump on a quick call if helpful 🤍\n\n— Rachna\nrachnabuilds.com`;
   };
 
   const copyShareMessage = async () => {
