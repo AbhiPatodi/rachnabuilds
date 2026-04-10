@@ -613,7 +613,11 @@ export default function ProjectManagePage() {
     const link = `https://rachnabuilds.com/portal/${p.client.slug}`;
     const pw = sharePassword || '[password]';
     const firstName = p.client.name.split(' ')[0];
-    return `Hi ${firstName}! 👋\n\nI've put together everything for ${p.name} in one place — the proposal, project scope, timeline, and what we'd need from you to get started.\n\nYou can review it all here:\n\n🔗 ${link}\n🔑 Access: ${pw}\n\nTake your time to look through it. Happy to answer any questions or jump on a quick call if helpful 🤍\n\n— Rachna\nrachnabuilds.com`;
+    const proposalVisible = p.adminProfile?.proposalVisible === true;
+    const body = proposalVisible
+      ? `I've put together everything for ${p.name} in one place — the proposal, project scope, timeline, and what we'd need from you to get started.`
+      : `I've completed a full audit of your website and put together all the findings in one place — what we found, how you compare to competitors, and what needs to be fixed first.`;
+    return `Hi ${firstName}! 👋\n\n${body}\n\nYou can review it all here:\n\n🔗 ${link}\n🔑 Access: ${pw}\n\nTake your time to look through it. Happy to answer any questions or jump on a quick call if helpful 🤍\n\n— Rachna\nrachnabuilds.com`;
   };
 
   const copyShareMessage = async () => {
