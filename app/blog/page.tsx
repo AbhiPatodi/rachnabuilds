@@ -1,9 +1,30 @@
+import type { Metadata } from 'next';
 import { prisma } from "@/lib/prisma";
 import BlogListClient from "./BlogListClient";
 import SiteNav from "@/app/components/SiteNav";
 import SiteFooter from "@/app/components/SiteFooter";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: 'Blog & Insights | Rachna Builds',
+  description: 'Practical guides on Shopify, WordPress, and e-commerce growth. Tips on speed, SEO, conversion rate optimisation, and running a better online store.',
+  alternates: {
+    canonical: 'https://rachnabuilds.com/blog',
+  },
+  openGraph: {
+    title: 'Blog & Insights — Rachna Builds',
+    description: 'Practical Shopify and WordPress guides from an e-commerce developer. Speed, SEO, CRO, and store growth tips.',
+    url: 'https://rachnabuilds.com/blog',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Rachna Builds Blog' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog & Insights — Rachna Builds',
+    description: 'Practical Shopify and WordPress guides from an e-commerce developer.',
+    images: ['/og-image.png'],
+  },
+};
 
 export default async function BlogPage() {
   const posts = await prisma.blogPost.findMany({

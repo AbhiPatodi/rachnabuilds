@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   title: "Rachna Builds — Shopify & E-Commerce Developer",
   description:
     "Rachna Jain — Shopify, WordPress, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
+  keywords: [
+    'Shopify developer', 'WordPress developer', 'e-commerce developer India',
+    'Shopify store build', 'WooCommerce developer', 'Webflow developer',
+    'Shopify speed optimisation', 'CRO specialist', 'Rachna Jain', 'Rachna Builds',
+  ],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

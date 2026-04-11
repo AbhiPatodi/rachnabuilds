@@ -7,6 +7,21 @@ import SiteFooter from '@/app/components/SiteFooter';
 export const metadata: Metadata = {
   title: 'Free E-Commerce Tools | Rachna Builds',
   description: 'Free tools for Shopify and WordPress store owners — speed checker, CRO checklist, and personal store audit. No signup required.',
+  alternates: {
+    canonical: 'https://rachnabuilds.com/tools',
+  },
+  openGraph: {
+    title: 'Free E-Commerce Tools — Rachna Builds',
+    description: 'Free Shopify & WordPress tools — speed checker, CRO checklist, and personal store audit. No signup required.',
+    url: 'https://rachnabuilds.com/tools',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Free E-Commerce Tools — Rachna Builds' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free E-Commerce Tools — Rachna Builds',
+    description: 'Free Shopify & WordPress tools — speed checker, CRO checklist, and personal store audit. No signup.',
+    images: ['/og-image.png'],
+  },
 };
 
 export default function ToolsPage() {
