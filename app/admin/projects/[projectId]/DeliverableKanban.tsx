@@ -32,6 +32,18 @@ function isImage(url: string | null): boolean {
   return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
 }
 
+async function downloadFile(url: string, name: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch { window.open(url, '_blank'); }
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FeedbackReply {
@@ -390,10 +402,11 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                           alt={selectedTask.attachmentName || 'Attachment'}
                           style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)', display: 'block', maxHeight: 320, objectFit: 'contain', background: 'var(--bg)' }}
                         />
-                        <a href={selectedTask.attachmentUrl} download target="_blank" rel="noopener noreferrer"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 11, color: '#A78BFA', textDecoration: 'none', fontWeight: 600 }}>
+                        <button
+                          onClick={() => downloadFile(selectedTask.attachmentUrl!, selectedTask.attachmentName || 'image.jpg')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>
                           ⬇ Download {selectedTask.attachmentName || 'image'}
-                        </a>
+                        </button>
                       </div>
                     ) : (
                       <a href={selectedTask.attachmentUrl} target="_blank" rel="noopener noreferrer"
