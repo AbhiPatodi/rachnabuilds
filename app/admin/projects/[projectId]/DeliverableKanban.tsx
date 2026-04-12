@@ -30,7 +30,7 @@ interface Props {
 // ─── Column config ─────────────────────────────────────────────────────────
 
 const COLUMNS = [
-  { id: 'draft',             label: 'Backlog',           color: '#94A3B8', bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.25)' },
+  { id: 'backlog',           label: 'Backlog',           color: '#94A3B8', bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.25)' },
   { id: 'in_progress',       label: 'In Progress',       color: '#60A5FA', bg: 'rgba(96,165,250,0.1)',   border: 'rgba(96,165,250,0.25)'  },
   { id: 'under_review',      label: 'Ready for Review',  color: '#FBBF24', bg: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.25)'  },
   { id: 'changes_requested', label: 'Changes Requested', color: '#F87171', bg: 'rgba(248,113,113,0.1)',  border: 'rgba(248,113,113,0.25)' },

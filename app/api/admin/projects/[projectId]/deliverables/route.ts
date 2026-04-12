@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         title: data.title.trim(),
         description: data.description?.trim() || null,
         previewUrl: data.previewUrl?.trim() || null,
-        status: data.status || 'draft',
+        status: data.status || 'backlog',
         addedBy: 'admin',
         displayOrder: data.displayOrder ?? 0,
       },

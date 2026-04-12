@@ -368,7 +368,7 @@ model ProjectDeliverable {
   title        String
   description  String?
   previewUrl   String?
-  status       String               @default("draft")  // draft | under_review | changes_requested | in_progress | completed
+  status       String               @default("backlog")  // backlog | in_progress | under_review | changes_requested | completed
   addedBy      String               @default("admin")  // admin | client
   displayOrder Int                  @default(0)
   createdAt    DateTime             @default(now())
