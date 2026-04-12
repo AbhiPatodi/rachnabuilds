@@ -48,6 +48,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         title: data.title.trim(),
         description: data.description?.trim() || null,
         previewUrl: data.previewUrl?.trim() || null,
+        attachmentUrl: data.attachmentUrl || null,
+        attachmentName: data.attachmentName || null,
         status: data.status || 'backlog',
         addedBy: 'admin',
         displayOrder: data.displayOrder ?? 0,

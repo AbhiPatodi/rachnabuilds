@@ -367,7 +367,9 @@ model ProjectDeliverable {
   milestoneId  String?
   title        String
   description  String?
-  previewUrl   String?
+  previewUrl     String?
+  attachmentUrl  String?
+  attachmentName String?
   status       String               @default("backlog")  // backlog | in_progress | under_review | changes_requested | completed
   addedBy      String               @default("admin")  // admin | client
   displayOrder Int                  @default(0)

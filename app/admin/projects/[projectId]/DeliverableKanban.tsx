@@ -15,6 +15,7 @@ interface TaskFeedback {
 }
 interface Task {
   id: string; title: string; description: string | null; previewUrl: string | null;
+  attachmentUrl: string | null; attachmentName: string | null;
   status: string; milestoneId: string | null; displayOrder: number; addedBy: string;
   createdAt: string; feedback: TaskFeedback[];
 }
@@ -52,6 +53,8 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   const [newDesc, setNewDesc] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [newMsId, setNewMsId] = useState('');
+  const [newAttachFile, setNewAttachFile] = useState<File | null>(null);
+  const newAttachRef = useRef<HTMLInputElement>(null);
   const [adding, setAdding] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [dragCardId, setDragCardId] = useState<string | null>(null);
@@ -125,6 +128,13 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
     if (!newTitle.trim()) return;
     setAdding(true);
     try {
+      let attachmentUrl: string | null = null;
+      let attachmentName: string | null = null;
+      if (newAttachFile) {
+        const fd = new FormData(); fd.append('file', newAttachFile);
+        const up = await fetch(`/api/portal/upload?slug=admin`, { method: 'POST', body: fd });
+        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = newAttachFile.name; }
+      }
       const res = await fetch(`/api/admin/projects/${projectId}/deliverables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,6 +143,8 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
           description: newDesc.trim() || null,
           previewUrl: newUrl.trim() || null,
           milestoneId: newMsId || null,
+          attachmentUrl,
+          attachmentName,
           status,
           displayOrder: tasks.filter(t => t.status === status).length,
         }),
@@ -141,6 +153,8 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
         const t = await res.json();
         setTasks(prev => [...prev, { ...t, feedback: [] }]);
         setNewTitle(''); setNewDesc(''); setNewUrl(''); setNewMsId('');
+        setNewAttachFile(null);
+        if (newAttachRef.current) newAttachRef.current.value = '';
         setAddingTo(null);
       }
     } finally { setAdding(false); }
@@ -552,6 +566,13 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                               🔗 Preview
                             </a>
                           )}
+                          {task.attachmentUrl && (
+                            <a href={task.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              style={{ fontSize: 11, color: '#A78BFA', fontWeight: 600, textDecoration: 'none' }}>
+                              📎 {task.attachmentName || 'File'}
+                            </a>
+                          )}
                           {openBugs > 0 && (
                             <span style={{ fontSize: 11, color: '#F87171', fontWeight: 600 }}>🐛 {openBugs}</span>
                           )}
@@ -611,16 +632,28 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                       style={{ marginBottom: 8, fontSize: 12 }}
                     />
                     {milestones.length > 0 && (
-                      <select className="admin-select" value={newMsId} onChange={e => setNewMsId(e.target.value)} style={{ marginBottom: 10, fontSize: 12 }}>
+                      <select className="admin-select" value={newMsId} onChange={e => setNewMsId(e.target.value)} style={{ marginBottom: 8, fontSize: 12 }}>
                         <option value="">— No milestone —</option>
                         {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
                       </select>
                     )}
+                    <input type="file" ref={newAttachRef} style={{ display: 'none' }} onChange={e => setNewAttachFile(e.target.files?.[0] ?? null)} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-ghost"
+                        style={{ fontSize: 11, padding: '4px 9px' }}
+                        onClick={() => newAttachRef.current?.click()}
+                      >📎 {newAttachFile ? newAttachFile.name : 'Attach file'}</button>
+                      {newAttachFile && (
+                        <button type="button" onClick={() => { setNewAttachFile(null); if (newAttachRef.current) newAttachRef.current.value = ''; }} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', padding: 0 }}>×</button>
+                      )}
+                    </div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={adding || !newTitle.trim()} onClick={() => handleAddTask(col.id)}>
                         {adding ? '…' : 'Add'}
                       </button>
-                      <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => { setAddingTo(null); setNewTitle(''); setNewDesc(''); setNewUrl(''); }}>Cancel</button>
+                      <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => { setAddingTo(null); setNewTitle(''); setNewDesc(''); setNewUrl(''); setNewAttachFile(null); }}>Cancel</button>
                     </div>
                   </div>
                 ) : (

@@ -63,12 +63,12 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     const project = await prisma.clientProject.findFirst({ where: { id: projectId, clientId: client.id }, select: { id: true } });
     if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const { title, description, status } = await req.json();
+    const { title, description, status, attachmentUrl, attachmentName } = await req.json();
     if (!title?.trim()) return NextResponse.json({ error: 'title required' }, { status: 400 });
 
     const count = await prisma.projectDeliverable.count({ where: { projectId: project.id } });
     const deliverable = await prisma.projectDeliverable.create({
-      data: { projectId: project.id, title: title.trim(), description: description?.trim() || null, status: status || 'backlog', addedBy: 'client', displayOrder: count },
+      data: { projectId: project.id, title: title.trim(), description: description?.trim() || null, status: status || 'backlog', addedBy: 'client', attachmentUrl: attachmentUrl || null, attachmentName: attachmentName || null, displayOrder: count },
       include: { feedback: { include: { replies: true } } },
     });
     return NextResponse.json(deliverable, { status: 201 });

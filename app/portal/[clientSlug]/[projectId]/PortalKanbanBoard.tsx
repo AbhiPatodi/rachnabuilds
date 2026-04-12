@@ -28,6 +28,8 @@ interface KanbanCard {
   title: string;
   description: string | null;
   previewUrl: string | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
   status: string;
   addedBy: string;
   feedback: CardFeedback[];
@@ -106,6 +108,8 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [newTaskFile, setNewTaskFile] = useState<File | null>(null);
+  const newTaskFileRef = useRef<HTMLInputElement>(null);
   const [addingTask, setAddingTask] = useState(false);
 
   // Add column form
@@ -331,10 +335,17 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
     if (!newTaskTitle.trim()) return;
     setAddingTask(true);
     try {
+      let attachmentUrl: string | null = null;
+      let attachmentName: string | null = null;
+      if (newTaskFile) {
+        const fd = new FormData(); fd.append('file', newTaskFile);
+        const up = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: fd });
+        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = newTaskFile.name; }
+      }
       const res = await fetch(`/api/portal/${clientSlug}/${projectId}/deliverables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTaskTitle.trim(), description: newTaskDesc.trim() || null, status: colId }),
+        body: JSON.stringify({ title: newTaskTitle.trim(), description: newTaskDesc.trim() || null, status: colId, attachmentUrl, attachmentName }),
       });
       if (res.ok) {
         const newCard = await res.json();
@@ -342,6 +353,8 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
         setAddingTo(null);
         setNewTaskTitle('');
         setNewTaskDesc('');
+        setNewTaskFile(null);
+        if (newTaskFileRef.current) newTaskFileRef.current.value = '';
       }
     } catch { /* ignore */ }
     setAddingTask(false);
@@ -391,6 +404,12 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                 <a href={selectedCard.previewUrl} target="_blank" rel="noopener noreferrer"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none' }}>
                   🔗 View Preview
+                </a>
+              )}
+              {selectedCard.attachmentUrl && (
+                <a href={selectedCard.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)' }}>
+                  📎 {selectedCard.attachmentName || 'Attachment'}
                 </a>
               )}
             </div>
@@ -688,6 +707,13 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                             🔗 Preview
                           </a>
                         )}
+                        {card.attachmentUrl && (
+                          <a href={card.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            style={{ fontSize: 11, color: '#A78BFA', fontWeight: 600, textDecoration: 'none' }}>
+                            📎 {card.attachmentName || 'Attachment'}
+                          </a>
+                        )}
                         {openBugs > 0 && (
                           <span style={{ fontSize: 11, color: '#F87171', fontWeight: 600 }}>🐛 {openBugs}</span>
                         )}
@@ -718,6 +744,17 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                     rows={2}
                     style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: 'var(--text)', fontSize: 12, resize: 'none', marginBottom: 8, boxSizing: 'border-box' }}
                   />
+                  <input type="file" ref={newTaskFileRef} style={{ display: 'none' }} onChange={e => setNewTaskFile(e.target.files?.[0] ?? null)} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => newTaskFileRef.current?.click()}
+                      style={{ padding: '5px 10px', background: 'transparent', border: `1px solid ${col.color}44`, borderRadius: 7, color: col.color, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                    >📎 {newTaskFile ? newTaskFile.name : 'Attach file'}</button>
+                    {newTaskFile && (
+                      <button type="button" onClick={() => { setNewTaskFile(null); if (newTaskFileRef.current) newTaskFileRef.current.value = ''; }} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
                       onClick={() => addTask(col.id)}
@@ -725,7 +762,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                       style={{ flex: 1, padding: '6px 0', background: col.color, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', borderRadius: 8, cursor: 'pointer', opacity: addingTask || !newTaskTitle.trim() ? 0.6 : 1 }}
                     >{addingTask ? '…' : 'Add'}</button>
                     <button
-                      onClick={() => { setAddingTo(null); setNewTaskTitle(''); setNewTaskDesc(''); }}
+                      onClick={() => { setAddingTo(null); setNewTaskTitle(''); setNewTaskDesc(''); setNewTaskFile(null); }}
                       style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
                     >Cancel</button>
                   </div>
