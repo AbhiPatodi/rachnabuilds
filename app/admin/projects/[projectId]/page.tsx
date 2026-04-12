@@ -1304,11 +1304,6 @@ export default function ProjectManagePage() {
             {tab === 'deliverables' && ` (${deliverables.length})`}
             {tab === 'sections' && ` (${project.sections.length})`}
             {tab === 'documents' && ` (${project.documents.length})`}
-            {tab === 'messages' && msgUnreadCount > 0 && (
-              <span style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 18, height: 18, borderRadius: 100, background: '#06D6A0', color: '#0B0F1A', fontSize: 10, fontWeight: 700, padding: '0 4px' }}>
-                {msgUnreadCount}
-              </span>
-            )}
           </button>
         ))}
       </div>
