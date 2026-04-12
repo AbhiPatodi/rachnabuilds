@@ -43,6 +43,7 @@ interface KanbanColumn {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_COLS: KanbanColumn[] = [
+  { id: 'backlog',           label: 'Backlog',           color: '#94A3B8' },
   { id: 'in_progress',       label: 'In Progress',       color: '#60A5FA' },
   { id: 'under_review',      label: 'Under Review',      color: '#FBBF24' },
   { id: 'changes_requested', label: 'Changes Requested', color: '#F87171' },
