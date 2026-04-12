@@ -351,6 +351,12 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                       🔗 View Preview
                     </a>
                   )}
+                  {selectedTask.attachmentUrl && (
+                    <a href={selectedTask.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)', width: 'fit-content' }}>
+                      📎 {selectedTask.attachmentName || 'Attachment'}
+                    </a>
+                  )}
                   {ms && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>📌 {ms.title}</div>}
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Created {new Date(selectedTask.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                 </div>
