@@ -251,6 +251,7 @@ model ClientProject {
   sessions      ProjectSession[]
   contracts     ProjectContract[]
   milestones    ProjectMilestone[]
+  deliverables  ProjectDeliverable[]
   messages      ProjectMessage[]
 
   @@map("client_projects")
@@ -344,19 +345,71 @@ model ProjectContract {
 }
 
 model ProjectMilestone {
-  id          String        @id @default(cuid())
-  projectId   String
-  title       String
-  description String?
-  status      String        @default("pending")  // pending | in_progress | completed | blocked
-  dueDate     DateTime?
-  order       Int           @default(0)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  project     ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id           String               @id @default(cuid())
+  projectId    String
+  title        String
+  description  String?
+  status       String               @default("pending")  // pending | in_progress | completed | blocked
+  dueDate      DateTime?
+  order        Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  project      ClientProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliverables ProjectDeliverable[]
 
   @@index([projectId])
   @@map("project_milestones")
+}
+
+model ProjectDeliverable {
+  id           String               @id @default(cuid())
+  projectId    String
+  milestoneId  String?
+  title        String
+  description  String?
+  previewUrl   String?
+  status       String               @default("draft")  // draft | under_review | changes_requested | in_progress | completed
+  displayOrder Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  project      ClientProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone    ProjectMilestone?    @relation(fields: [milestoneId], references: [id])
+  feedback     DeliverableFeedback[]
+
+  @@index([projectId])
+  @@map("project_deliverables")
+}
+
+model DeliverableFeedback {
+  id             String             @id @default(cuid())
+  deliverableId  String
+  projectId      String
+  message        String
+  attachmentUrl  String?
+  attachmentName String?
+  addedBy        String             // "admin" | "client"
+  status         String             @default("open")  // open | in_progress | resolved | reopened | wont_fix
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deliverable    ProjectDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  replies        FeedbackReply[]
+
+  @@index([deliverableId])
+  @@map("deliverable_feedback")
+}
+
+model FeedbackReply {
+  id             String              @id @default(cuid())
+  feedbackId     String
+  message        String
+  attachmentUrl  String?
+  attachmentName String?
+  addedBy        String              // "admin" | "client"
+  createdAt      DateTime            @default(now())
+  feedback       DeliverableFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
+  @@map("feedback_replies")
 }
 
 model PortalLead {

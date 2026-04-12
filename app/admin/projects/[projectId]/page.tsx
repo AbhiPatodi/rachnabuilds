@@ -187,7 +187,7 @@ const EVENT_ICONS: Record<string, string> = {
   login: '🔑',
 };
 
-type Tab = 'overview' | 'milestones' | 'sections' | 'documents' | 'sessions' | 'contract' | 'settings' | 'messages';
+type Tab = 'overview' | 'milestones' | 'deliverables' | 'sections' | 'documents' | 'sessions' | 'contract' | 'settings' | 'messages';
 
 interface Section {
   id: string;
@@ -265,6 +265,38 @@ interface Milestone {
   dueDate: string | null;
   order: number;
   createdAt: string;
+}
+
+interface FeedbackReply {
+  id: string;
+  message: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  addedBy: string;
+  createdAt: string;
+}
+
+interface DeliverableFeedback {
+  id: string;
+  message: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  addedBy: string;
+  status: string;
+  createdAt: string;
+  replies: FeedbackReply[];
+}
+
+interface Deliverable {
+  id: string;
+  title: string;
+  description: string | null;
+  previewUrl: string | null;
+  status: string;
+  milestoneId: string | null;
+  displayOrder: number;
+  createdAt: string;
+  feedback: DeliverableFeedback[];
 }
 
 interface AdminProfile {
@@ -448,6 +480,29 @@ export default function ProjectManagePage() {
   const [editMsDueDate, setEditMsDueDate] = useState('');
   const [editMsLoading, setEditMsLoading] = useState(false);
 
+  // Deliverables
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [deliverablesLoaded, setDeliverablesLoaded] = useState(false);
+  const [showDelivForm, setShowDelivForm] = useState(false);
+  const [delivTitle, setDelivTitle] = useState('');
+  const [delivDesc, setDelivDesc] = useState('');
+  const [delivUrl, setDelivUrl] = useState('');
+  const [delivMilestoneId, setDelivMilestoneId] = useState('');
+  const [delivStatus, setDelivStatus] = useState('under_review');
+  const [delivLoading, setDelivLoading] = useState(false);
+  const [editingDelivId, setEditingDelivId] = useState<string | null>(null);
+  const [editDelivTitle, setEditDelivTitle] = useState('');
+  const [editDelivDesc, setEditDelivDesc] = useState('');
+  const [editDelivUrl, setEditDelivUrl] = useState('');
+  const [editDelivStatus, setEditDelivStatus] = useState('draft');
+  const [editDelivMilestoneId, setEditDelivMilestoneId] = useState('');
+  const [editDelivLoading, setEditDelivLoading] = useState(false);
+  const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [replyLoading, setReplyLoading] = useState<Record<string, boolean>>({});
+  const [replyAttach, setReplyAttach] = useState<Record<string, File | null>>({});
+  const replyFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
   // Overview — edit client info
   const [editingClientInfo, setEditingClientInfo] = useState(false);
   const [editClientName, setEditClientName] = useState('');
@@ -565,6 +620,16 @@ export default function ProjectManagePage() {
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, projectId]);
+
+  // Load deliverables when tab is opened
+  useEffect(() => {
+    if (activeTab !== 'deliverables' || deliverablesLoaded) return;
+    fetch(`/api/admin/projects/${projectId}/deliverables`)
+      .then(r => r.ok ? r.json() : { deliverables: [] })
+      .then(d => setDeliverables(d.deliverables ?? []))
+      .catch(() => {})
+      .finally(() => setDeliverablesLoaded(true));
+  }, [activeTab, projectId, deliverablesLoaded]);
 
   // Load milestones when tab is opened
   useEffect(() => {
@@ -979,6 +1044,106 @@ export default function ProjectManagePage() {
     setMilestones(prev => prev.filter(m => m.id !== id));
   };
 
+  // ─── Deliverables ────────────────────────────────────────────────────────
+  const handleAddDeliverable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!delivTitle.trim()) return;
+    setDelivLoading(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/deliverables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: delivTitle.trim(), description: delivDesc.trim() || null, previewUrl: delivUrl.trim() || null, milestoneId: delivMilestoneId || null, status: delivStatus, displayOrder: deliverables.length }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setDeliverables(prev => [...prev, { ...d, feedback: [] }]);
+        setDelivTitle(''); setDelivDesc(''); setDelivUrl(''); setDelivMilestoneId(''); setDelivStatus('under_review');
+        setShowDelivForm(false);
+      }
+    } finally { setDelivLoading(false); }
+  };
+
+  const startEditDeliverable = (d: Deliverable) => {
+    setEditingDelivId(d.id);
+    setEditDelivTitle(d.title);
+    setEditDelivDesc(d.description ?? '');
+    setEditDelivUrl(d.previewUrl ?? '');
+    setEditDelivStatus(d.status);
+    setEditDelivMilestoneId(d.milestoneId ?? '');
+  };
+
+  const handleSaveDeliverable = async (id: string) => {
+    setEditDelivLoading(true);
+    try {
+      const res = await fetch(`/api/admin/projects/${projectId}/deliverables/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editDelivTitle.trim(), description: editDelivDesc.trim() || null, previewUrl: editDelivUrl.trim() || null, status: editDelivStatus, milestoneId: editDelivMilestoneId || null }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setDeliverables(prev => prev.map(d => d.id === id ? { ...d, ...updated } : d));
+        setEditingDelivId(null);
+      }
+    } finally { setEditDelivLoading(false); }
+  };
+
+  const handleDeleteDeliverable = async (id: string) => {
+    if (!confirm('Delete this deliverable?')) return;
+    await fetch(`/api/admin/projects/${projectId}/deliverables/${id}`, { method: 'DELETE' });
+    setDeliverables(prev => prev.filter(d => d.id !== id));
+  };
+
+  const handleFeedbackStatus = async (feedbackId: string, delivId: string, status: string) => {
+    const res = await fetch(`/api/admin/feedback/${feedbackId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (res.ok) {
+      setDeliverables(prev => prev.map(d => d.id === delivId ? {
+        ...d,
+        feedback: d.feedback.map(f => f.id === feedbackId ? { ...f, status } : f),
+      } : d));
+    }
+  };
+
+  const handleAdminReply = async (feedbackId: string, delivId: string) => {
+    const msg = replyText[feedbackId]?.trim();
+    if (!msg) return;
+    setReplyLoading(prev => ({ ...prev, [feedbackId]: true }));
+    try {
+      let attachmentUrl = null;
+      let attachmentName = null;
+      const file = replyAttach[feedbackId];
+      if (file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const uploadRes = await fetch(`/api/portal/upload?slug=admin`, { method: 'POST', body: fd });
+        if (uploadRes.ok) {
+          const blob = await uploadRes.json();
+          attachmentUrl = blob.url;
+          attachmentName = file.name;
+        }
+      }
+      const res = await fetch(`/api/admin/feedback/${feedbackId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, attachmentUrl, attachmentName }),
+      });
+      if (res.ok) {
+        const reply = await res.json();
+        setDeliverables(prev => prev.map(d => d.id === delivId ? {
+          ...d,
+          feedback: d.feedback.map(f => f.id === feedbackId ? { ...f, replies: [...f.replies, reply] } : f),
+        } : d));
+        setReplyText(prev => ({ ...prev, [feedbackId]: '' }));
+        setReplyAttach(prev => ({ ...prev, [feedbackId]: null }));
+      }
+    } finally { setReplyLoading(prev => ({ ...prev, [feedbackId]: false })); }
+  };
+
   // ─── Settings save ────────────────────────────────────────────────────────
   const saveSettings = async () => {
     setSettingsSaving(true);
@@ -1126,7 +1291,7 @@ export default function ProjectManagePage() {
 
       {/* Tabs */}
       <div className="settings-tabs">
-        {(['overview', 'milestones', 'sections', 'documents', 'sessions', 'contract', 'settings', 'messages'] as Tab[]).map(tab => (
+        {(['overview', 'milestones', 'deliverables', 'sections', 'documents', 'sessions', 'contract', 'settings', 'messages'] as Tab[]).map(tab => (
           <button
             key={tab}
             className={`settings-tab${activeTab === tab ? ' active' : ''}`}
@@ -1135,6 +1300,7 @@ export default function ProjectManagePage() {
           >
             {tab}
             {tab === 'milestones' && ` (${milestones.length})`}
+            {tab === 'deliverables' && ` (${deliverables.length})`}
             {tab === 'sections' && ` (${project.sections.length})`}
             {tab === 'documents' && ` (${project.documents.length})`}
             {tab === 'messages' && msgUnreadCount > 0 && (
@@ -2231,6 +2397,240 @@ export default function ProjectManagePage() {
           )}
         </div>
       )}
+
+      {/* ─── DELIVERABLES TAB ─── */}
+      {activeTab === 'deliverables' && (() => {
+        const DELIV_STATUS_LABEL: Record<string, string> = { draft: '📝 Draft', under_review: '👀 Under Review', changes_requested: '🐛 Changes Requested', in_progress: '🔄 In Progress', completed: '✅ Completed' };
+        const DELIV_STATUS_COLOR: Record<string, string> = { draft: '#64748B', under_review: '#F59E0B', changes_requested: '#FF6B6B', in_progress: '#3B82F6', completed: '#06D6A0' };
+        const BUG_STATUS_LABEL: Record<string, string> = { open: '🔴 Open', in_progress: '🔄 In Progress', resolved: '✅ Resolved', reopened: '🔄 Reopened', wont_fix: '🚫 Won\'t Fix' };
+        const BUG_STATUS_COLOR: Record<string, string> = { open: '#FF6B6B', in_progress: '#F59E0B', resolved: '#06D6A0', reopened: '#F59E0B', wont_fix: '#64748B' };
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="admin-section-title" style={{ margin: 0 }}>Deliverables & Review</h2>
+              <button className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} onClick={() => setShowDelivForm(v => !v)}>
+                {showDelivForm ? 'Cancel' : '+ Add Deliverable'}
+              </button>
+            </div>
+
+            {showDelivForm && (
+              <form onSubmit={handleAddDeliverable} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12 }}>
+                  <div>
+                    <label className="admin-label">Title *</label>
+                    <input className="admin-input" value={delivTitle} onChange={e => setDelivTitle(e.target.value)} placeholder="e.g. Sticky ATC + Gallery Built" required />
+                  </div>
+                  <div>
+                    <label className="admin-label">Status</label>
+                    <select className="admin-select" value={delivStatus} onChange={e => setDelivStatus(e.target.value)}>
+                      <option value="draft">📝 Draft (hidden from client)</option>
+                      <option value="under_review">👀 Under Review</option>
+                      <option value="in_progress">🔄 In Progress</option>
+                      <option value="completed">✅ Completed</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="admin-label">Description / Notes</label>
+                  <textarea className="admin-input" value={delivDesc} onChange={e => setDelivDesc(e.target.value)} placeholder="What was built, what to check…" rows={2} style={{ resize: 'vertical' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12 }}>
+                  <div>
+                    <label className="admin-label">Preview URL</label>
+                    <input className="admin-input" value={delivUrl} onChange={e => setDelivUrl(e.target.value)} placeholder="https://… (Loom, dev theme, Figma, etc.)" />
+                  </div>
+                  <div>
+                    <label className="admin-label">Linked Milestone</label>
+                    <select className="admin-select" value={delivMilestoneId} onChange={e => setDelivMilestoneId(e.target.value)}>
+                      <option value="">— None —</option>
+                      {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="submit" className="admin-btn admin-btn-primary" disabled={delivLoading || !delivTitle.trim()} style={{ fontSize: 13 }}>
+                    {delivLoading ? 'Adding…' : 'Add Deliverable'}
+                  </button>
+                  <button type="button" className="admin-btn admin-btn-ghost" style={{ fontSize: 13 }} onClick={() => setShowDelivForm(false)}>Cancel</button>
+                </div>
+              </form>
+            )}
+
+            {deliverables.length === 0 ? (
+              <div className="admin-empty">No deliverables yet. Add one to start the client review process.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {deliverables.map(d => {
+                  const isEditing = editingDelivId === d.id;
+                  const isFeedbackOpen = expandedFeedback === d.id;
+                  const openBugs = d.feedback.filter(f => f.status === 'open' || f.status === 'reopened').length;
+                  return (
+                    <div key={d.id} style={{ background: 'var(--bg-elevated)', border: `1px solid ${d.status === 'changes_requested' ? '#FF6B6B44' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
+                      {/* Header */}
+                      <div style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
+                                <div>
+                                  <label className="admin-label">Title</label>
+                                  <input className="admin-input" value={editDelivTitle} onChange={e => setEditDelivTitle(e.target.value)} />
+                                </div>
+                                <div>
+                                  <label className="admin-label">Status</label>
+                                  <select className="admin-select" value={editDelivStatus} onChange={e => setEditDelivStatus(e.target.value)}>
+                                    <option value="draft">📝 Draft</option>
+                                    <option value="under_review">👀 Under Review</option>
+                                    <option value="changes_requested">🐛 Changes Requested</option>
+                                    <option value="in_progress">🔄 In Progress</option>
+                                    <option value="completed">✅ Completed</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="admin-label">Description</label>
+                                <textarea className="admin-input" value={editDelivDesc} onChange={e => setEditDelivDesc(e.target.value)} rows={2} style={{ resize: 'vertical' }} />
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
+                                <div>
+                                  <label className="admin-label">Preview URL</label>
+                                  <input className="admin-input" value={editDelivUrl} onChange={e => setEditDelivUrl(e.target.value)} />
+                                </div>
+                                <div>
+                                  <label className="admin-label">Milestone</label>
+                                  <select className="admin-select" value={editDelivMilestoneId} onChange={e => setEditDelivMilestoneId(e.target.value)}>
+                                    <option value="">— None —</option>
+                                    {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                                  </select>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} onClick={() => handleSaveDeliverable(d.id)} disabled={editDelivLoading}>{editDelivLoading ? 'Saving…' : 'Save'}</button>
+                                <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditingDelivId(null)}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>{d.title}</div>
+                              {d.description && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>{d.description}</div>}
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: DELIV_STATUS_COLOR[d.status] ?? '#94A3B8', background: (DELIV_STATUS_COLOR[d.status] ?? '#94A3B8') + '22', padding: '3px 8px', borderRadius: 6 }}>
+                                  {DELIV_STATUS_LABEL[d.status] ?? d.status}
+                                </span>
+                                {d.previewUrl && (
+                                  <a href={d.previewUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost" style={{ fontSize: 11, padding: '3px 8px' }}>🔗 View Preview</a>
+                                )}
+                                {openBugs > 0 && (
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#FF6B6B', background: '#FF6B6B22', padding: '3px 8px', borderRadius: 6 }}>
+                                    {openBugs} open bug{openBugs > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        {!isEditing && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDeliverable(d)}>Edit</button>
+                            <button className="admin-btn admin-btn-danger admin-btn-icon" style={{ fontSize: 12 }} onClick={() => handleDeleteDeliverable(d.id)}>Del</button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Feedback section */}
+                      {!isEditing && (
+                        <div style={{ borderTop: '1px solid var(--border)' }}>
+                          <button
+                            onClick={() => setExpandedFeedback(isFeedbackOpen ? null : d.id)}
+                            style={{ width: '100%', padding: '10px 16px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                          >
+                            <span>💬 {d.feedback.length} feedback item{d.feedback.length !== 1 ? 's' : ''}</span>
+                            <span style={{ fontSize: 11 }}>{isFeedbackOpen ? '▲ Hide' : '▼ Show'}</span>
+                          </button>
+
+                          {isFeedbackOpen && (
+                            <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              {d.feedback.length === 0 ? (
+                                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>No feedback yet from client.</div>
+                              ) : d.feedback.map(f => (
+                                <div key={f.id} style={{ background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}44`, borderRadius: 10, padding: '12px 14px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{f.message}</div>
+                                      {f.attachmentUrl && (
+                                        <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4, display: 'inline-block' }}>
+                                          📎 {f.attachmentName || 'Attachment'}
+                                        </a>
+                                      )}
+                                    </div>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status], background: BUG_STATUS_COLOR[f.status] + '22', padding: '3px 8px', borderRadius: 6, flexShrink: 0 }}>
+                                      {BUG_STATUS_LABEL[f.status] ?? f.status}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+                                    {f.addedBy === 'client' ? '👤 Client' : '🛠 Admin'} · {new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                  </div>
+
+                                  {/* Replies */}
+                                  {f.replies.length > 0 && (
+                                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                      {f.replies.map(r => (
+                                        <div key={r.id} style={{ padding: '8px 12px', background: r.addedBy === 'admin' ? 'var(--accent)11' : 'var(--bg-elevated)', borderRadius: 8, fontSize: 13 }}>
+                                          <div style={{ fontSize: 11, fontWeight: 600, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 3 }}>
+                                            {r.addedBy === 'admin' ? '🛠 Rachna' : '👤 Client'}
+                                          </div>
+                                          {r.message}
+                                          {r.attachmentUrl && (
+                                            <div><a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName || 'Attachment'}</a></div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Status change + reply */}
+                                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                                    {['in_progress', 'resolved', 'wont_fix'].map(s => f.status !== s && (
+                                      <button key={s} className="admin-btn admin-btn-ghost" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => handleFeedbackStatus(f.id, d.id, s)}>
+                                        Mark {BUG_STATUS_LABEL[s]}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 8 }}>
+                                    <input
+                                      className="admin-input"
+                                      style={{ flex: 1, fontSize: 12 }}
+                                      placeholder="Reply to client…"
+                                      value={replyText[f.id] ?? ''}
+                                      onChange={e => setReplyText(prev => ({ ...prev, [f.id]: e.target.value }))}
+                                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAdminReply(f.id, d.id)}
+                                    />
+                                    <input
+                                      type="file"
+                                      ref={el => { replyFileInputRefs.current[f.id] = el; }}
+                                      style={{ display: 'none' }}
+                                      onChange={e => setReplyAttach(prev => ({ ...prev, [f.id]: e.target.files?.[0] ?? null }))}
+                                    />
+                                    <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} title="Attach file" onClick={() => replyFileInputRefs.current[f.id]?.click()}>📎</button>
+                                    <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={!replyText[f.id]?.trim() || replyLoading[f.id]} onClick={() => handleAdminReply(f.id, d.id)}>
+                                      {replyLoading[f.id] ? '…' : 'Send'}
+                                    </button>
+                                  </div>
+                                  {replyAttach[f.id] && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>📎 {replyAttach[f.id]!.name}</div>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ─── SETTINGS ─── */}
       {activeTab === 'settings' && (
