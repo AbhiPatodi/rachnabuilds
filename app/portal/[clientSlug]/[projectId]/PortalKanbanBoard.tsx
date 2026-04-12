@@ -1,6 +1,36 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// ── Image compression helper ───────────────────────────────────────────────────
+async function compressImage(file: File, maxWidth = 1920, quality = 0.85): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxWidth / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        const name = file.name.replace(/\.[^.]+$/, '.jpg');
+        resolve(new File([blob], name, { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+function isImage(url: string | null): boolean {
+  if (!url) return false;
+  return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface FeedbackReply {
@@ -338,9 +368,10 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
       let attachmentUrl: string | null = null;
       let attachmentName: string | null = null;
       if (newTaskFile) {
-        const fd = new FormData(); fd.append('file', newTaskFile);
+        const compressed = await compressImage(newTaskFile);
+        const fd = new FormData(); fd.append('file', compressed, compressed.name);
         const up = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: fd });
-        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = newTaskFile.name; }
+        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = compressed.name; }
       }
       const res = await fetch(`/api/portal/${clientSlug}/${projectId}/deliverables`, {
         method: 'POST',
@@ -407,10 +438,24 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                 </a>
               )}
               {selectedCard.attachmentUrl && (
-                <a href={selectedCard.attachmentUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)' }}>
-                  📎 {selectedCard.attachmentName || 'Attachment'}
-                </a>
+                isImage(selectedCard.attachmentUrl) ? (
+                  <div style={{ marginTop: 4 }}>
+                    <img
+                      src={selectedCard.attachmentUrl}
+                      alt={selectedCard.attachmentName || 'Attachment'}
+                      style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)', display: 'block', maxHeight: 320, objectFit: 'contain', background: 'var(--bg)' }}
+                    />
+                    <a href={selectedCard.attachmentUrl} download target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 11, color: '#A78BFA', textDecoration: 'none', fontWeight: 600 }}>
+                      ⬇ Download {selectedCard.attachmentName || 'image'}
+                    </a>
+                  </div>
+                ) : (
+                  <a href={selectedCard.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)' }}>
+                    📎 {selectedCard.attachmentName || 'Attachment'}
+                  </a>
+                )
               )}
             </div>
 

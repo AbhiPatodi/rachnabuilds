@@ -2,6 +2,36 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+// ── Image compression helper ───────────────────────────────────────────────────
+async function compressImage(file: File, maxWidth = 1920, quality = 0.85): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxWidth / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        const name = file.name.replace(/\.[^.]+$/, '.jpg');
+        resolve(new File([blob], name, { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+function isImage(url: string | null): boolean {
+  if (!url) return false;
+  return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FeedbackReply {
@@ -131,9 +161,10 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
       let attachmentUrl: string | null = null;
       let attachmentName: string | null = null;
       if (newAttachFile) {
-        const fd = new FormData(); fd.append('file', newAttachFile);
+        const compressed = await compressImage(newAttachFile);
+        const fd = new FormData(); fd.append('file', compressed, compressed.name);
         const up = await fetch(`/api/portal/upload?slug=admin`, { method: 'POST', body: fd });
-        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = newAttachFile.name; }
+        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = compressed.name; }
       }
       const res = await fetch(`/api/admin/projects/${projectId}/deliverables`, {
         method: 'POST',
@@ -352,10 +383,24 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                     </a>
                   )}
                   {selectedTask.attachmentUrl && (
-                    <a href={selectedTask.attachmentUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)', width: 'fit-content' }}>
-                      📎 {selectedTask.attachmentName || 'Attachment'}
-                    </a>
+                    isImage(selectedTask.attachmentUrl) ? (
+                      <div style={{ marginTop: 4 }}>
+                        <img
+                          src={selectedTask.attachmentUrl}
+                          alt={selectedTask.attachmentName || 'Attachment'}
+                          style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)', display: 'block', maxHeight: 320, objectFit: 'contain', background: 'var(--bg)' }}
+                        />
+                        <a href={selectedTask.attachmentUrl} download target="_blank" rel="noopener noreferrer"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 11, color: '#A78BFA', textDecoration: 'none', fontWeight: 600 }}>
+                          ⬇ Download {selectedTask.attachmentName || 'image'}
+                        </a>
+                      </div>
+                    ) : (
+                      <a href={selectedTask.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)', width: 'fit-content' }}>
+                        📎 {selectedTask.attachmentName || 'Attachment'}
+                      </a>
+                    )
                   )}
                   {ms && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>📌 {ms.title}</div>}
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Created {new Date(selectedTask.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
