@@ -512,19 +512,14 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
         const colBorder = hexToRgba(col.color, 0.22);
 
         return (
-          <div style={{
-            width: 360,
-            flexShrink: 0,
-            overflowY: 'auto',
-            maxHeight: 'calc(100vh - 260px)',
-            background: 'var(--bg-elevated)',
-            border: `1px solid ${colBorder}`,
-            borderTop: `3px solid ${col.color}`,
-            borderRadius: 12,
-            marginLeft: 12,
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            onClick={() => setSelectedCard(null)}
+          >
+          <div
+            style={{ width: '100%', maxWidth: 620, maxHeight: '88vh', overflowY: 'auto', background: 'var(--bg-elevated)', border: `1px solid ${colBorder}`, borderTop: `4px solid ${col.color}`, borderRadius: 16, display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
             {/* Panel header */}
             <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: colBg, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -700,6 +695,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         );
       })()}

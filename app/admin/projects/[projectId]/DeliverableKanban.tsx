@@ -239,7 +239,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   if (loading) return <div style={{ color: 'var(--text-secondary)', fontSize: 14, padding: 24 }}>Loading tasks…</div>;
 
   return (
-    <div style={{ display: 'flex', gap: 0, height: 'calc(100vh - 280px)', minHeight: 500, position: 'relative' }}>
+    <div style={{ display: 'flex', gap: 0, minHeight: 500, position: 'relative' }}>
 
       {/* ── Kanban Board ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, paddingRight: selectedTask ? 0 : 0 }}>
@@ -404,19 +404,14 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
         const ms = milestones.find(m => m.id === selectedTask.milestoneId);
 
         return (
-          <div style={{
-            width: 380,
-            flexShrink: 0,
-            height: '100%',
-            overflowY: 'auto',
-            background: 'var(--bg-elevated)',
-            border: `1px solid ${col.border}`,
-            borderTop: `3px solid ${col.color}`,
-            borderRadius: 12,
-            marginLeft: 12,
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            onClick={() => setSelectedTask(null)}
+          >
+          <div
+            style={{ width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: 'var(--bg-elevated)', border: `1px solid ${col.border}`, borderTop: `4px solid ${col.color}`, borderRadius: 16, display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
             {/* Panel header */}
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: col.bg, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -560,6 +555,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                 </div>
               )}
             </div>
+          </div>
           </div>
         );
       })()}
