@@ -79,6 +79,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<KanbanCard[]>([]);
   const [columns, setColumns] = useState<KanbanColumn[]>(DEFAULT_COLS);
+  const [buildLinks, setBuildLinks] = useState<{ id: string; label: string; url: string }[]>([]);
 
   // Selected card panel
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
@@ -111,10 +112,12 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
     Promise.all([
       fetch(`/api/portal/${clientSlug}/${projectId}/deliverables`).then(r => r.json()).catch(() => ({ deliverables: [] })),
       fetch(`/api/portal/${clientSlug}/${projectId}/kanban-columns`).then(r => r.json()).catch(() => ({ columns: [] })),
-    ]).then(([dData, cData]) => {
+      fetch(`/api/portal/${clientSlug}/${projectId}/build-links`).then(r => r.json()).catch(() => ({ links: [] })),
+    ]).then(([dData, cData, lData]) => {
       setCards(dData.deliverables ?? []);
       const extra = (cData.columns ?? []) as KanbanColumn[];
       setColumns([...DEFAULT_COLS, ...extra.map(c => ({ ...c, isCustom: true }))]);
+      setBuildLinks(lData.links ?? []);
       setLoading(false);
     });
   }, [projectId, clientSlug]);
@@ -331,7 +334,22 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 0, position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+      {/* ── Build Links Strip ─────────────────────────────────────────────── */}
+      {buildLinks.length > 0 && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>📦 Latest Builds</span>
+          {buildLinks.map(link => (
+            <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#06D6A0', textDecoration: 'none' }}>
+              🔗 {link.label}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 0, position: 'relative' }}>
       {/* ── Board ─────────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }}>
         {columns.map(col => {
@@ -699,6 +717,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
           </div>
         );
       })()}
+      </div>{/* end inner board flex */}
     </div>
   );
 }

@@ -19,6 +19,7 @@ interface Task {
   createdAt: string; feedback: TaskFeedback[];
 }
 interface Milestone { id: string; title: string; status: string; }
+interface BuildLink { id: string; label: string; url: string; }
 
 interface Props {
   projectId: string;
@@ -56,6 +57,13 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   const [dragCardId, setDragCardId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
+  // Build links
+  const [buildLinks, setBuildLinks] = useState<BuildLink[]>([]);
+  const [showAddLink, setShowAddLink] = useState(false);
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [savingLink, setSavingLink] = useState(false);
+
   // Detail panel state
   const [editingTask, setEditingTask] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -70,15 +78,40 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/admin/projects/${projectId}/deliverables`);
-    if (res.ok) {
-      const data = await res.json();
-      setTasks(data.deliverables ?? []);
-    }
+    const [delRes, linkRes] = await Promise.all([
+      fetch(`/api/admin/projects/${projectId}/deliverables`),
+      fetch(`/api/admin/projects/${projectId}/build-links`),
+    ]);
+    if (delRes.ok) { const d = await delRes.json(); setTasks(d.deliverables ?? []); }
+    if (linkRes.ok) { const d = await linkRes.json(); setBuildLinks(d.links ?? []); }
     setLoading(false);
   }, [projectId]);
 
   useEffect(() => { loadTasks(); }, [loadTasks]);
+
+  const saveBuildLinks = async (links: BuildLink[]) => {
+    await fetch(`/api/admin/projects/${projectId}/build-links`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ links }),
+    });
+  };
+
+  const addBuildLink = async () => {
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+    setSavingLink(true);
+    const link: BuildLink = { id: `bl_${Date.now()}`, label: newLinkLabel.trim(), url: newLinkUrl.trim() };
+    const updated = [...buildLinks, link];
+    setBuildLinks(updated);
+    await saveBuildLinks(updated);
+    setNewLinkLabel(''); setNewLinkUrl(''); setShowAddLink(false); setSavingLink(false);
+  };
+
+  const removeBuildLink = async (id: string) => {
+    const updated = buildLinks.filter(l => l.id !== id);
+    setBuildLinks(updated);
+    await saveBuildLinks(updated);
+  };
 
   // Keep selectedTask in sync when tasks update
   useEffect(() => {
@@ -239,8 +272,53 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   if (loading) return <div style={{ color: 'var(--text-secondary)', fontSize: 14, padding: 24 }}>Loading tasks…</div>;
 
   return (
-    <div style={{ display: 'flex', gap: 0, minHeight: 500, position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 500 }}>
 
+      {/* ── Build Links Strip ─────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>📦 Build Links</span>
+        {buildLinks.map(link => (
+          <div key={link.id} style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 8, overflow: 'hidden' }}>
+            <a href={link.url} target="_blank" rel="noopener noreferrer"
+              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#06D6A0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+              🔗 {link.label}
+            </a>
+            <button onClick={() => removeBuildLink(link.id)}
+              style={{ padding: '5px 8px', background: 'transparent', border: 'none', borderLeft: '1px solid rgba(6,214,160,0.2)', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>
+          </div>
+        ))}
+        {showAddLink ? (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              autoFocus
+              placeholder="Label (e.g. Staging Build)"
+              value={newLinkLabel}
+              onChange={e => setNewLinkLabel(e.target.value)}
+              style={{ padding: '5px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--text)', fontSize: 12, width: 170 }}
+            />
+            <input
+              placeholder="https://…"
+              value={newLinkUrl}
+              onChange={e => setNewLinkUrl(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addBuildLink(); if (e.key === 'Escape') { setShowAddLink(false); setNewLinkLabel(''); setNewLinkUrl(''); } }}
+              style={{ padding: '5px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--text)', fontSize: 12, width: 200 }}
+            />
+            <button onClick={addBuildLink} disabled={savingLink || !newLinkLabel.trim() || !newLinkUrl.trim()}
+              className="admin-btn admin-btn-primary" style={{ fontSize: 12 }}>
+              {savingLink ? '…' : 'Add'}
+            </button>
+            <button onClick={() => { setShowAddLink(false); setNewLinkLabel(''); setNewLinkUrl(''); }}
+              className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }}>Cancel</button>
+          </div>
+        ) : (
+          <button onClick={() => setShowAddLink(true)}
+            style={{ padding: '5px 12px', background: 'transparent', border: '1px dashed var(--border)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+            + Add Link
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 0, position: 'relative' }}>
       {/* ── Kanban Board ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, paddingRight: selectedTask ? 0 : 0 }}>
         {COLUMNS.map(col => {
@@ -559,6 +637,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
           </div>
         );
       })()}
+      </div>{/* end inner kanban flex */}
     </div>
   );
 }
