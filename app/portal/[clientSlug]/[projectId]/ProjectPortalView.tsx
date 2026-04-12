@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import '../../../reports/[slug]/portal.css';
 import ProposalView from '../../../reports/[slug]/ProposalView';
+import PortalKanbanBoard from './PortalKanbanBoard';
 
 const LogoSVG = () => (
   <svg viewBox="0 0 64 72" fill="none" width="28" height="32">
@@ -1380,18 +1381,6 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(true);
-  const [deliverables, setDeliverables] = useState<DeliverableData[]>([]);
-  const [deliverablesLoading, setDeliverablesLoading] = useState(false);
-  const [deliverablesLoaded, setDeliverablesLoaded] = useState(false);
-  const [expandedDelivFeedback, setExpandedDelivFeedback] = useState<string | null>(null);
-  const [bugText, setBugText] = useState('');
-  const [bugAttach, setBugAttach] = useState<File | null>(null);
-  const [bugSubmitting, setBugSubmitting] = useState(false);
-  const [activeDelivFeedback, setActiveDelivFeedback] = useState<string | null>(null); // deliverable id with open bug form
-  const [clientReplyText, setClientReplyText] = useState<Record<string, string>>({});
-  const [clientReplyAttach, setClientReplyAttach] = useState<Record<string, File | null>>({});
-  const [clientReplySending, setClientReplySending] = useState<Record<string, boolean>>({});
-  const bugFileRef = useRef<HTMLInputElement>(null);
 
   // Messages
   const [portalMessages, setPortalMessages] = useState<MessageData[]>([]);
@@ -1571,17 +1560,6 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
       .finally(() => setContractLoading(false));
   }, [activeTab, clientSlug, project.id, contracts]);
 
-  // Load deliverables when review tab is active
-  useEffect(() => {
-    if (activeTab !== 'review' || deliverablesLoaded) return;
-    setDeliverablesLoading(true);
-    fetch(`/api/portal/${clientSlug}/${project.id}/deliverables`)
-      .then(r => r.ok ? r.json() : { deliverables: [] })
-      .then(d => setDeliverables(d.deliverables ?? []))
-      .catch(() => setDeliverables([]))
-      .finally(() => { setDeliverablesLoading(false); setDeliverablesLoaded(true); });
-  }, [activeTab, clientSlug, project.id, deliverablesLoaded]);
-
   // Load milestones + contract payment data when status tab is active
   useEffect(() => {
     if (activeTab !== 'status') return;
@@ -1668,7 +1646,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
     } catch {}
     // Fallback: render as pre-wrap text
     return (
-      <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', fontSize: 15, lineHeight: 1.8, color: 'var(--text-primary)' }}>
+      <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif', fontSize: 15, lineHeight: 1.8, color: 'var(--text)' }}>
         {content}
       </div>
     );
@@ -1944,7 +1922,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       </>
                     ) : (
                       <>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Accept this Proposal</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Accept this Proposal</div>
                         <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
                           By entering your name below, you confirm you have reviewed and accept this proposal. This does not replace the service contract.
                         </p>
@@ -1953,7 +1931,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                           placeholder="Your full name"
                           value={proposalAcceptName}
                           onChange={e => setProposalAcceptName(e.target.value)}
-                          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, marginBottom: 10 }}
+                          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14, marginBottom: 10 }}
                         />
                         {proposalAcceptError && <p style={{ fontSize: 12, color: '#FF6B6B', marginBottom: 10 }}>{proposalAcceptError}</p>}
                         <button
@@ -2001,7 +1979,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                         <span style={{ fontSize: 10 }}>{statusIcon}</span>
                       </div>
                       <div style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginBottom: m.description ? 6 : 0 }}>{m.title}</div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: m.description ? 6 : 0 }}>{m.title}</div>
                         {m.description && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>{m.description}</div>}
                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, padding: '2px 8px', borderRadius: 100, background: `${statusColor}18`, border: `1px solid ${statusColor}44` }}>{statusLabel}</span>
@@ -2031,225 +2009,14 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
           </>
         )}
 
-        {activeTab === 'review' && (() => {
-          const DSTATUS_LABEL: Record<string, string> = { draft: 'Draft', under_review: 'Under Review', changes_requested: 'Changes Requested', in_progress: 'In Progress', completed: 'Approved' };
-          const DSTATUS_COLOR: Record<string, string> = { draft: '#64748B', under_review: '#F59E0B', changes_requested: '#FF6B6B', in_progress: '#3B82F6', completed: '#06D6A0' };
-          const BSTATUS_LABEL: Record<string, string> = { open: 'Open', in_progress: 'In Progress', resolved: 'Fixed', reopened: 'Reopened', wont_fix: "Won't Fix" };
-          const BSTATUS_COLOR: Record<string, string> = { open: '#FF6B6B', in_progress: '#F59E0B', resolved: '#06D6A0', reopened: '#F59E0B', wont_fix: '#64748B' };
+        {activeTab === 'review' && (
+          <>
+            <h1 className="portal-tab-heading">Review &amp; Feedback</h1>
+            <p className="portal-tab-sub">Review each deliverable, test the preview, and drag cards to approve or flag changes.</p>
+            <PortalKanbanBoard projectId={project.id} clientSlug={clientSlug} />
+          </>
+        )}
 
-          const handleApprove = async (delivId: string) => {
-            if (!confirm('Mark this deliverable as approved?')) return;
-            const res = await fetch(`/api/portal/${clientSlug}/${project.id}/deliverables/${delivId}/approve`, { method: 'POST' });
-            if (res.ok) setDeliverables(prev => prev.map(d => d.id === delivId ? { ...d, status: 'completed' } : d));
-          };
-
-          const handleSubmitBug = async (delivId: string) => {
-            if (!bugText.trim()) return;
-            setBugSubmitting(true);
-            try {
-              let attachmentUrl = null;
-              let attachmentName = null;
-              if (bugAttach) {
-                const fd = new FormData();
-                fd.append('file', bugAttach);
-                const upRes = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: fd });
-                if (upRes.ok) { const b = await upRes.json(); attachmentUrl = b.url; attachmentName = bugAttach.name; }
-              }
-              const res = await fetch(`/api/portal/${clientSlug}/${project.id}/deliverables/${delivId}/feedback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: bugText.trim(), attachmentUrl, attachmentName }),
-              });
-              if (res.ok) {
-                const fb = await res.json();
-                setDeliverables(prev => prev.map(d => d.id === delivId ? { ...d, status: 'changes_requested', feedback: [...d.feedback, { ...fb, replies: [] }] } : d));
-                setBugText(''); setBugAttach(null); setActiveDelivFeedback(null);
-              }
-            } finally { setBugSubmitting(false); }
-          };
-
-          const handleClientReply = async (feedbackId: string, delivId: string, action: 'reply' | 'reopen') => {
-            if (action === 'reply' && !clientReplyText[feedbackId]?.trim()) return;
-            setClientReplySending(prev => ({ ...prev, [feedbackId]: true }));
-            try {
-              let attachmentUrl = null;
-              let attachmentName = null;
-              const file = clientReplyAttach[feedbackId];
-              if (file) {
-                const fd = new FormData();
-                fd.append('file', file);
-                const upRes = await fetch(`/api/portal/upload?slug=${clientSlug}`, { method: 'POST', body: fd });
-                if (upRes.ok) { const b = await upRes.json(); attachmentUrl = b.url; attachmentName = file.name; }
-              }
-              const res = await fetch(`/api/portal/${clientSlug}/${project.id}/feedback/${feedbackId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, message: clientReplyText[feedbackId]?.trim(), attachmentUrl, attachmentName }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                setDeliverables(prev => prev.map(d => d.id === delivId ? {
-                  ...d,
-                  status: action === 'reopen' ? 'changes_requested' : d.status,
-                  feedback: d.feedback.map(f => f.id === feedbackId
-                    ? action === 'reopen' ? { ...f, status: 'reopened' } : { ...f, replies: [...f.replies, data] }
-                    : f),
-                } : d));
-                setClientReplyText(prev => ({ ...prev, [feedbackId]: '' }));
-                setClientReplyAttach(prev => ({ ...prev, [feedbackId]: null }));
-              }
-            } finally { setClientReplySending(prev => ({ ...prev, [feedbackId]: false })); }
-          };
-
-          return (
-            <>
-              <h1 className="portal-tab-heading">Review & Feedback</h1>
-              <p className="portal-tab-sub">Review each deliverable, test the preview, and approve or flag changes.</p>
-
-              {deliverablesLoading ? (
-                <div style={{ color: C.textLight, fontSize: 14, padding: '20px 0' }}>Loading deliverables…</div>
-              ) : deliverables.length === 0 ? (
-                <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 16, padding: '32px 24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>🏗️</div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 6 }}>Build in Progress</div>
-                  <div style={{ fontSize: 14, color: C.textLight }}>Deliverables will appear here as each part of the build is completed. You'll be notified when something is ready for your review.</div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  {deliverables.map(d => {
-                    const isFeedbackOpen = expandedDelivFeedback === d.id;
-                    const isBugFormOpen = activeDelivFeedback === d.id;
-                    const openBugs = d.feedback.filter(f => f.status === 'open' || f.status === 'reopened').length;
-                    const isApproved = d.status === 'completed';
-                    return (
-                      <div key={d.id} style={{ background: C.bg, border: `1px solid ${isApproved ? '#06D6A066' : d.status === 'changes_requested' ? '#FF6B6B44' : C.border}`, borderRadius: 16, overflow: 'hidden' }}>
-                        {/* Deliverable header */}
-                        <div style={{ padding: '18px 20px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 4 }}>{d.title}</div>
-                              {d.description && <div style={{ fontSize: 13, color: C.textLight, lineHeight: 1.5 }}>{d.description}</div>}
-                            </div>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: DSTATUS_COLOR[d.status], background: DSTATUS_COLOR[d.status] + '22', padding: '4px 10px', borderRadius: 8, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                              {DSTATUS_LABEL[d.status] ?? d.status}
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                            {d.previewUrl && (
-                              <a href={d.previewUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.accent, color: '#fff', fontWeight: 600, fontSize: 13, padding: '8px 16px', borderRadius: 10, textDecoration: 'none' }}>
-                                🔗 View Preview
-                              </a>
-                            )}
-                            {!isApproved && (
-                              <button onClick={() => handleApprove(d.id)} style={{ background: '#06D6A0', color: '#fff', fontWeight: 600, fontSize: 13, padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer' }}>
-                                ✅ Approve
-                              </button>
-                            )}
-                            {!isApproved && (
-                              <button onClick={() => { setActiveDelivFeedback(isBugFormOpen ? null : d.id); setBugText(''); setBugAttach(null); }} style={{ background: 'transparent', color: '#FF6B6B', fontWeight: 600, fontSize: 13, padding: '8px 16px', borderRadius: 10, border: '1px solid #FF6B6B44', cursor: 'pointer' }}>
-                                🐛 Request Changes
-                              </button>
-                            )}
-                            {openBugs > 0 && (
-                              <span style={{ fontSize: 12, color: '#FF6B6B', fontWeight: 600 }}>{openBugs} open issue{openBugs > 1 ? 's' : ''}</span>
-                            )}
-                          </div>
-
-                          {/* Bug submission form */}
-                          {isBugFormOpen && (
-                            <div style={{ marginTop: 14, padding: '14px 16px', background: C.bg, borderRadius: 12, border: `1px solid #FF6B6B44` }}>
-                              <div style={{ fontWeight: 600, fontSize: 13, color: C.text, marginBottom: 10 }}>Describe the issue or change needed:</div>
-                              <textarea
-                                value={bugText}
-                                onChange={e => setBugText(e.target.value)}
-                                placeholder="What needs to be changed? Be specific — include element name, page section, or screenshot…"
-                                rows={3}
-                                style={{ width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
-                              />
-                              <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <input type="file" ref={bugFileRef} style={{ display: 'none' }} onChange={e => setBugAttach(e.target.files?.[0] ?? null)} accept="image/*,application/pdf" />
-                                <button onClick={() => bugFileRef.current?.click()} style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.textLight, fontSize: 12, padding: '7px 14px', borderRadius: 8, cursor: 'pointer' }}>
-                                  📎 Attach Screenshot
-                                </button>
-                                {bugAttach && <span style={{ fontSize: 12, color: C.textLight }}>📎 {bugAttach.name}</span>}
-                                <button onClick={() => handleSubmitBug(d.id)} disabled={!bugText.trim() || bugSubmitting} style={{ background: '#FF6B6B', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', marginLeft: 'auto' }}>
-                                  {bugSubmitting ? 'Submitting…' : 'Submit Feedback'}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Feedback list */}
-                        {d.feedback.length > 0 && (
-                          <div style={{ borderTop: `1px solid ${C.border}` }}>
-                            <button
-                              onClick={() => setExpandedDelivFeedback(isFeedbackOpen ? null : d.id)}
-                              style={{ width: '100%', padding: '10px 20px', background: 'none', border: 'none', color: C.textLight, fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
-                            >
-                              <span>💬 {d.feedback.length} feedback item{d.feedback.length !== 1 ? 's' : ''}</span>
-                              <span style={{ fontSize: 11 }}>{isFeedbackOpen ? '▲ Hide' : '▼ Show'}</span>
-                            </button>
-                            {isFeedbackOpen && (
-                              <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                {d.feedback.map(f => (
-                                  <div key={f.id} style={{ background: C.bg, border: `1px solid ${BSTATUS_COLOR[f.status]}33`, borderRadius: 12, padding: '12px 14px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-                                      <span style={{ fontSize: 11, fontWeight: 700, color: BSTATUS_COLOR[f.status], background: BSTATUS_COLOR[f.status] + '22', padding: '2px 8px', borderRadius: 6 }}>{BSTATUS_LABEL[f.status] ?? f.status}</span>
-                                      <span style={{ fontSize: 11, color: C.textLight }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                                    </div>
-                                    <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, marginBottom: f.attachmentUrl ? 6 : 0 }}>{f.message}</div>
-                                    {f.attachmentUrl && <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.accent }}>📎 {f.attachmentName || 'Attachment'}</a>}
-
-                                    {/* Replies */}
-                                    {f.replies.length > 0 && (
-                                      <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                        {f.replies.map(r => (
-                                          <div key={r.id} style={{ padding: '8px 12px', background: r.addedBy === 'admin' ? C.accent + '11' : C.bg, borderRadius: 8 }}>
-                                            <div style={{ fontSize: 11, fontWeight: 600, color: r.addedBy === 'admin' ? C.accent : C.textLight, marginBottom: 3 }}>
-                                              {r.addedBy === 'admin' ? '🛠 Rachna' : '👤 You'}
-                                            </div>
-                                            <div style={{ fontSize: 13, color: C.text }}>{r.message}</div>
-                                            {r.attachmentUrl && <div><a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: C.accent }}>📎 {r.attachmentName || 'Attachment'}</a></div>}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {/* Client can reply or reopen */}
-                                    {f.status === 'resolved' && (
-                                      <button onClick={() => handleClientReply(f.id, d.id, 'reopen')} style={{ marginTop: 10, background: 'transparent', border: `1px solid #F59E0B44`, color: '#F59E0B', fontSize: 12, padding: '5px 12px', borderRadius: 7, cursor: 'pointer', fontWeight: 600 }}>
-                                        🔄 Reopen
-                                      </button>
-                                    )}
-                                    {(f.status === 'in_progress' || f.status === 'open' || f.status === 'reopened') && (
-                                      <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                                        <input
-                                          placeholder="Add a note…"
-                                          value={clientReplyText[f.id] ?? ''}
-                                          onChange={e => setClientReplyText(prev => ({ ...prev, [f.id]: e.target.value }))}
-                                          style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '6px 10px', color: C.text, fontSize: 12 }}
-                                        />
-                                        <button onClick={() => handleClientReply(f.id, d.id, 'reply')} disabled={!clientReplyText[f.id]?.trim() || clientReplySending[f.id]} style={{ background: C.accent, color: '#fff', fontWeight: 600, fontSize: 12, padding: '6px 14px', borderRadius: 7, border: 'none', cursor: 'pointer' }}>
-                                          {clientReplySending[f.id] ? '…' : 'Send'}
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          );
-        })()}
 
         {activeTab === 'contract' && (
           <>
@@ -2363,14 +2130,14 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       {contract.status === 'signed' ? (
                         <div style={{ background: 'rgba(6,214,160,0.06)', border: '1px solid #06D6A0', borderRadius: 14, padding: '20px 24px' }}>
                           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>Digital Signature</div>
-                          <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text-primary)', marginBottom: 6 }}>{contract.clientSignature}</div>
+                          <div style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: 'var(--text)', marginBottom: 6 }}>{contract.clientSignature}</div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                             Signed on {new Date(contract.signedAt!).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       ) : (
                         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 28px' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Sign this contract</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Sign this contract</div>
                           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 18 }}>
                             By typing your full name below, you confirm you have read and agree to the terms of this service agreement.
                           </p>
@@ -2379,7 +2146,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                             placeholder="Your full legal name"
                             value={signatureName}
                             onChange={e => setSignatureName(e.target.value)}
-                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14, marginBottom: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic' }}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14, marginBottom: 12, fontFamily: 'Georgia, serif', fontStyle: 'italic' }}
                           />
                           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, cursor: 'pointer' }}>
                             <input
@@ -2486,7 +2253,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                     <div key={c.phase} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
                       {/* Phase header */}
                       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
                           Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}
                         </div>
                         {ps?.totalFee && (
@@ -2511,11 +2278,11 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
                                   <div>
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{r.label}</div>
                                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{r.timing}</div>
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                                    {r.amount && <div style={{ fontSize: 16, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text-primary)' }}>{r.amount}</div>}
+                                    {r.amount && <div style={{ fontSize: 16, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text)' }}>{r.amount}</div>}
                                     <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: isPaid ? 'rgba(6,214,160,0.12)' : 'rgba(148,163,184,0.12)', color: isPaid ? '#06D6A0' : '#94A3B8', border: `1px solid ${isPaid ? 'rgba(6,214,160,0.3)' : 'rgba(148,163,184,0.3)'}` }}>
                                       {isPaid ? '✓ Paid' : 'Pending'}
                                     </span>
@@ -2596,7 +2363,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       </div>
                       <div style={{
                         background: isClient ? '#06D6A0' : 'var(--bg-card)',
-                        color: isClient ? '#0B0F1A' : 'var(--text-primary)',
+                        color: isClient ? '#0B0F1A' : 'var(--text)',
                         borderRadius: isClient ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                         padding: '10px 14px',
                         fontSize: 14,
@@ -2694,7 +2461,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       setPortalMsgSending(false);
                     }
                   }}
-                  style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.5 }}
+                  style={{ flex: 1, resize: 'none', background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}
                 />
                 {/* Hidden file input */}
                 <input
@@ -2780,7 +2547,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
         >
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 420 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Change Password</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>Change Password</div>
               <button onClick={() => { setPwModalOpen(false); setPwError(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>✕</button>
             </div>
             {pwSuccess ? (
@@ -2798,7 +2565,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       value={pwCurrent}
                       onChange={e => setPwCurrent(e.target.value)}
                       placeholder="Enter current password"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14 }}
                     />
                   </div>
                   <div>
@@ -2808,7 +2575,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       value={pwNew}
                       onChange={e => setPwNew(e.target.value)}
                       placeholder="At least 6 characters"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14 }}
                     />
                   </div>
                   <div>
@@ -2818,7 +2585,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
                       value={pwConfirm}
                       onChange={e => setPwConfirm(e.target.value)}
                       placeholder="Repeat new password"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: 14 }}
                       onKeyDown={e => { if (e.key === 'Enter') handlePasswordChange(); }}
                     />
                   </div>

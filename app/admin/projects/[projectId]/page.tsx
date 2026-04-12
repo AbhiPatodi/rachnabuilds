@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractBuilder from './ContractBuilder';
+import DeliverableKanban from './DeliverableKanban';
 
 export const dynamic = 'force-dynamic';
 
@@ -621,9 +622,9 @@ export default function ProjectManagePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, projectId]);
 
-  // Load deliverables when tab is opened
+  // Load deliverables on mount (eager so tab count shows immediately)
   useEffect(() => {
-    if (activeTab !== 'deliverables' || deliverablesLoaded) return;
+    if (deliverablesLoaded) return;
     fetch(`/api/admin/projects/${projectId}/deliverables`)
       .then(r => r.ok ? r.json() : { deliverables: [] })
       .then(d => setDeliverables(d.deliverables ?? []))
@@ -2398,236 +2399,20 @@ export default function ProjectManagePage() {
         </div>
       )}
 
-      {/* ─── DELIVERABLES TAB ─── */}
+      {/* ─── DELIVERABLES TAB — Kanban ─── */}
       {activeTab === 'deliverables' && (() => {
-        const DELIV_STATUS_LABEL: Record<string, string> = { draft: '📝 Draft', under_review: '👀 Under Review', changes_requested: '🐛 Changes Requested', in_progress: '🔄 In Progress', completed: '✅ Completed' };
-        const DELIV_STATUS_COLOR: Record<string, string> = { draft: '#64748B', under_review: '#F59E0B', changes_requested: '#FF6B6B', in_progress: '#3B82F6', completed: '#06D6A0' };
-        const BUG_STATUS_LABEL: Record<string, string> = { open: '🔴 Open', in_progress: '🔄 In Progress', resolved: '✅ Resolved', reopened: '🔄 Reopened', wont_fix: '🚫 Won\'t Fix' };
-        const BUG_STATUS_COLOR: Record<string, string> = { open: '#FF6B6B', in_progress: '#F59E0B', resolved: '#06D6A0', reopened: '#F59E0B', wont_fix: '#64748B' };
+        const _unused = null;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 className="admin-section-title" style={{ margin: 0 }}>Deliverables & Review</h2>
-              <button className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} onClick={() => setShowDelivForm(v => !v)}>
-                {showDelivForm ? 'Cancel' : '+ Add Deliverable'}
-              </button>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 className="admin-section-title" style={{ margin: 0 }}>Tasks & Deliverables</h2>
             </div>
 
-            {showDelivForm && (
-              <form onSubmit={handleAddDeliverable} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12 }}>
-                  <div>
-                    <label className="admin-label">Title *</label>
-                    <input className="admin-input" value={delivTitle} onChange={e => setDelivTitle(e.target.value)} placeholder="e.g. Sticky ATC + Gallery Built" required />
-                  </div>
-                  <div>
-                    <label className="admin-label">Status</label>
-                    <select className="admin-select" value={delivStatus} onChange={e => setDelivStatus(e.target.value)}>
-                      <option value="draft">📝 Draft (hidden from client)</option>
-                      <option value="under_review">👀 Under Review</option>
-                      <option value="in_progress">🔄 In Progress</option>
-                      <option value="completed">✅ Completed</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="admin-label">Description / Notes</label>
-                  <textarea className="admin-input" value={delivDesc} onChange={e => setDelivDesc(e.target.value)} placeholder="What was built, what to check…" rows={2} style={{ resize: 'vertical' }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12 }}>
-                  <div>
-                    <label className="admin-label">Preview URL</label>
-                    <input className="admin-input" value={delivUrl} onChange={e => setDelivUrl(e.target.value)} placeholder="https://… (Loom, dev theme, Figma, etc.)" />
-                  </div>
-                  <div>
-                    <label className="admin-label">Linked Milestone</label>
-                    <select className="admin-select" value={delivMilestoneId} onChange={e => setDelivMilestoneId(e.target.value)}>
-                      <option value="">— None —</option>
-                      {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="submit" className="admin-btn admin-btn-primary" disabled={delivLoading || !delivTitle.trim()} style={{ fontSize: 13 }}>
-                    {delivLoading ? 'Adding…' : 'Add Deliverable'}
-                  </button>
-                  <button type="button" className="admin-btn admin-btn-ghost" style={{ fontSize: 13 }} onClick={() => setShowDelivForm(false)}>Cancel</button>
-                </div>
-              </form>
-            )}
-
-            {deliverables.length === 0 ? (
-              <div className="admin-empty">No deliverables yet. Add one to start the client review process.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {deliverables.map(d => {
-                  const isEditing = editingDelivId === d.id;
-                  const isFeedbackOpen = expandedFeedback === d.id;
-                  const openBugs = d.feedback.filter(f => f.status === 'open' || f.status === 'reopened').length;
-                  return (
-                    <div key={d.id} style={{ background: 'var(--bg-elevated)', border: `1px solid ${d.status === 'changes_requested' ? '#FF6B6B44' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
-                      {/* Header */}
-                      <div style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          {isEditing ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
-                                <div>
-                                  <label className="admin-label">Title</label>
-                                  <input className="admin-input" value={editDelivTitle} onChange={e => setEditDelivTitle(e.target.value)} />
-                                </div>
-                                <div>
-                                  <label className="admin-label">Status</label>
-                                  <select className="admin-select" value={editDelivStatus} onChange={e => setEditDelivStatus(e.target.value)}>
-                                    <option value="draft">📝 Draft</option>
-                                    <option value="under_review">👀 Under Review</option>
-                                    <option value="changes_requested">🐛 Changes Requested</option>
-                                    <option value="in_progress">🔄 In Progress</option>
-                                    <option value="completed">✅ Completed</option>
-                                  </select>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="admin-label">Description</label>
-                                <textarea className="admin-input" value={editDelivDesc} onChange={e => setEditDelivDesc(e.target.value)} rows={2} style={{ resize: 'vertical' }} />
-                              </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 10 }}>
-                                <div>
-                                  <label className="admin-label">Preview URL</label>
-                                  <input className="admin-input" value={editDelivUrl} onChange={e => setEditDelivUrl(e.target.value)} />
-                                </div>
-                                <div>
-                                  <label className="admin-label">Milestone</label>
-                                  <select className="admin-select" value={editDelivMilestoneId} onChange={e => setEditDelivMilestoneId(e.target.value)}>
-                                    <option value="">— None —</option>
-                                    {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-                                  </select>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} onClick={() => handleSaveDeliverable(d.id)} disabled={editDelivLoading}>{editDelivLoading ? 'Saving…' : 'Save'}</button>
-                                <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => setEditingDelivId(null)}>Cancel</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>{d.title}</div>
-                              {d.description && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8 }}>{d.description}</div>}
-                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: DELIV_STATUS_COLOR[d.status] ?? '#94A3B8', background: (DELIV_STATUS_COLOR[d.status] ?? '#94A3B8') + '22', padding: '3px 8px', borderRadius: 6 }}>
-                                  {DELIV_STATUS_LABEL[d.status] ?? d.status}
-                                </span>
-                                {d.previewUrl && (
-                                  <a href={d.previewUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost" style={{ fontSize: 11, padding: '3px 8px' }}>🔗 View Preview</a>
-                                )}
-                                {openBugs > 0 && (
-                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#FF6B6B', background: '#FF6B6B22', padding: '3px 8px', borderRadius: 6 }}>
-                                    {openBugs} open bug{openBugs > 1 ? 's' : ''}
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        {!isEditing && (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDeliverable(d)}>Edit</button>
-                            <button className="admin-btn admin-btn-danger admin-btn-icon" style={{ fontSize: 12 }} onClick={() => handleDeleteDeliverable(d.id)}>Del</button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Feedback section */}
-                      {!isEditing && (
-                        <div style={{ borderTop: '1px solid var(--border)' }}>
-                          <button
-                            onClick={() => setExpandedFeedback(isFeedbackOpen ? null : d.id)}
-                            style={{ width: '100%', padding: '10px 16px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                          >
-                            <span>💬 {d.feedback.length} feedback item{d.feedback.length !== 1 ? 's' : ''}</span>
-                            <span style={{ fontSize: 11 }}>{isFeedbackOpen ? '▲ Hide' : '▼ Show'}</span>
-                          </button>
-
-                          {isFeedbackOpen && (
-                            <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                              {d.feedback.length === 0 ? (
-                                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>No feedback yet from client.</div>
-                              ) : d.feedback.map(f => (
-                                <div key={f.id} style={{ background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}44`, borderRadius: 10, padding: '12px 14px' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                                    <div style={{ flex: 1 }}>
-                                      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{f.message}</div>
-                                      {f.attachmentUrl && (
-                                        <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)', marginTop: 4, display: 'inline-block' }}>
-                                          📎 {f.attachmentName || 'Attachment'}
-                                        </a>
-                                      )}
-                                    </div>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status], background: BUG_STATUS_COLOR[f.status] + '22', padding: '3px 8px', borderRadius: 6, flexShrink: 0 }}>
-                                      {BUG_STATUS_LABEL[f.status] ?? f.status}
-                                    </span>
-                                  </div>
-                                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-                                    {f.addedBy === 'client' ? '👤 Client' : '🛠 Admin'} · {new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                                  </div>
-
-                                  {/* Replies */}
-                                  {f.replies.length > 0 && (
-                                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                      {f.replies.map(r => (
-                                        <div key={r.id} style={{ padding: '8px 12px', background: r.addedBy === 'admin' ? 'var(--accent)11' : 'var(--bg-elevated)', borderRadius: 8, fontSize: 13 }}>
-                                          <div style={{ fontSize: 11, fontWeight: 600, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 3 }}>
-                                            {r.addedBy === 'admin' ? '🛠 Rachna' : '👤 Client'}
-                                          </div>
-                                          {r.message}
-                                          {r.attachmentUrl && (
-                                            <div><a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName || 'Attachment'}</a></div>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {/* Status change + reply */}
-                                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                                    {['in_progress', 'resolved', 'wont_fix'].map(s => f.status !== s && (
-                                      <button key={s} className="admin-btn admin-btn-ghost" style={{ fontSize: 11, padding: '3px 8px' }} onClick={() => handleFeedbackStatus(f.id, d.id, s)}>
-                                        Mark {BUG_STATUS_LABEL[s]}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  <div style={{ display: 'flex', gap: 8 }}>
-                                    <input
-                                      className="admin-input"
-                                      style={{ flex: 1, fontSize: 12 }}
-                                      placeholder="Reply to client…"
-                                      value={replyText[f.id] ?? ''}
-                                      onChange={e => setReplyText(prev => ({ ...prev, [f.id]: e.target.value }))}
-                                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAdminReply(f.id, d.id)}
-                                    />
-                                    <input
-                                      type="file"
-                                      ref={el => { replyFileInputRefs.current[f.id] = el; }}
-                                      style={{ display: 'none' }}
-                                      onChange={e => setReplyAttach(prev => ({ ...prev, [f.id]: e.target.files?.[0] ?? null }))}
-                                    />
-                                    <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} title="Attach file" onClick={() => replyFileInputRefs.current[f.id]?.click()}>📎</button>
-                                    <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={!replyText[f.id]?.trim() || replyLoading[f.id]} onClick={() => handleAdminReply(f.id, d.id)}>
-                                      {replyLoading[f.id] ? '…' : 'Send'}
-                                    </button>
-                                  </div>
-                                  {replyAttach[f.id] && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>📎 {replyAttach[f.id]!.name}</div>}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <DeliverableKanban
+              projectId={projectId!}
+              milestones={milestones}
+              clientSlug={(project?.client as { slug?: string })?.slug ?? ''}
+            />
           </div>
         );
       })()}
