@@ -269,6 +269,167 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
     setEditMsId(task.milestoneId ?? '');
   };
 
+  const renderModal = () => {
+    if (!selectedTask) return null;
+    const col = COLUMNS.find(c => c.id === selectedTask.status)!;
+    const ms = milestones.find(m => m.id === selectedTask.milestoneId);
+    return (
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        onClick={() => setSelectedTask(null)}
+      >
+        <div
+          style={{ width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: 'var(--bg-elevated)', border: `1px solid ${col.border}`, borderTop: `4px solid ${col.color}`, borderRadius: 16, display: 'flex', flexDirection: 'column' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Panel header */}
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: col.bg, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {col.label}
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => { setEditingTask(true); setEditTitle(selectedTask.title); setEditDesc(selectedTask.description ?? ''); setEditUrl(selectedTask.previewUrl ?? ''); setEditMsId(selectedTask.milestoneId ?? ''); }}>✏️ Edit</button>
+              <button className="admin-btn admin-btn-danger" style={{ fontSize: 12 }} onClick={() => deleteTask(selectedTask.id)}>Del</button>
+              <button onClick={() => setSelectedTask(null)} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+          </div>
+
+          <div style={{ padding: '16px', flex: 1 }}>
+            {/* Title & details */}
+            {editingTask ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                <div>
+                  <label className="admin-label">Title</label>
+                  <input className="admin-input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                </div>
+                <div>
+                  <label className="admin-label">Description</label>
+                  <textarea className="admin-input" value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} style={{ resize: 'vertical' }} />
+                </div>
+                <div>
+                  <label className="admin-label">Preview URL</label>
+                  <input className="admin-input" value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder="https://…" />
+                </div>
+                {milestones.length > 0 && (
+                  <div>
+                    <label className="admin-label">Milestone</label>
+                    <select className="admin-select" value={editMsId} onChange={e => setEditMsId(e.target.value)}>
+                      <option value="">— None —</option>
+                      {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} disabled={editSaving} onClick={saveEdit}>{editSaving ? 'Saving…' : 'Save'}</button>
+                  <button className="admin-btn admin-btn-ghost" style={{ fontSize: 13 }} onClick={() => setEditingTask(false)}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 8, lineHeight: 1.4 }}>{selectedTask.title}</div>
+                {selectedTask.description && (
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>{selectedTask.description}</div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {selectedTask.previewUrl && (
+                    <a href={selectedTask.previewUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', width: 'fit-content' }}>
+                      🔗 View Preview
+                    </a>
+                  )}
+                  {ms && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>📌 {ms.title}</div>}
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Created {new Date(selectedTask.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Move status */}
+            {!editingTask && (
+              <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Move to</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {COLUMNS.filter(c => c.id !== selectedTask.status).map(c => (
+                    <button key={c.id}
+                      style={{ fontSize: 11, fontWeight: 600, color: c.color, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
+                      onClick={() => moveTaskToStatus(selectedTask, c.id)}
+                    >{c.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Feedback */}
+            {!editingTask && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                  Feedback ({selectedTask.feedback.length})
+                </div>
+
+                {selectedTask.feedback.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>No feedback yet.</div>
+                ) : selectedTask.feedback.map(f => (
+                  <div key={f.id} style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: 6 }}>{f.message}</div>
+                    {f.attachmentUrl && (
+                      <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
+                    )}
+
+                    {/* Status actions */}
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8, marginBottom: 8 }}>
+                      {['in_progress', 'resolved', 'wont_fix'].filter(s => s !== f.status).map(s => (
+                        <button key={s} className="admin-btn admin-btn-ghost" style={{ fontSize: 10, padding: '2px 7px' }} onClick={() => changeBugStatus(f.id, selectedTask.id, s)}>
+                          {BUG_STATUS_LABEL[s]}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Replies */}
+                    {f.replies.length > 0 && (
+                      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {f.replies.map(r => (
+                          <div key={r.id} style={{ padding: '7px 10px', background: r.addedBy === 'admin' ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', borderRadius: 8 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 2 }}>
+                              {r.addedBy === 'admin' ? '🛠 You' : '👤 Client'}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text)' }}>{r.message}</div>
+                            {r.attachmentUrl && <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reply input */}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      <input
+                        className="admin-input"
+                        style={{ flex: 1, fontSize: 12 }}
+                        placeholder="Reply…"
+                        value={replyText[f.id] ?? ''}
+                        onChange={e => setReplyText(p => ({ ...p, [f.id]: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendReply(f.id, selectedTask.id)}
+                      />
+                      <input type="file" style={{ display: 'none' }} ref={el => { replyFileRefs.current[f.id] = el; }}
+                        onChange={e => setReplyAttach(p => ({ ...p, [f.id]: e.target.files?.[0] ?? null }))} />
+                      <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => replyFileRefs.current[f.id]?.click()} title="Attach">📎</button>
+                      <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={!replyText[f.id]?.trim() || replyLoading[f.id]} onClick={() => sendReply(f.id, selectedTask.id)}>
+                        {replyLoading[f.id] ? '…' : '↑'}
+                      </button>
+                    </div>
+                    {replyAttach[f.id] && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>📎 {replyAttach[f.id]!.name}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) return <div style={{ color: 'var(--text-secondary)', fontSize: 14, padding: 24 }}>Loading tasks…</div>;
 
   return (
@@ -318,7 +479,6 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 0, position: 'relative' }}>
       {/* ── Kanban Board ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, paddingRight: selectedTask ? 0 : 0 }}>
         {COLUMNS.map(col => {
@@ -475,169 +635,8 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
         })}
       </div>
 
-      {/* ── Task Detail Panel ────────────────────────────────────────────── */}
-      {selectedTask && (() => {
-        const col = COLUMNS.find(c => c.id === selectedTask.status)!;
-        const colIdx = STATUS_ORDER.indexOf(selectedTask.status);
-        const ms = milestones.find(m => m.id === selectedTask.milestoneId);
-
-        return (
-          <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-            onClick={() => setSelectedTask(null)}
-          >
-          <div
-            style={{ width: '100%', maxWidth: 640, maxHeight: '88vh', overflowY: 'auto', background: 'var(--bg-elevated)', border: `1px solid ${col.border}`, borderTop: `4px solid ${col.color}`, borderRadius: 16, display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Panel header */}
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: col.bg, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {col.label}
-              </span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => { setEditingTask(true); setEditTitle(selectedTask.title); setEditDesc(selectedTask.description ?? ''); setEditUrl(selectedTask.previewUrl ?? ''); setEditMsId(selectedTask.milestoneId ?? ''); }}>✏️ Edit</button>
-                <button className="admin-btn admin-btn-danger" style={{ fontSize: 12 }} onClick={() => deleteTask(selectedTask.id)}>Del</button>
-                <button onClick={() => setSelectedTask(null)} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>×</button>
-              </div>
-            </div>
-
-            <div style={{ padding: '16px', flex: 1 }}>
-              {/* Title & details */}
-              {editingTask ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-                  <div>
-                    <label className="admin-label">Title</label>
-                    <input className="admin-input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="admin-label">Description</label>
-                    <textarea className="admin-input" value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} style={{ resize: 'vertical' }} />
-                  </div>
-                  <div>
-                    <label className="admin-label">Preview URL</label>
-                    <input className="admin-input" value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder="https://…" />
-                  </div>
-                  {milestones.length > 0 && (
-                    <div>
-                      <label className="admin-label">Milestone</label>
-                      <select className="admin-select" value={editMsId} onChange={e => setEditMsId(e.target.value)}>
-                        <option value="">— None —</option>
-                        {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} disabled={editSaving} onClick={saveEdit}>{editSaving ? 'Saving…' : 'Save'}</button>
-                    <button className="admin-btn admin-btn-ghost" style={{ fontSize: 13 }} onClick={() => setEditingTask(false)}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 8, lineHeight: 1.4 }}>{selectedTask.title}</div>
-                  {selectedTask.description && (
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>{selectedTask.description}</div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {selectedTask.previewUrl && (
-                      <a href={selectedTask.previewUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', width: 'fit-content' }}>
-                        🔗 View Preview
-                      </a>
-                    )}
-                    {ms && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>📌 {ms.title}</div>}
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Created {new Date(selectedTask.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Move status */}
-              {!editingTask && (
-                <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Move to</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {COLUMNS.filter(c => c.id !== selectedTask.status).map(c => (
-                      <button key={c.id}
-                        style={{ fontSize: 11, fontWeight: 600, color: c.color, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
-                        onClick={() => moveTaskToStatus(selectedTask, c.id)}
-                      >{c.label}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Feedback */}
-              {!editingTask && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                    Feedback ({selectedTask.feedback.length})
-                  </div>
-
-                  {selectedTask.feedback.length === 0 ? (
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>No feedback yet.</div>
-                  ) : selectedTask.feedback.map(f => (
-                    <div key={f.id} style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, padding: '10px 12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: 6 }}>{f.message}</div>
-                      {f.attachmentUrl && (
-                        <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
-                      )}
-
-                      {/* Status actions */}
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8, marginBottom: 8 }}>
-                        {['in_progress', 'resolved', 'wont_fix'].filter(s => s !== f.status).map(s => (
-                          <button key={s} className="admin-btn admin-btn-ghost" style={{ fontSize: 10, padding: '2px 7px' }} onClick={() => changeBugStatus(f.id, selectedTask.id, s)}>
-                            {BUG_STATUS_LABEL[s]}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Replies */}
-                      {f.replies.length > 0 && (
-                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {f.replies.map(r => (
-                            <div key={r.id} style={{ padding: '7px 10px', background: r.addedBy === 'admin' ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', borderRadius: 8 }}>
-                              <div style={{ fontSize: 10, fontWeight: 700, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 2 }}>
-                                {r.addedBy === 'admin' ? '🛠 You' : '👤 Client'}
-                              </div>
-                              <div style={{ fontSize: 12, color: 'var(--text)' }}>{r.message}</div>
-                              {r.attachmentUrl && <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Reply input */}
-                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                        <input
-                          className="admin-input"
-                          style={{ flex: 1, fontSize: 12 }}
-                          placeholder="Reply…"
-                          value={replyText[f.id] ?? ''}
-                          onChange={e => setReplyText(p => ({ ...p, [f.id]: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendReply(f.id, selectedTask.id)}
-                        />
-                        <input type="file" style={{ display: 'none' }} ref={el => { replyFileRefs.current[f.id] = el; }}
-                          onChange={e => setReplyAttach(p => ({ ...p, [f.id]: e.target.files?.[0] ?? null }))} />
-                        <button className="admin-btn admin-btn-ghost" style={{ fontSize: 12 }} onClick={() => replyFileRefs.current[f.id]?.click()} title="Attach">📎</button>
-                        <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={!replyText[f.id]?.trim() || replyLoading[f.id]} onClick={() => sendReply(f.id, selectedTask.id)}>
-                          {replyLoading[f.id] ? '…' : '↑'}
-                        </button>
-                      </div>
-                      {replyAttach[f.id] && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>📎 {replyAttach[f.id]!.name}</div>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          </div>
-        );
-      })()}
-      </div>{/* end inner kanban flex */}
+      {/* ── Task Detail Modal ─────────────────────────────────────────────── */}
+      {renderModal()}
     </div>
   );
 }

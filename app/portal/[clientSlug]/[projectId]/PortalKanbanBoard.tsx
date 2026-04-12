@@ -319,6 +319,206 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const renderModal = () => {
+    if (!selectedCard) return null;
+    const col = columns.find(c => c.id === selectedCard.status) ?? columns[0];
+    const hexToRgba = (hex: string, alpha: number) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    };
+    const colBg = col ? hexToRgba(col.color, 0.07) : 'transparent';
+    const colBorder = col ? hexToRgba(col.color, 0.22) : 'var(--border)';
+    return (
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        onClick={() => setSelectedCard(null)}
+      >
+        <div
+          style={{ width: '100%', maxWidth: 620, maxHeight: '88vh', overflowY: 'auto', background: 'var(--bg-elevated)', border: `1px solid ${colBorder}`, borderTop: col ? `4px solid ${col.color}` : undefined, borderRadius: 16, display: 'flex', flexDirection: 'column' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Panel header */}
+          <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: col?.color, background: colBg, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {col?.label}
+            </span>
+            <button
+              onClick={() => setSelectedCard(null)}
+              style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}
+            >×</button>
+          </div>
+
+          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Title & details */}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6, lineHeight: 1.4 }}>{selectedCard.title}</div>
+              {selectedCard.description && (
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{selectedCard.description}</div>
+              )}
+              {selectedCard.previewUrl && (
+                <a href={selectedCard.previewUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none' }}>
+                  🔗 View Preview
+                </a>
+              )}
+            </div>
+
+            {/* Move To buttons */}
+            <div style={{ paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Move To</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {columns.filter(c => c.id !== selectedCard.status).map(c => {
+                  const r = parseInt(c.color.slice(1, 3), 16);
+                  const g = parseInt(c.color.slice(3, 5), 16);
+                  const b = parseInt(c.color.slice(5, 7), 16);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => moveCard(selectedCard.id, c.id)}
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: c.color,
+                        background: `rgba(${r},${g},${b},0.08)`,
+                        border: `1px solid rgba(${r},${g},${b},0.25)`,
+                        borderRadius: 8,
+                        padding: '4px 10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Comments thread */}
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                Comments ({selectedCard.feedback.length})
+              </div>
+
+              {selectedCard.feedback.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 8 }}>No comments yet.</div>
+              ) : (
+                selectedCard.feedback.map(f => (
+                  <div key={f.id} style={{ marginBottom: 12, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: f.attachmentUrl ? 4 : 0 }}>{f.message}</div>
+                    {f.attachmentUrl && (
+                      <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
+                    )}
+
+                    {/* Replies */}
+                    {f.replies.length > 0 && (
+                      <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {f.replies.map(r => (
+                          <div key={r.id} style={{ padding: '7px 10px', background: r.addedBy === 'admin' ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', borderRadius: 8 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 2 }}>
+                              {r.addedBy === 'admin' ? '🛠 Rachna' : '👤 You'}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text)' }}>{r.message}</div>
+                            {r.attachmentUrl && <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reopen button */}
+                    {f.status === 'resolved' && (
+                      <button
+                        onClick={() => submitReply(f.id, selectedCard.id, 'reopen')}
+                        disabled={replySending[f.id]}
+                        style={{ marginTop: 8, background: 'transparent', border: '1px solid #F59E0B44', color: '#F59E0B', fontSize: 11, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        🔄 Reopen
+                      </button>
+                    )}
+
+                    {/* Reply input */}
+                    {(f.status === 'in_progress' || f.status === 'open' || f.status === 'reopened') && (
+                      <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        <div style={{ display: 'flex', gap: 5 }}>
+                          <input
+                            placeholder="Add a note…"
+                            value={replyText[f.id] ?? ''}
+                            onChange={e => setReplyText(prev => ({ ...prev, [f.id]: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitReply(f.id, selectedCard.id, 'reply')}
+                            style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 9px', color: 'var(--text)', fontSize: 12 }}
+                          />
+                          <input
+                            type="file"
+                            style={{ display: 'none' }}
+                            ref={el => { replyFileRefs.current[f.id] = el; }}
+                            onChange={e => setReplyAttachFile(prev => ({ ...prev, [f.id]: e.target.files?.[0] ?? null }))}
+                          />
+                          <button
+                            onClick={() => replyFileRefs.current[f.id]?.click()}
+                            title="Attach file"
+                            style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}
+                          >📎</button>
+                          <button
+                            onClick={() => submitReply(f.id, selectedCard.id, 'reply')}
+                            disabled={!replyText[f.id]?.trim() || replySending[f.id]}
+                            style={{ padding: '5px 10px', background: 'var(--accent)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                          >
+                            {replySending[f.id] ? '…' : '↑'}
+                          </button>
+                        </div>
+                        {replyAttachFile[f.id] && (
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>📎 {replyAttachFile[f.id]!.name}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+
+              {/* Add comment form */}
+              <div style={{ marginTop: 8, padding: '12px', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Add a comment</div>
+                <textarea
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  placeholder="Describe a change or add a note…"
+                  rows={3}
+                  style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 10px', color: 'var(--text)', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', gap: 7, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="file"
+                    ref={commentFileRef}
+                    style={{ display: 'none' }}
+                    onChange={e => setCommentAttachFile(e.target.files?.[0] ?? null)}
+                    accept="image/*,application/pdf"
+                  />
+                  <button
+                    onClick={() => commentFileRef.current?.click()}
+                    style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer' }}
+                  >📎 Attach</button>
+                  {commentAttachFile && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>📎 {commentAttachFile.name}</span>}
+                  <button
+                    onClick={() => submitComment(selectedCard.id)}
+                    disabled={!commentText.trim() || commentSubmitting}
+                    style={{ marginLeft: 'auto', padding: '5px 14px', background: '#F87171', color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', borderRadius: 7, cursor: 'pointer', opacity: !commentText.trim() || commentSubmitting ? 0.6 : 1 }}
+                  >
+                    {commentSubmitting ? '…' : 'Submit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return <div style={{ color: 'var(--text-secondary)', fontSize: 14, padding: '20px 0' }}>Loading deliverables…</div>;
   }
@@ -349,7 +549,6 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 0, position: 'relative' }}>
       {/* ── Board ─────────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }}>
         {columns.map(col => {
@@ -517,207 +716,8 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
         </div>
       </div>
 
-      {/* ── Card Detail Panel ──────────────────────────────────────────────── */}
-      {selectedCard && (() => {
-        const col = columns.find(c => c.id === selectedCard.status) ?? columns[0];
-        const hexToRgba = (hex: string, alpha: number) => {
-          const r = parseInt(hex.slice(1, 3), 16);
-          const g = parseInt(hex.slice(3, 5), 16);
-          const b = parseInt(hex.slice(5, 7), 16);
-          return `rgba(${r},${g},${b},${alpha})`;
-        };
-        const colBg = hexToRgba(col.color, 0.07);
-        const colBorder = hexToRgba(col.color, 0.22);
-
-        return (
-          <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-            onClick={() => setSelectedCard(null)}
-          >
-          <div
-            style={{ width: '100%', maxWidth: 620, maxHeight: '88vh', overflowY: 'auto', background: 'var(--bg-elevated)', border: `1px solid ${colBorder}`, borderTop: `4px solid ${col.color}`, borderRadius: 16, display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Panel header */}
-            <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: colBg, padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {col.label}
-              </span>
-              <button
-                onClick={() => setSelectedCard(null)}
-                style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}
-              >×</button>
-            </div>
-
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Title & details */}
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6, lineHeight: 1.4 }}>{selectedCard.title}</div>
-                {selectedCard.description && (
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 8 }}>{selectedCard.description}</div>
-                )}
-                {selectedCard.previewUrl && (
-                  <a href={selectedCard.previewUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none' }}>
-                    🔗 View Preview
-                  </a>
-                )}
-              </div>
-
-              {/* Move To buttons */}
-              <div style={{ paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Move To</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {columns.filter(c => c.id !== selectedCard.status).map(c => {
-                    const r = parseInt(c.color.slice(1, 3), 16);
-                    const g = parseInt(c.color.slice(3, 5), 16);
-                    const b = parseInt(c.color.slice(5, 7), 16);
-                    return (
-                      <button
-                        key={c.id}
-                        onClick={() => moveCard(selectedCard.id, c.id)}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: c.color,
-                          background: `rgba(${r},${g},${b},0.08)`,
-                          border: `1px solid rgba(${r},${g},${b},0.25)`,
-                          borderRadius: 8,
-                          padding: '4px 10px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {c.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Comments thread */}
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                  Comments ({selectedCard.feedback.length})
-                </div>
-
-                {selectedCard.feedback.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 8 }}>No comments yet.</div>
-                ) : (
-                  selectedCard.feedback.map(f => (
-                    <div key={f.id} style={{ marginBottom: 12, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, padding: '10px 12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: f.attachmentUrl ? 4 : 0 }}>{f.message}</div>
-                      {f.attachmentUrl && (
-                        <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
-                      )}
-
-                      {/* Replies */}
-                      {f.replies.length > 0 && (
-                        <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {f.replies.map(r => (
-                            <div key={r.id} style={{ padding: '7px 10px', background: r.addedBy === 'admin' ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', borderRadius: 8 }}>
-                              <div style={{ fontSize: 10, fontWeight: 700, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 2 }}>
-                                {r.addedBy === 'admin' ? '🛠 Rachna' : '👤 You'}
-                              </div>
-                              <div style={{ fontSize: 12, color: 'var(--text)' }}>{r.message}</div>
-                              {r.attachmentUrl && <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Reopen button */}
-                      {f.status === 'resolved' && (
-                        <button
-                          onClick={() => submitReply(f.id, selectedCard.id, 'reopen')}
-                          disabled={replySending[f.id]}
-                          style={{ marginTop: 8, background: 'transparent', border: '1px solid #F59E0B44', color: '#F59E0B', fontSize: 11, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
-                        >
-                          🔄 Reopen
-                        </button>
-                      )}
-
-                      {/* Reply input */}
-                      {(f.status === 'in_progress' || f.status === 'open' || f.status === 'reopened') && (
-                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                          <div style={{ display: 'flex', gap: 5 }}>
-                            <input
-                              placeholder="Add a note…"
-                              value={replyText[f.id] ?? ''}
-                              onChange={e => setReplyText(prev => ({ ...prev, [f.id]: e.target.value }))}
-                              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitReply(f.id, selectedCard.id, 'reply')}
-                              style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 9px', color: 'var(--text)', fontSize: 12 }}
-                            />
-                            <input
-                              type="file"
-                              style={{ display: 'none' }}
-                              ref={el => { replyFileRefs.current[f.id] = el; }}
-                              onChange={e => setReplyAttachFile(prev => ({ ...prev, [f.id]: e.target.files?.[0] ?? null }))}
-                            />
-                            <button
-                              onClick={() => replyFileRefs.current[f.id]?.click()}
-                              title="Attach file"
-                              style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}
-                            >📎</button>
-                            <button
-                              onClick={() => submitReply(f.id, selectedCard.id, 'reply')}
-                              disabled={!replyText[f.id]?.trim() || replySending[f.id]}
-                              style={{ padding: '5px 10px', background: 'var(--accent)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                            >
-                              {replySending[f.id] ? '…' : '↑'}
-                            </button>
-                          </div>
-                          {replyAttachFile[f.id] && (
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>📎 {replyAttachFile[f.id]!.name}</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-
-                {/* Add comment form */}
-                <div style={{ marginTop: 8, padding: '12px', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Add a comment</div>
-                  <textarea
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    placeholder="Describe a change or add a note…"
-                    rows={3}
-                    style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 10px', color: 'var(--text)', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                  />
-                  <div style={{ display: 'flex', gap: 7, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input
-                      type="file"
-                      ref={commentFileRef}
-                      style={{ display: 'none' }}
-                      onChange={e => setCommentAttachFile(e.target.files?.[0] ?? null)}
-                      accept="image/*,application/pdf"
-                    />
-                    <button
-                      onClick={() => commentFileRef.current?.click()}
-                      style={{ padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer' }}
-                    >📎 Attach</button>
-                    {commentAttachFile && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>📎 {commentAttachFile.name}</span>}
-                    <button
-                      onClick={() => submitComment(selectedCard.id)}
-                      disabled={!commentText.trim() || commentSubmitting}
-                      style={{ marginLeft: 'auto', padding: '5px 14px', background: '#F87171', color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', borderRadius: 7, cursor: 'pointer', opacity: !commentText.trim() || commentSubmitting ? 0.6 : 1 }}
-                    >
-                      {commentSubmitting ? '…' : 'Submit'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          </div>
-        );
-      })()}
-      </div>{/* end inner board flex */}
+      {/* ── Card Detail Modal ──────────────────────────────────────────────── */}
+      {renderModal()}
     </div>
   );
 }
