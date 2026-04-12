@@ -29,6 +29,7 @@ interface KanbanCard {
   description: string | null;
   previewUrl: string | null;
   status: string;
+  addedBy: string;
   feedback: CardFeedback[];
 }
 
@@ -639,7 +640,12 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                         userSelect: 'none',
                       }}
                     >
-                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', marginBottom: 4, lineHeight: 1.4 }}>{card.title}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', lineHeight: 1.4 }}>{card.title}</div>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: card.addedBy === 'client' ? '#A78BFA' : 'var(--accent)', background: card.addedBy === 'client' ? 'rgba(167,139,250,0.1)' : 'rgba(6,214,160,0.1)', border: `1px solid ${card.addedBy === 'client' ? 'rgba(167,139,250,0.3)' : 'rgba(6,214,160,0.3)'}`, borderRadius: 6, padding: '2px 6px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                          {card.addedBy === 'client' ? '👤 You' : '🛠 Rachna'}
+                        </span>
+                      </div>
                       {card.description && (
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {card.description}

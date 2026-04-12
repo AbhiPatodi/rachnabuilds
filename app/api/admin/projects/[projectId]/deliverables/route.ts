@@ -49,6 +49,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         description: data.description?.trim() || null,
         previewUrl: data.previewUrl?.trim() || null,
         status: data.status || 'draft',
+        addedBy: 'admin',
         displayOrder: data.displayOrder ?? 0,
       },
     });
