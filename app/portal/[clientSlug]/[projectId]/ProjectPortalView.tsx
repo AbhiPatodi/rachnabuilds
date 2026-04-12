@@ -1353,7 +1353,18 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
     }
     return [...filtered, { id: 'messages', label: 'Messages' }];
   })();
-  const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? 'submissions');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p && tabs.some(t => t.id === p)) return p;
+    }
+    return tabs[0]?.id ?? 'submissions';
+  });
+
+  const switchTab = (id: string) => {
+    setActiveTab(id);
+    router.replace(`?tab=${id}`, { scroll: false });
+  };
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -1692,7 +1703,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
     track('tab_view', { tab: tabId, prevTabDuration: tabDuration, scrollDepth });
     tabStartTimeRef.current = now;
     maxScrollRef.current = 0;
-    setActiveTab(tabId);
+    switchTab(tabId);
   };
 
   const handleDocOpen = (docId: string, title: string) => {
