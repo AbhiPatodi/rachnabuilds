@@ -1299,7 +1299,7 @@ export default function ProjectManagePage() {
             onClick={() => setActiveTab(tab)}
             style={{ textTransform: 'capitalize', position: 'relative' }}
           >
-            {tab}
+            {tab === 'deliverables' ? 'Tasks' : tab}
             {tab === 'milestones' && ` (${milestones.length})`}
             {tab === 'deliverables' && ` (${deliverables.length})`}
             {tab === 'sections' && ` (${project.sections.length})`}

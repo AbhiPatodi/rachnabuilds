@@ -30,7 +30,7 @@ export const ALL_TABS: PortalTab[] = [
   { id: 'competitors', label: 'References' },
   { id: 'proposal',   label: 'Proposal' },
   { id: 'status',     label: 'Project Status' },
-  { id: 'review',     label: 'Deliverables' },
+  { id: 'review',     label: 'Tasks' },
   { id: 'contract',   label: 'Contract' },
   { id: 'payments',   label: 'Payments' },
 ];

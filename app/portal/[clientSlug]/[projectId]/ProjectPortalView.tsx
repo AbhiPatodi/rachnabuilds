@@ -308,7 +308,7 @@ const TABS = [
   { id: 'competitors', label: 'References' },
   { id: 'proposal',    label: 'Proposal' },
   { id: 'status',      label: 'Project Status' },
-  { id: 'review',      label: 'Deliverables' },
+  { id: 'review',      label: 'Tasks' },
   { id: 'contract',    label: 'Contract' },
   { id: 'payments',    label: 'Payments' },
 ];
@@ -2011,8 +2011,8 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
         {activeTab === 'review' && (
           <>
-            <h1 className="portal-tab-heading">Deliverables</h1>
-            <p className="portal-tab-sub">Review each deliverable, test the preview, and drag cards to approve or flag changes.</p>
+            <h1 className="portal-tab-heading">Tasks</h1>
+            <p className="portal-tab-sub">Track progress, test previews, and drag cards across stages to approve or flag changes.</p>
             <PortalKanbanBoard projectId={project.id} clientSlug={clientSlug} />
           </>
         )}
