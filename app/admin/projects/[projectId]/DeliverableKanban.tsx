@@ -296,9 +296,10 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
       let attachmentUrl = null, attachmentName = null;
       const file = replyAttach[feedbackId];
       if (file) {
-        const fd = new FormData(); fd.append('file', file);
+        const compressed = await compressImage(file);
+        const fd = new FormData(); fd.append('file', compressed, compressed.name);
         const up = await fetch(`/api/portal/upload?slug=admin`, { method: 'POST', body: fd });
-        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = file.name; }
+        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = compressed.name; }
       }
       const res = await fetch(`/api/admin/feedback/${feedbackId}`, {
         method: 'POST',
@@ -451,9 +452,16 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                       <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
                       <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: 6 }}>{f.message}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: f.attachmentUrl ? 6 : 0 }}>{f.message}</div>
                     {f.attachmentUrl && (
-                      <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
+                      isImage(f.attachmentUrl) ? (
+                        <div>
+                          <img src={f.attachmentUrl} alt={f.attachmentName || 'Attachment'} style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', display: 'block' }} />
+                          <button onClick={() => downloadFile(f.attachmentUrl!, f.attachmentName || 'image.jpg')} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '4px 0 0', display: 'block' }}>⬇ Download</button>
+                        </div>
+                      ) : (
+                        <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
+                      )
                     )}
 
                     {/* Status actions */}
@@ -474,7 +482,16 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                               {r.addedBy === 'admin' ? '🛠 You' : '👤 Client'}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text)' }}>{r.message}</div>
-                            {r.attachmentUrl && <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>}
+                            {r.attachmentUrl && (
+                              isImage(r.attachmentUrl) ? (
+                                <div style={{ marginTop: 4 }}>
+                                  <img src={r.attachmentUrl} alt={r.attachmentName || 'Attachment'} style={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', display: 'block' }} />
+                                  <button onClick={() => downloadFile(r.attachmentUrl!, r.attachmentName || 'image.jpg')} style={{ fontSize: 10, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '3px 0 0', display: 'block' }}>⬇ Download</button>
+                                </div>
+                              ) : (
+                                <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>
+                              )
+                            )}
                           </div>
                         ))}
                       </div>
