@@ -102,6 +102,12 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   const [replySending, setReplySending] = useState<Record<string, boolean>>({});
   const replyFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Add task form
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [addingTask, setAddingTask] = useState(false);
+
   // Add column form
   const [showAddCol, setShowAddCol] = useState(false);
   const [newColName, setNewColName] = useState('');
@@ -317,6 +323,28 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
       await moveCard(dragCardId, colId);
     }
     setDragCardId(null);
+  };
+
+  // ── Add task ──────────────────────────────────────────────────────────────
+
+  const addTask = async (colId: string) => {
+    if (!newTaskTitle.trim()) return;
+    setAddingTask(true);
+    try {
+      const res = await fetch(`/api/portal/${clientSlug}/${projectId}/deliverables`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTaskTitle.trim(), description: newTaskDesc.trim() || null, status: colId }),
+      });
+      if (res.ok) {
+        const newCard = await res.json();
+        setCards(prev => [...prev, newCard]);
+        setAddingTo(null);
+        setNewTaskTitle('');
+        setNewTaskDesc('');
+      }
+    } catch { /* ignore */ }
+    setAddingTask(false);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -671,6 +699,43 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                   );
                 })}
               </div>
+
+              {/* Add task */}
+              {addingTo === col.id ? (
+                <div style={{ background: 'var(--bg-elevated)', border: `1px solid ${colBorder}`, borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '10px 10px 12px' }}>
+                  <input
+                    autoFocus
+                    placeholder="Task title…"
+                    value={newTaskTitle}
+                    onChange={e => setNewTaskTitle(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addTask(col.id); if (e.key === 'Escape') { setAddingTo(null); setNewTaskTitle(''); setNewTaskDesc(''); } }}
+                    style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: 'var(--text)', fontSize: 12, marginBottom: 6, boxSizing: 'border-box' }}
+                  />
+                  <textarea
+                    placeholder="Description (optional)…"
+                    value={newTaskDesc}
+                    onChange={e => setNewTaskDesc(e.target.value)}
+                    rows={2}
+                    style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', color: 'var(--text)', fontSize: 12, resize: 'none', marginBottom: 8, boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => addTask(col.id)}
+                      disabled={addingTask || !newTaskTitle.trim()}
+                      style={{ flex: 1, padding: '6px 0', background: col.color, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', borderRadius: 8, cursor: 'pointer', opacity: addingTask || !newTaskTitle.trim() ? 0.6 : 1 }}
+                    >{addingTask ? '…' : 'Add'}</button>
+                    <button
+                      onClick={() => { setAddingTo(null); setNewTaskTitle(''); setNewTaskDesc(''); }}
+                      style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
+                    >Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setAddingTo(col.id); setNewTaskTitle(''); setNewTaskDesc(''); }}
+                  style={{ width: '100%', padding: '8px 0', background: 'transparent', border: `1px solid ${colBorder}`, borderTop: 'none', borderRadius: '0 0 12px 12px', color: col.color, fontSize: 12, cursor: 'pointer', fontWeight: 600, opacity: 0.7 }}
+                >+ Add Task</button>
+              )}
             </div>
           );
         })}
