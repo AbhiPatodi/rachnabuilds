@@ -24,8 +24,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { status } = await req.json();
-    if (!status || status === 'draft') return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    const body = await req.json();
+    const { status, subTasks } = body;
+
+    if (status && status === 'draft') return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
 
     const client = await prisma.client.findUnique({ where: { slug: clientSlug }, select: { id: true } });
     if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -36,13 +38,17 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     });
     if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+    const updateData: Record<string, unknown> = {};
+    if (status) updateData.status = status;
+    if (subTasks !== undefined) updateData.subTasks = subTasks;
+
     const updated = await prisma.projectDeliverable.updateMany({
       where: { id: deliverableId, projectId: project.id },
-      data: { status },
+      data: updateData,
     });
     if (updated.count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    return NextResponse.json({ id: deliverableId, status });
+    return NextResponse.json({ id: deliverableId, ...updateData });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });

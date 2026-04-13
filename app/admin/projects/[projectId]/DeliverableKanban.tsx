@@ -55,9 +55,13 @@ interface TaskFeedback {
   attachmentName: string | null; addedBy: string; status: string;
   createdAt: string; replies: FeedbackReply[];
 }
+interface SubTask {
+  id: string; text: string; done: boolean;
+}
 interface Task {
   id: string; title: string; description: string | null; previewUrl: string | null;
   attachmentUrl: string | null; attachmentName: string | null;
+  subTasks: SubTask[];
   status: string; milestoneId: string | null; displayOrder: number; addedBy: string;
   createdAt: string; feedback: TaskFeedback[];
 }
@@ -120,6 +124,16 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   const [replyLoading, setReplyLoading] = useState<Record<string, boolean>>({});
   const [replyAttach, setReplyAttach] = useState<Record<string, File | null>>({});
   const replyFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Sub-task state
+  const [newSubTaskText, setNewSubTaskText] = useState('');
+  const [savingSubTask, setSavingSubTask] = useState(false);
+
+  // Admin comment state
+  const [adminComment, setAdminComment] = useState('');
+  const [adminCommentFile, setAdminCommentFile] = useState<File | null>(null);
+  const [adminCommentSubmitting, setAdminCommentSubmitting] = useState(false);
+  const adminCommentFileRef = useRef<HTMLInputElement>(null);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
@@ -325,6 +339,72 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
     setEditDesc(task.description ?? '');
     setEditUrl(task.previewUrl ?? '');
     setEditMsId(task.milestoneId ?? '');
+    setAdminComment('');
+    setAdminCommentFile(null);
+    setNewSubTaskText('');
+  };
+
+  // ── Sub-task helpers ───────────────────────────────────────────────────────
+
+  const saveSubTasks = async (taskId: string, subTasks: SubTask[]) => {
+    await fetch(`/api/admin/projects/${projectId}/deliverables/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subTasks }),
+    });
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, subTasks } : t));
+    setSelectedTask(prev => prev?.id === taskId ? { ...prev, subTasks } : prev);
+  };
+
+  const addSubTask = async (taskId: string) => {
+    if (!newSubTaskText.trim() || !selectedTask) return;
+    setSavingSubTask(true);
+    const updated = [...(selectedTask.subTasks || []), { id: `st_${Date.now()}`, text: newSubTaskText.trim(), done: false }];
+    await saveSubTasks(taskId, updated);
+    setNewSubTaskText('');
+    setSavingSubTask(false);
+  };
+
+  const toggleSubTask = async (taskId: string, subTaskId: string) => {
+    if (!selectedTask) return;
+    const updated = selectedTask.subTasks.map(s => s.id === subTaskId ? { ...s, done: !s.done } : s);
+    await saveSubTasks(taskId, updated);
+  };
+
+  const deleteSubTask = async (taskId: string, subTaskId: string) => {
+    if (!selectedTask) return;
+    const updated = selectedTask.subTasks.filter(s => s.id !== subTaskId);
+    await saveSubTasks(taskId, updated);
+  };
+
+  // ── Admin comment submit ───────────────────────────────────────────────────
+
+  const submitAdminComment = async (taskId: string) => {
+    if (!adminComment.trim()) return;
+    setAdminCommentSubmitting(true);
+    try {
+      let attachmentUrl: string | null = null;
+      let attachmentName: string | null = null;
+      if (adminCommentFile) {
+        const compressed = await compressImage(adminCommentFile);
+        const fd = new FormData(); fd.append('file', compressed, compressed.name);
+        const up = await fetch(`/api/portal/upload?slug=admin`, { method: 'POST', body: fd });
+        if (up.ok) { const b = await up.json(); attachmentUrl = b.url; attachmentName = compressed.name; }
+      }
+      const res = await fetch(`/api/admin/projects/${projectId}/deliverables/${taskId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: adminComment.trim(), attachmentUrl, attachmentName }),
+      });
+      if (res.ok) {
+        const fb = await res.json();
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, feedback: [...t.feedback, { ...fb, replies: [] }] } : t));
+        setSelectedTask(prev => prev?.id === taskId ? { ...prev, feedback: [...prev.feedback, { ...fb, replies: [] }] } : prev);
+        setAdminComment('');
+        setAdminCommentFile(null);
+        if (adminCommentFileRef.current) adminCommentFileRef.current.value = '';
+      }
+    } finally { setAdminCommentSubmitting(false); }
   };
 
   const renderModal = () => {
@@ -437,11 +517,49 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
               </div>
             )}
 
+            {/* Sub-tasks */}
+            {!editingTask && (
+              <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                  Sub-tasks ({(selectedTask.subTasks || []).filter(s => s.done).length}/{(selectedTask.subTasks || []).length})
+                </div>
+                {(selectedTask.subTasks || []).length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                    {selectedTask.subTasks.map(s => (
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={s.done}
+                          onChange={() => toggleSubTask(selectedTask.id, s.id)}
+                          style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }}
+                        />
+                        <span style={{ flex: 1, fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
+                        <button onClick={() => deleteSubTask(selectedTask.id, s.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    className="admin-input"
+                    style={{ flex: 1, fontSize: 12 }}
+                    placeholder="Add a sub-task…"
+                    value={newSubTaskText}
+                    onChange={e => setNewSubTaskText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addSubTask(selectedTask.id); }}
+                  />
+                  <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={savingSubTask || !newSubTaskText.trim()} onClick={() => addSubTask(selectedTask.id)}>
+                    {savingSubTask ? '…' : '+ Add'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Feedback */}
             {!editingTask && (
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-                  Feedback ({selectedTask.feedback.length})
+                  Comments ({selectedTask.feedback.length})
                 </div>
 
                 {selectedTask.feedback.length === 0 ? (
@@ -517,6 +635,29 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                     {replyAttach[f.id] && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>📎 {replyAttach[f.id]!.name}</div>}
                   </div>
                 ))}
+
+                {/* Admin comment form */}
+                <div style={{ marginTop: 14, padding: 12, background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>🛠 Add a comment (visible to client)</div>
+                  <textarea
+                    className="admin-input"
+                    value={adminComment}
+                    onChange={e => setAdminComment(e.target.value)}
+                    placeholder="Write a note or update for the client…"
+                    rows={3}
+                    style={{ fontSize: 12, resize: 'vertical', marginBottom: 8 }}
+                  />
+                  <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="file" ref={adminCommentFileRef} style={{ display: 'none' }} onChange={e => setAdminCommentFile(e.target.files?.[0] ?? null)} accept="image/*,application/pdf" />
+                    <button className="admin-btn admin-btn-ghost" style={{ fontSize: 11 }} onClick={() => adminCommentFileRef.current?.click()}>
+                      📎 {adminCommentFile ? adminCommentFile.name : 'Attach'}
+                    </button>
+                    {adminCommentFile && <button onClick={() => setAdminCommentFile(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0 }}>×</button>}
+                    <button className="admin-btn admin-btn-primary" style={{ marginLeft: 'auto', fontSize: 12 }} disabled={!adminComment.trim() || adminCommentSubmitting} onClick={() => submitAdminComment(selectedTask.id)}>
+                      {adminCommentSubmitting ? '…' : 'Send'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -653,6 +794,11 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                               style={{ fontSize: 11, color: '#A78BFA', fontWeight: 600, textDecoration: 'none' }}>
                               📎 {task.attachmentName || 'File'}
                             </a>
+                          )}
+                          {(task.subTasks || []).length > 0 && (
+                            <span style={{ fontSize: 11, color: (task.subTasks || []).every(s => s.done) ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 600 }}>
+                              ☑ {(task.subTasks || []).filter(s => s.done).length}/{(task.subTasks || []).length}
+                            </span>
                           )}
                           {openBugs > 0 && (
                             <span style={{ fontSize: 11, color: '#F87171', fontWeight: 600 }}>🐛 {openBugs}</span>

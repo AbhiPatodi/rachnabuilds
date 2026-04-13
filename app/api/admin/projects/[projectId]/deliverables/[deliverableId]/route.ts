@@ -27,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         ...(data.status !== undefined && { status: data.status }),
         ...(data.milestoneId !== undefined && { milestoneId: data.milestoneId || null }),
         ...(data.displayOrder !== undefined && { displayOrder: data.displayOrder }),
+        ...(data.subTasks !== undefined && { subTasks: data.subTasks }),
       },
     });
     return NextResponse.json(updated);
