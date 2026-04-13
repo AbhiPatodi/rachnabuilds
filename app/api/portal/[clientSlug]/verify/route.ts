@@ -32,8 +32,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cli
 
   const { password } = await req.json();
 
-  const client = await prisma.client.findUnique({ where: { slug: clientSlug, isActive: true } });
+  const client = await prisma.client.findUnique({ where: { slug: clientSlug } });
   if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!client.isActive) return NextResponse.json({ error: 'inactive' }, { status: 403 });
 
   const valid = await bcrypt.compare(password, client.passwordHash);
   if (!valid) return NextResponse.json({ error: 'Invalid password' }, { status: 401 });

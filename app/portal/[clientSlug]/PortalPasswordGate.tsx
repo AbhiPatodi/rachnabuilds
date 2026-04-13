@@ -47,6 +47,8 @@ export default function PortalPasswordGate({ clientSlug, clientName }: PortalPas
 
       if (res.ok) {
         window.location.reload();
+      } else if (res.status === 403) {
+        setError('This portal has been deactivated. Please contact Rachna for assistance.');
       } else {
         setError('Incorrect password. Please try again.');
       }
