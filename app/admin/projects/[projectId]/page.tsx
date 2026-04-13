@@ -644,9 +644,10 @@ export default function ProjectManagePage() {
 
   // ─── Share modal helpers ───────────────────────────────────────────────────
   const openShareModal = (p: Project) => {
-    const storedPw = (typeof localStorage !== 'undefined' ? localStorage.getItem(`share_pw_${p.client.slug}`) : '') || '';
     const profilePw = (p.client.clientProfile?.portalPassword as string) || '';
-    setSharePassword(storedPw || profilePw);
+    const storedPw = (typeof localStorage !== 'undefined' ? localStorage.getItem(`share_pw_${p.client.slug}`) : '') || '';
+    // DB portalPassword always wins — localStorage was causing admin password to bleed in
+    setSharePassword(profilePw || storedPw);
     setShowShareModal(true);
   };
 
