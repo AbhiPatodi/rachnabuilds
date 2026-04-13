@@ -67,6 +67,7 @@ interface CardFeedback {
 
 interface SubTask {
   id: string; text: string; done: boolean;
+  attachmentUrl?: string | null; attachmentName?: string | null;
 }
 
 interface KanbanCard {
@@ -507,11 +508,26 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {(selectedCard.subTasks || []).map(s => (
-                    <div key={s.id} onClick={() => toggleSubTask(selectedCard.id, s.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: s.done ? 'rgba(6,214,160,0.06)' : 'var(--bg)', border: `1px solid ${s.done ? 'rgba(6,214,160,0.2)' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer' }}>
-                      <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${s.done ? 'var(--accent)' : 'var(--border)'}`, background: s.done ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-                        {s.done && <span style={{ color: '#0B0F1A', fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                    <div key={s.id} style={{ background: s.done ? 'rgba(6,214,160,0.06)' : 'var(--bg)', border: `1px solid ${s.done ? 'rgba(6,214,160,0.2)' : 'var(--border)'}`, borderRadius: 8, overflow: 'hidden' }}>
+                      <div onClick={() => toggleSubTask(selectedCard.id, s.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' }}>
+                        <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${s.done ? 'var(--accent)' : 'var(--border)'}`, background: s.done ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                          {s.done && <span style={{ color: '#0B0F1A', fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                        </div>
+                        <span style={{ flex: 1, fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
+                        {s.attachmentUrl && <span style={{ fontSize: 11, color: '#A78BFA', flexShrink: 0 }}>📎</span>}
                       </div>
-                      <span style={{ fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
+                      {s.attachmentUrl && (
+                        <div style={{ padding: '5px 12px 8px 38px', borderTop: `1px solid ${s.done ? 'rgba(6,214,160,0.15)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {isImage(s.attachmentUrl) ? (
+                            <img src={s.attachmentUrl} alt={s.attachmentName || ''} style={{ height: 40, width: 'auto', borderRadius: 4, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                          ) : (
+                            <span style={{ fontSize: 15 }}>📄</span>
+                          )}
+                          <button onClick={e => { e.stopPropagation(); downloadFile(s.attachmentUrl!, s.attachmentName || 'file'); }} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>
+                            {s.attachmentName || 'Download'} ⬇
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

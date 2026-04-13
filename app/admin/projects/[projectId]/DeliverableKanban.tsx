@@ -57,6 +57,7 @@ interface TaskFeedback {
 }
 interface SubTask {
   id: string; text: string; done: boolean;
+  attachmentUrl?: string | null; attachmentName?: string | null;
 }
 interface Task {
   id: string; title: string; description: string | null; previewUrl: string | null;
@@ -128,6 +129,8 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   // Sub-task state
   const [newSubTaskText, setNewSubTaskText] = useState('');
   const [savingSubTask, setSavingSubTask] = useState(false);
+  const [subTaskUploading, setSubTaskUploading] = useState<Record<string, boolean>>({});
+  const subTaskFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Admin comment state
   const [adminComment, setAdminComment] = useState('');
@@ -377,6 +380,34 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
     await saveSubTasks(taskId, updated);
   };
 
+  const uploadSubTaskFile = async (taskId: string, subTaskId: string, file: File) => {
+    if (!selectedTask) return;
+    setSubTaskUploading(prev => ({ ...prev, [subTaskId]: true }));
+    try {
+      const compressed = await compressImage(file); // compressImage skips non-images, passes through other files
+      const fd = new FormData(); fd.append('file', compressed, compressed.name);
+      const up = await fetch(`/api/portal/upload?slug=admin`, { method: 'POST', body: fd });
+      if (up.ok) {
+        const b = await up.json();
+        const updated = selectedTask.subTasks.map(s =>
+          s.id === subTaskId ? { ...s, attachmentUrl: b.url, attachmentName: file.name } : s
+        );
+        await saveSubTasks(taskId, updated);
+      }
+    } finally {
+      setSubTaskUploading(prev => ({ ...prev, [subTaskId]: false }));
+      if (subTaskFileRefs.current[subTaskId]) subTaskFileRefs.current[subTaskId]!.value = '';
+    }
+  };
+
+  const removeSubTaskFile = async (taskId: string, subTaskId: string) => {
+    if (!selectedTask) return;
+    const updated = selectedTask.subTasks.map(s =>
+      s.id === subTaskId ? { ...s, attachmentUrl: null, attachmentName: null } : s
+    );
+    await saveSubTasks(taskId, updated);
+  };
+
   // ── Admin comment submit ───────────────────────────────────────────────────
 
   const submitAdminComment = async (taskId: string) => {
@@ -526,15 +557,40 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                 {(selectedTask.subTasks || []).length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                     {selectedTask.subTasks.map(s => (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={s.done}
-                          onChange={() => toggleSubTask(selectedTask.id, s.id)}
-                          style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }}
-                        />
-                        <span style={{ flex: 1, fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
-                        <button onClick={() => deleteSubTask(selectedTask.id, s.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+                      <div key={s.id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px' }}>
+                          <input
+                            type="checkbox"
+                            checked={s.done}
+                            onChange={() => toggleSubTask(selectedTask.id, s.id)}
+                            style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }}
+                          />
+                          <span style={{ flex: 1, fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
+                          {/* File attach */}
+                          <input type="file" style={{ display: 'none' }} ref={el => { subTaskFileRefs.current[s.id] = el; }}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadSubTaskFile(selectedTask.id, s.id, f); }} />
+                          <button
+                            onClick={() => subTaskFileRefs.current[s.id]?.click()}
+                            disabled={subTaskUploading[s.id]}
+                            title="Attach file"
+                            style={{ background: 'transparent', border: 'none', color: s.attachmentUrl ? 'var(--accent)' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}
+                          >{subTaskUploading[s.id] ? '…' : '📎'}</button>
+                          <button onClick={() => deleteSubTask(selectedTask.id, s.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+                        </div>
+                        {/* Attachment row */}
+                        {s.attachmentUrl && (
+                          <div style={{ padding: '5px 10px 8px 33px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {isImage(s.attachmentUrl) ? (
+                              <img src={s.attachmentUrl} alt={s.attachmentName || ''} style={{ height: 48, width: 'auto', borderRadius: 4, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                            ) : (
+                              <span style={{ fontSize: 16 }}>📄</span>
+                            )}
+                            <button onClick={() => downloadFile(s.attachmentUrl!, s.attachmentName || 'file')} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, textAlign: 'left' }}>
+                              {s.attachmentName || 'Attachment'} ⬇
+                            </button>
+                            <button onClick={() => removeSubTaskFile(selectedTask.id, s.id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
