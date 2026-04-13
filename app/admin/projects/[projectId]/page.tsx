@@ -2751,7 +2751,6 @@ export default function ProjectManagePage() {
                     placeholder="e.g. client2026"
                     value={sharePassword}
                     onChange={e => updateSharePassword(e.target.value, project.client.slug)}
-                    onBlur={e => saveSharePasswordToDB(e.target.value, project.client.id)}
                     style={{ flex: 1, fontFamily: pwVisible ? 'JetBrains Mono, monospace' : 'inherit' }}
                   />
                   <button
@@ -2771,9 +2770,18 @@ export default function ProjectManagePage() {
                   >
                     {pwCopied ? '✓' : '📋'}
                   </button>
+                  <button
+                    className="admin-btn admin-btn-primary admin-btn-icon"
+                    onClick={() => saveSharePasswordToDB(sharePassword, project.client.id)}
+                    disabled={pwSaving || sharePassword.length < 6}
+                    style={{ fontSize: 12, flexShrink: 0, padding: '0 10px' }}
+                    title="Save password to DB"
+                  >
+                    {pwSaving ? '…' : pwSaved ? '✓' : 'Save'}
+                  </button>
                 </div>
                 <div style={{ fontSize: 11, color: pwSaved ? '#06D6A0' : 'var(--text-muted)', marginTop: 5, minHeight: 16 }}>
-                  {pwSaving ? 'Saving…' : pwSaved ? '✓ Password saved — portal login updated' : sharePassword.length >= 6 ? 'Tab away to save to DB' : sharePassword.length > 0 ? 'Min 6 characters' : ''}
+                  {pwSaving ? 'Saving…' : pwSaved ? '✓ Password saved — portal login updated' : sharePassword.length > 0 && sharePassword.length < 6 ? 'Min 6 characters' : ''}
                 </div>
               </div>
 
