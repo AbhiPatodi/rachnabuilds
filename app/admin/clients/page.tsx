@@ -81,20 +81,33 @@ export default function ClientsPage() {
   const changeStatus = async (clientId: string, newStatus: string) => {
     setStatusChanging(clientId);
     setStatusOpen(null);
+    // snapshot for rollback
+    const prev = clients.find(c => c.id === clientId);
+    // optimistic update
+    setClients(cs => cs.map(c =>
+      c.id === clientId
+        ? { ...c, overallStatus: newStatus || c.overallStatus, statusIsManual: !!newStatus }
+        : c
+    ));
     try {
       const res = await fetch(`/api/admin/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ overallStatus: newStatus }),
       });
-      if (res.ok) {
-        setClients(prev => prev.map(c =>
-          c.id === clientId
-            ? { ...c, overallStatus: newStatus || c.overallStatus, statusIsManual: !!newStatus }
-            : c
-        ));
+      if (!res.ok) {
+        // rollback
+        if (prev) {
+          setClients(cs => cs.map(c => c.id === clientId ? prev : c));
+        }
+        setError('Failed to update status — please try again.');
       }
-    } catch { /* silent */ }
+    } catch {
+      if (prev) {
+        setClients(cs => cs.map(c => c.id === clientId ? prev : c));
+      }
+      setError('Network error — please try again.');
+    }
     finally { setStatusChanging(null); }
   };
 

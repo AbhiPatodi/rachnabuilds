@@ -36,10 +36,10 @@ export async function GET(_req: NextRequest) {
       const manualStatus = profile?.overallStatus as string | undefined;
 
       let overallStatus: string;
-      if (manualStatus) {
-        overallStatus = manualStatus;
-      } else if (!c.isActive) {
+      if (!c.isActive) {
         overallStatus = 'inactive';
+      } else if (manualStatus) {
+        overallStatus = manualStatus;
       } else {
         const allStatuses   = c.projects.map(p => p.status);
         const hasSignedContract = c.projects.some(p =>
