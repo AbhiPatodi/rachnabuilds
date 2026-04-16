@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
       orderBy: { displayOrder: 'asc' },
       include: {
         feedback: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
           include: { replies: { orderBy: { createdAt: 'asc' } } },
         },
       },

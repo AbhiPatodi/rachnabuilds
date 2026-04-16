@@ -58,7 +58,14 @@ interface TaskFeedback {
 interface SubTask {
   id: string; text: string; done: boolean;
   attachmentUrl?: string | null; attachmentName?: string | null;
+  tag?: string | null;
 }
+
+const SUBTASK_TAGS: { id: string; label: string; color: string; bg: string }[] = [
+  { id: 'priority', label: '🔴 Priority', color: '#F87171', bg: 'rgba(248,113,113,0.12)' },
+  { id: 'blocked',  label: '🟠 Blocked',  color: '#FB923C', bg: 'rgba(251,146,60,0.12)'  },
+  { id: 'review',   label: '🔵 Review',   color: '#60A5FA', bg: 'rgba(96,165,250,0.12)'  },
+];
 interface Task {
   id: string; title: string; description: string | null; previewUrl: string | null;
   attachmentUrl: string | null; attachmentName: string | null;
@@ -73,6 +80,7 @@ interface Props {
   projectId: string;
   milestones: Milestone[];
   clientSlug: string;
+  clientName?: string;
 }
 
 // ─── Column config ─────────────────────────────────────────────────────────
@@ -91,7 +99,7 @@ const BUG_STATUS_COLOR: Record<string, string> = { open: '#F87171', in_progress:
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
-export default function DeliverableKanban({ projectId, milestones, clientSlug }: Props) {
+export default function DeliverableKanban({ projectId, milestones, clientSlug, clientName = 'Client' }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -131,6 +139,26 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
   const [savingSubTask, setSavingSubTask] = useState(false);
   const [subTaskUploading, setSubTaskUploading] = useState<Record<string, boolean>>({});
   const subTaskFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // @mention state — tracks which input has an open mention dropdown
+  const [mentionOpen, setMentionOpen] = useState<string | null>(null); // key = 'adminComment' | feedbackId | 'subTask' | 'subTaskEdit'
+
+  // helper: insert @Name into a text value at the last @ position
+  const insertMention = (text: string, name: string): string => {
+    const atIdx = text.lastIndexOf('@');
+    if (atIdx === -1) return text + `@${name} `;
+    return text.slice(0, atIdx) + `@${name} `;
+  };
+
+  // Sub-task inline edit state
+  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null);
+  const [editSubTaskText, setEditSubTaskText] = useState('');
+
+  // Comment edit/delete state
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
+  const [editFeedbackText, setEditFeedbackText] = useState('');
+  const [savingFeedbackEdit, setSavingFeedbackEdit] = useState(false);
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState<string | null>(null);
 
   // Admin comment state
   const [adminComment, setAdminComment] = useState('');
@@ -408,6 +436,51 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
     await saveSubTasks(taskId, updated);
   };
 
+  const saveSubTaskEdit = async (taskId: string, subTaskId: string) => {
+    if (!selectedTask || !editSubTaskText.trim()) return;
+    const updated = selectedTask.subTasks.map(s => s.id === subTaskId ? { ...s, text: editSubTaskText.trim() } : s);
+    await saveSubTasks(taskId, updated);
+    setEditingSubTaskId(null);
+    setEditSubTaskText('');
+  };
+
+  const setSubTaskTag = async (taskId: string, subTaskId: string, tag: string | null) => {
+    if (!selectedTask) return;
+    const updated = selectedTask.subTasks.map(s => s.id === subTaskId ? { ...s, tag: s.tag === tag ? null : tag } : s);
+    await saveSubTasks(taskId, updated);
+  };
+
+  const editFeedbackMessage = async (feedbackId: string, taskId: string) => {
+    if (!editFeedbackText.trim()) return;
+    setSavingFeedbackEdit(true);
+    const res = await fetch(`/api/admin/feedback/${feedbackId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: editFeedbackText.trim() }),
+    });
+    if (res.ok) {
+      setTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t, feedback: t.feedback.map(f => f.id === feedbackId ? { ...f, message: editFeedbackText.trim() } : f),
+      } : t));
+      setEditingFeedbackId(null);
+      setEditFeedbackText('');
+    }
+    setSavingFeedbackEdit(false);
+  };
+
+  const deleteFeedback = async (feedbackId: string, taskId: string) => {
+    if (!confirm('Delete this comment?')) return;
+    setDeletingFeedbackId(feedbackId);
+    const res = await fetch(`/api/admin/feedback/${feedbackId}`, { method: 'DELETE' });
+    if (res.ok) {
+      setTasks(prev => prev.map(t => t.id === taskId ? {
+        ...t, feedback: t.feedback.filter(f => f.id !== feedbackId),
+      } : t));
+      setSelectedTask(prev => prev?.id === taskId ? { ...prev, feedback: prev.feedback.filter(f => f.id !== feedbackId) } : prev);
+    }
+    setDeletingFeedbackId(null);
+  };
+
   // ── Admin comment submit ───────────────────────────────────────────────────
 
   const submitAdminComment = async (taskId: string) => {
@@ -436,6 +509,25 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
         if (adminCommentFileRef.current) adminCommentFileRef.current.value = '';
       }
     } finally { setAdminCommentSubmitting(false); }
+  };
+
+  // ── @Mention dropdown ─────────────────────────────────────────────────────
+  const renderMention = (key: string, onPick: (name: string) => void) => {
+    if (mentionOpen !== key) return null;
+    const suggestions = [
+      { label: `👤 ${clientName}`, name: clientName },
+    ];
+    return (
+      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 200, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', minWidth: 160, overflow: 'hidden', marginTop: 4 }}>
+        {suggestions.map(s => (
+          <button key={s.name} onMouseDown={e => { e.preventDefault(); onPick(s.name); setMentionOpen(null); }}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >{s.label}</button>
+        ))}
+      </div>
+    );
   };
 
   const renderModal = () => {
@@ -556,52 +648,101 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                 </div>
                 {(selectedTask.subTasks || []).length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                    {selectedTask.subTasks.map(s => (
-                      <div key={s.id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px' }}>
-                          <input
-                            type="checkbox"
-                            checked={s.done}
-                            onChange={() => toggleSubTask(selectedTask.id, s.id)}
-                            style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }}
-                          />
-                          <span style={{ flex: 1, fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
-                          {/* File attach */}
-                          <input type="file" style={{ display: 'none' }} ref={el => { subTaskFileRefs.current[s.id] = el; }}
-                            onChange={e => { const f = e.target.files?.[0]; if (f) uploadSubTaskFile(selectedTask.id, s.id, f); }} />
-                          <button
-                            onClick={() => subTaskFileRefs.current[s.id]?.click()}
-                            disabled={subTaskUploading[s.id]}
-                            title="Attach file"
-                            style={{ background: 'transparent', border: 'none', color: s.attachmentUrl ? 'var(--accent)' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}
-                          >{subTaskUploading[s.id] ? '…' : '📎'}</button>
-                          <button onClick={() => deleteSubTask(selectedTask.id, s.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
-                        </div>
-                        {/* Attachment row */}
-                        {s.attachmentUrl && (
-                          <div style={{ padding: '5px 10px 8px 33px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {isImage(s.attachmentUrl) ? (
-                              <img src={s.attachmentUrl} alt={s.attachmentName || ''} style={{ height: 48, width: 'auto', borderRadius: 4, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                    {[...selectedTask.subTasks].reverse().map(s => {
+                      const tagInfo = SUBTASK_TAGS.find(t => t.id === s.tag);
+                      const isEditingThis = editingSubTaskId === s.id;
+                      return (
+                        <div key={s.id} style={{ background: 'var(--bg)', border: `1px solid ${tagInfo ? tagInfo.color + '44' : 'var(--border)'}`, borderRadius: 8, overflow: 'hidden' }}>
+                          {/* Main row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px' }}>
+                            <input
+                              type="checkbox"
+                              checked={s.done}
+                              onChange={() => toggleSubTask(selectedTask.id, s.id)}
+                              style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer', flexShrink: 0 }}
+                            />
+                            {isEditingThis ? (
+                              <div style={{ flex: 1, position: 'relative' }}>
+                                {renderMention('subTaskEdit', name => setEditSubTaskText(v => insertMention(v, name)))}
+                                <input
+                                  className="admin-input"
+                                  style={{ width: '100%', fontSize: 12, padding: '3px 7px', height: 28 }}
+                                  value={editSubTaskText}
+                                  autoFocus
+                                  onChange={e => { setEditSubTaskText(e.target.value); if (e.target.value.includes('@')) setMentionOpen('subTaskEdit'); else setMentionOpen(null); }}
+                                  onBlur={() => setTimeout(() => setMentionOpen(null), 150)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') saveSubTaskEdit(selectedTask.id, s.id);
+                                    if (e.key === 'Escape') { setEditingSubTaskId(null); setEditSubTaskText(''); }
+                                  }}
+                                />
+                              </div>
                             ) : (
-                              <span style={{ fontSize: 16 }}>📄</span>
+                              <span style={{ flex: 1, fontSize: 13, color: s.done ? 'var(--text-muted)' : 'var(--text)', textDecoration: s.done ? 'line-through' : 'none', lineHeight: 1.4 }}>{s.text}</span>
                             )}
-                            <button onClick={() => downloadFile(s.attachmentUrl!, s.attachmentName || 'file')} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, textAlign: 'left' }}>
-                              {s.attachmentName || 'Attachment'} ⬇
-                            </button>
-                            <button onClick={() => removeSubTaskFile(selectedTask.id, s.id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
+                            {tagInfo && !isEditingThis && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: tagInfo.color, background: tagInfo.bg, padding: '2px 6px', borderRadius: 6, flexShrink: 0 }}>{tagInfo.label}</span>
+                            )}
+                            {isEditingThis ? (
+                              <>
+                                <button onClick={() => saveSubTaskEdit(selectedTask.id, s.id)} style={{ background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 5, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}>Save</button>
+                                <button onClick={() => { setEditingSubTaskId(null); setEditSubTaskText(''); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, flexShrink: 0 }}>×</button>
+                              </>
+                            ) : (
+                              <>
+                                {/* Edit */}
+                                <button onClick={() => { setEditingSubTaskId(s.id); setEditSubTaskText(s.text); }} title="Edit" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}>✏️</button>
+                                {/* File attach */}
+                                <input type="file" style={{ display: 'none' }} ref={el => { subTaskFileRefs.current[s.id] = el; }}
+                                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadSubTaskFile(selectedTask.id, s.id, f); }} />
+                                <button onClick={() => subTaskFileRefs.current[s.id]?.click()} disabled={subTaskUploading[s.id]} title="Attach file"
+                                  style={{ background: 'transparent', border: 'none', color: s.attachmentUrl ? 'var(--accent)' : 'var(--text-muted)', fontSize: 13, cursor: 'pointer', padding: '0 2px', flexShrink: 0 }}>
+                                  {subTaskUploading[s.id] ? '…' : '📎'}
+                                </button>
+                                {/* Delete */}
+                                <button onClick={() => deleteSubTask(selectedTask.id, s.id)} title="Delete" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+                              </>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {/* Tag pills row */}
+                          {!isEditingThis && (
+                            <div style={{ display: 'flex', gap: 4, padding: '4px 10px 6px 33px' }}>
+                              {SUBTASK_TAGS.map(t => (
+                                <button key={t.id} onClick={() => setSubTaskTag(selectedTask.id, s.id, t.id)}
+                                  style={{ fontSize: 9, fontWeight: 700, color: s.tag === t.id ? t.color : 'var(--text-muted)', background: s.tag === t.id ? t.bg : 'transparent', border: `1px solid ${s.tag === t.id ? t.color + '55' : 'var(--border)'}`, borderRadius: 5, padding: '2px 6px', cursor: 'pointer', opacity: s.tag === t.id ? 1 : 0.6 }}>
+                                  {t.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {/* Attachment row */}
+                          {s.attachmentUrl && (
+                            <div style={{ padding: '5px 10px 8px 33px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {isImage(s.attachmentUrl) ? (
+                                <img src={s.attachmentUrl} alt={s.attachmentName || ''} style={{ height: 48, width: 'auto', borderRadius: 4, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                              ) : (
+                                <span style={{ fontSize: 16 }}>📄</span>
+                              )}
+                              <button onClick={() => downloadFile(s.attachmentUrl!, s.attachmentName || 'file')} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, textAlign: 'left' }}>
+                                {s.attachmentName || 'Attachment'} ⬇
+                              </button>
+                              <button onClick={() => removeSubTaskFile(selectedTask.id, s.id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, position: 'relative' }}>
+                  {renderMention('subTask', name => setNewSubTaskText(v => insertMention(v, name)))}
                   <input
                     className="admin-input"
                     style={{ flex: 1, fontSize: 12 }}
-                    placeholder="Add a sub-task…"
+                    placeholder="Add a sub-task… (@ to mention)"
                     value={newSubTaskText}
-                    onChange={e => setNewSubTaskText(e.target.value)}
+                    onChange={e => { setNewSubTaskText(e.target.value); if (e.target.value.includes('@')) setMentionOpen('subTask'); else setMentionOpen(null); }}
+                    onBlur={() => setTimeout(() => setMentionOpen(null), 150)}
                     onKeyDown={e => { if (e.key === 'Enter') addSubTask(selectedTask.id); }}
                   />
                   <button className="admin-btn admin-btn-primary" style={{ fontSize: 12 }} disabled={savingSubTask || !newSubTaskText.trim()} onClick={() => addSubTask(selectedTask.id)}>
@@ -621,12 +762,47 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                 {selectedTask.feedback.length === 0 ? (
                   <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>No feedback yet.</div>
                 ) : selectedTask.feedback.map(f => (
-                  <div key={f.id} style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                  <div key={f.id} style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, overflow: 'hidden' }}>
+                    {/* Header row — status badge + tag pills + date + actions all in one line */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status], background: BUG_STATUS_COLOR[f.status] + '22', padding: '2px 8px', borderRadius: 6, flexShrink: 0 }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
+                      {/* Inline tag change pills */}
+                      {editingFeedbackId !== f.id && ['open', 'in_progress', 'resolved', 'wont_fix'].filter(s => s !== f.status).map(s => (
+                        <button key={s} onClick={() => changeBugStatus(f.id, selectedTask.id, s)}
+                          style={{ fontSize: 10, fontWeight: 600, color: BUG_STATUS_COLOR[s], background: BUG_STATUS_COLOR[s] + '15', border: `1px solid ${BUG_STATUS_COLOR[s]}44`, borderRadius: 5, padding: '2px 7px', cursor: 'pointer', flexShrink: 0 }}>
+                          {BUG_STATUS_LABEL[s]}
+                        </button>
+                      ))}
+                      <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(f.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <button onClick={() => { setEditingFeedbackId(f.id); setEditFeedbackText(f.message); }} title="Edit"
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>✏️</button>
+                      <button onClick={() => deleteFeedback(f.id, selectedTask.id)} title="Delete" disabled={deletingFeedbackId === f.id}
+                        style={{ background: 'transparent', border: 'none', color: '#F87171', fontSize: 12, cursor: 'pointer', padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>
+                        {deletingFeedbackId === f.id ? '…' : '🗑'}
+                      </button>
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: f.attachmentUrl ? 6 : 0 }}>{f.message}</div>
+                    {/* Message body */}
+                    <div style={{ padding: '10px 12px' }}>
+                    {editingFeedbackId === f.id ? (
+                      <div style={{ marginBottom: 8 }}>
+                        <textarea
+                          className="admin-input"
+                          value={editFeedbackText}
+                          onChange={e => setEditFeedbackText(e.target.value)}
+                          rows={3}
+                          autoFocus
+                          style={{ fontSize: 12, resize: 'vertical', marginBottom: 6 }}
+                        />
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="admin-btn admin-btn-primary" style={{ fontSize: 11 }} disabled={savingFeedbackEdit || !editFeedbackText.trim()} onClick={() => editFeedbackMessage(f.id, selectedTask.id)}>
+                            {savingFeedbackEdit ? '…' : 'Save'}
+                          </button>
+                          <button className="admin-btn admin-btn-ghost" style={{ fontSize: 11 }} onClick={() => { setEditingFeedbackId(null); setEditFeedbackText(''); }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: f.attachmentUrl ? 6 : 0 }}>{f.message}</div>
+                    )}
                     {f.attachmentUrl && (
                       isImage(f.attachmentUrl) ? (
                         <div>
@@ -637,16 +813,6 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                         <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
                       )
                     )}
-
-                    {/* Status actions */}
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8, marginBottom: 8 }}>
-                      {['in_progress', 'resolved', 'wont_fix'].filter(s => s !== f.status).map(s => (
-                        <button key={s} className="admin-btn admin-btn-ghost" style={{ fontSize: 10, padding: '2px 7px' }} onClick={() => changeBugStatus(f.id, selectedTask.id, s)}>
-                          {BUG_STATUS_LABEL[s]}
-                        </button>
-                      ))}
-                    </div>
-
                     {/* Replies */}
                     {f.replies.length > 0 && (
                       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -672,13 +838,15 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                     )}
 
                     {/* Reply input */}
-                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6, position: 'relative' }}>
+                      {renderMention(`reply_${f.id}`, name => setReplyText(p => ({ ...p, [f.id]: insertMention(p[f.id] ?? '', name) })))}
                       <input
                         className="admin-input"
                         style={{ flex: 1, fontSize: 12 }}
-                        placeholder="Reply…"
+                        placeholder="Reply… (@ to mention)"
                         value={replyText[f.id] ?? ''}
-                        onChange={e => setReplyText(p => ({ ...p, [f.id]: e.target.value }))}
+                        onChange={e => { setReplyText(p => ({ ...p, [f.id]: e.target.value })); if (e.target.value.includes('@')) setMentionOpen(`reply_${f.id}`); else setMentionOpen(null); }}
+                        onBlur={() => setTimeout(() => setMentionOpen(null), 150)}
                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendReply(f.id, selectedTask.id)}
                       />
                       <input type="file" style={{ display: 'none' }} ref={el => { replyFileRefs.current[f.id] = el; }}
@@ -689,20 +857,25 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug }:
                       </button>
                     </div>
                     {replyAttach[f.id] && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>📎 {replyAttach[f.id]!.name}</div>}
+                    </div>{/* end body padding */}
                   </div>
                 ))}
 
                 {/* Admin comment form */}
                 <div style={{ marginTop: 14, padding: 12, background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>🛠 Add a comment (visible to client)</div>
-                  <textarea
-                    className="admin-input"
-                    value={adminComment}
-                    onChange={e => setAdminComment(e.target.value)}
-                    placeholder="Write a note or update for the client…"
-                    rows={3}
-                    style={{ fontSize: 12, resize: 'vertical', marginBottom: 8 }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    {renderMention('adminComment', name => setAdminComment(v => insertMention(v, name)))}
+                    <textarea
+                      className="admin-input"
+                      value={adminComment}
+                      onChange={e => { setAdminComment(e.target.value); if (e.target.value.includes('@')) setMentionOpen('adminComment'); else setMentionOpen(null); }}
+                      onBlur={() => setTimeout(() => setMentionOpen(null), 150)}
+                      placeholder="Write a note or update for the client… (type @ to mention)"
+                      rows={3}
+                      style={{ fontSize: 12, resize: 'vertical', marginBottom: 8 }}
+                    />
+                  </div>
                   <div style={{ display: 'flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' }}>
                     <input type="file" ref={adminCommentFileRef} style={{ display: 'none' }} onChange={e => setAdminCommentFile(e.target.files?.[0] ?? null)} accept="image/*,application/pdf" />
                     <button className="admin-btn admin-btn-ghost" style={{ fontSize: 11 }} onClick={() => adminCommentFileRef.current?.click()}>

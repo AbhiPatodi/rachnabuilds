@@ -556,6 +556,8 @@ function DocumentsPanel({
   const [submitLoading, setSubmitLoading] = useState(false);
   const [docUrls, setDocUrls] = useState<Record<string, string>>(() => Object.fromEntries(documents.map(d => [d.id, d.url ?? ''])));
   const [subTab, setSubTab] = useState<'files' | 'required'>('files');
+  // HTML Page viewer
+  const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string } | null>(null);
 
   useEffect(() => {
     fetch(`/api/portal/${clientSlug}/${projectId}/document-logs`)
@@ -865,6 +867,14 @@ function DocumentsPanel({
                 )}
                 {docUrl && docUrl.startsWith('text://') ? (
                   <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>✏️ Text response</div>
+                ) : doc.docType === 'html_page' && docUrl && docUrl.startsWith('http') ? (
+                  <button
+                    className="portal-doc-link"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
+                    onClick={() => { onDocOpen(doc.id, doc.title); setHtmlViewer({ title: doc.title, url: docUrl }); }}
+                  >
+                    View →
+                  </button>
                 ) : docUrl && docUrl !== 'pending' && docUrl.startsWith('http') ? (
                   <a href={docUrl} target="_blank" rel="noopener noreferrer" className="portal-doc-link" onClick={() => onDocOpen(doc.id, doc.title)}>View document →</a>
                 ) : null}
@@ -1059,6 +1069,34 @@ function DocumentsPanel({
         </div>
       )}
 
+      {/* ── HTML Page Viewer Overlay ── */}
+      {htmlViewer && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column' }}
+          onClick={e => { if (e.target === e.currentTarget) setHtmlViewer(null); }}
+        >
+          {/* Header bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#0B0F1A', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 16 }}>📄</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#E8ECF4' }}>{htmlViewer.title}</span>
+            </div>
+            <button
+              onClick={() => setHtmlViewer(null)}
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#E8ECF4', borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          {/* iframe */}
+          <iframe
+            src={htmlViewer.url}
+            style={{ flex: 1, border: 'none', background: '#fff' }}
+            title={htmlViewer.title}
+            sandbox="allow-scripts allow-same-origin"
+          />
+        </div>
+      )}
     </>
   );
 }

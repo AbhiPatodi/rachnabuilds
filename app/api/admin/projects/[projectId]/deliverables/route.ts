@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       orderBy: { displayOrder: 'asc' },
       include: {
         feedback: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
           include: { replies: { orderBy: { createdAt: 'asc' } } },
         },
       },

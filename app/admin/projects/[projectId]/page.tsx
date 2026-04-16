@@ -160,6 +160,7 @@ const DOC_TYPES = [
   { value: 'competitor_ref', label: 'Competitor Reference' },
   { value: 'brand_assets', label: 'Brand Assets' },
   { value: 'client_required', label: 'Required from Client' },
+  { value: 'html_page', label: '📄 HTML Page' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -412,6 +413,9 @@ export default function ProjectManagePage() {
   const [docNotes, setDocNotes] = useState('');
   const [docLoading, setDocLoading] = useState(false);
   const [docError, setDocError] = useState('');
+  const [htmlDocFile, setHtmlDocFile] = useState<File | null>(null);
+  // HTML Page viewer
+  const [htmlPreview, setHtmlPreview] = useState<{ title: string; url: string } | null>(null);
 
   // Documents — inline edit
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
@@ -948,10 +952,21 @@ export default function ProjectManagePage() {
     setDocError('');
     setDocLoading(true);
     try {
+      let finalUrl = docUrl;
+      // For HTML pages — upload file to Vercel Blob first
+      if (docType === 'html_page') {
+        if (!htmlDocFile) { setDocError('Please select an HTML file'); return; }
+        const fd = new FormData();
+        fd.append('file', htmlDocFile, htmlDocFile.name);
+        const up = await fetch('/api/portal/upload?slug=admin', { method: 'POST', body: fd });
+        if (!up.ok) { setDocError('Failed to upload HTML file'); return; }
+        const upData = await up.json();
+        finalUrl = upData.url;
+      }
       const res = await fetch(`/api/admin/projects/${projectId}/documents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docType, title: docTitle, url: docUrl, notes: docNotes }),
+        body: JSON.stringify({ docType, title: docTitle, url: finalUrl, notes: docNotes }),
       });
       if (!res.ok) { setDocError('Failed to add document'); return; }
       const data = await res.json();
@@ -959,6 +974,7 @@ export default function ProjectManagePage() {
       setDocTitle('');
       setDocUrl('');
       setDocNotes('');
+      setHtmlDocFile(null);
       setShowDocForm(false);
     } catch {
       setDocError('Something went wrong');
@@ -1808,21 +1824,43 @@ export default function ProjectManagePage() {
                       />
                     </div>
                   </div>
-                  <div className="admin-field">
-                    <label className="admin-label">URL {docType !== 'client_required' && '*'}</label>
-                    <input
-                      className="admin-input"
-                      value={docUrl}
-                      onChange={e => setDocUrl(e.target.value)}
-                      placeholder={docType === 'client_required' ? 'Leave empty — client will fill this in' : 'https://…'}
-                      required={docType !== 'client_required'}
-                    />
-                    {docType === 'client_required' && (
+                  {docType === 'html_page' ? (
+                    <div className="admin-field">
+                      <label className="admin-label">HTML File *</label>
+                      <input
+                        type="file"
+                        accept=".html,text/html"
+                        className="admin-input"
+                        style={{ padding: '6px 10px', cursor: 'pointer' }}
+                        onChange={e => setHtmlDocFile(e.target.files?.[0] ?? null)}
+                        required
+                      />
+                      {htmlDocFile && (
+                        <p style={{ fontSize: 11, color: 'var(--accent)', marginTop: 4 }}>
+                          ✓ {htmlDocFile.name} ({(htmlDocFile.size / 1024).toFixed(1)} KB)
+                        </p>
+                      )}
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                        Client will see this in their portal and submit the file/link.
+                        HTML will be uploaded and rendered inline in the client portal.
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="admin-field">
+                      <label className="admin-label">URL {docType !== 'client_required' && '*'}</label>
+                      <input
+                        className="admin-input"
+                        value={docUrl}
+                        onChange={e => setDocUrl(e.target.value)}
+                        placeholder={docType === 'client_required' ? 'Leave empty — client will fill this in' : 'https://…'}
+                        required={docType !== 'client_required'}
+                      />
+                      {docType === 'client_required' && (
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                          Client will see this in their portal and submit the file/link.
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="admin-field">
                     <label className="admin-label">Notes</label>
                     <textarea
@@ -1909,9 +1947,15 @@ export default function ProjectManagePage() {
                         </div>
                         <div className="admin-section-item-actions">
                           {doc.url && !doc.url.startsWith('text://') && (
-                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
-                              Open ↗
-                            </a>
+                            doc.docType === 'html_page' ? (
+                              <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => setHtmlPreview({ title: doc.title, url: doc.url })}>
+                                Preview ↗
+                              </button>
+                            ) : (
+                              <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                                Open ↗
+                              </a>
+                            )
                           )}
                           <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => startEditDoc(doc)}>
                             Edit
@@ -2409,6 +2453,7 @@ export default function ProjectManagePage() {
               projectId={projectId!}
               milestones={milestones}
               clientSlug={(project?.client as { slug?: string })?.slug ?? ''}
+              clientName={(project?.client as { name?: string })?.name ?? 'Client'}
             />
           </div>
         );
@@ -2802,6 +2847,35 @@ export default function ProjectManagePage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── HTML Page Viewer Modal ── */}
+      {htmlPreview && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column' }}
+          onClick={e => { if (e.target === e.currentTarget) setHtmlPreview(null); }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>📄 HTML Page</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{htmlPreview.title}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a href={htmlPreview.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                Open in tab ↗
+              </a>
+              <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => setHtmlPreview(null)}>
+                ✕ Close
+              </button>
+            </div>
+          </div>
+          <iframe
+            src={htmlPreview.url}
+            style={{ flex: 1, border: 'none', background: '#fff' }}
+            title={htmlPreview.title}
+            sandbox="allow-scripts allow-same-origin"
+          />
         </div>
       )}
     </div>

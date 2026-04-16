@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/html',
     'text/plain', 'text/csv',
     'application/zip', 'application/x-zip-compressed', 'application/x-zip',
   ]);

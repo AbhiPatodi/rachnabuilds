@@ -152,6 +152,26 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   const [replySending, setReplySending] = useState<Record<string, boolean>>({});
   const replyFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // @mention state
+  const [mentionOpen, setMentionOpen] = useState<string | null>(null);
+  const insertMention = (text: string, name: string): string => {
+    const atIdx = text.lastIndexOf('@');
+    if (atIdx === -1) return text + `@${name} `;
+    return text.slice(0, atIdx) + `@${name} `;
+  };
+  const renderMention = (key: string, onPick: (name: string) => void) => {
+    if (mentionOpen !== key) return null;
+    return (
+      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 200, background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.4)', minWidth: 160, overflow: 'hidden', marginTop: 4 }}>
+        <button onMouseDown={e => { e.preventDefault(); onPick('Rachna'); setMentionOpen(null); }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, fontWeight: 600, color: '#06D6A0', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#222')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >🛠 Rachna</button>
+      </div>
+    );
+  };
+
   // Add task form
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -507,7 +527,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                   <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 4, width: `${Math.round(((selectedCard.subTasks || []).filter(s => s.done).length / (selectedCard.subTasks || []).length) * 100)}%`, transition: 'width 0.3s' }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {(selectedCard.subTasks || []).map(s => (
+                  {[...(selectedCard.subTasks || [])].reverse().map(s => (
                     <div key={s.id} style={{ background: s.done ? 'rgba(6,214,160,0.06)' : 'var(--bg)', border: `1px solid ${s.done ? 'rgba(6,214,160,0.2)' : 'var(--border)'}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div onClick={() => toggleSubTask(selectedCard.id, s.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' }}>
                         <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${s.done ? 'var(--accent)' : 'var(--border)'}`, background: s.done ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
@@ -577,7 +597,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                   <div key={f.id} style={{ marginBottom: 12, background: 'var(--bg)', border: `1px solid ${BUG_STATUS_COLOR[f.status]}33`, borderLeft: `3px solid ${BUG_STATUS_COLOR[f.status]}`, borderRadius: 10, padding: '10px 12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: BUG_STATUS_COLOR[f.status] }}>{BUG_STATUS_LABEL[f.status] ?? f.status}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{new Date(f.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(f.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, marginBottom: f.attachmentUrl ? 6 : 0 }}>{f.message}</div>
                     {f.attachmentUrl && (
@@ -629,11 +649,13 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                     {/* Reply input */}
                     {(f.status === 'in_progress' || f.status === 'open' || f.status === 'reopened') && (
                       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        <div style={{ display: 'flex', gap: 5 }}>
+                        <div style={{ display: 'flex', gap: 5, position: 'relative' }}>
+                          {renderMention(`reply_${f.id}`, name => setReplyText(prev => ({ ...prev, [f.id]: insertMention(prev[f.id] ?? '', name) })))}
                           <input
-                            placeholder="Add a note…"
+                            placeholder="Add a note… (@ to mention)"
                             value={replyText[f.id] ?? ''}
-                            onChange={e => setReplyText(prev => ({ ...prev, [f.id]: e.target.value }))}
+                            onChange={e => { setReplyText(prev => ({ ...prev, [f.id]: e.target.value })); if (e.target.value.includes('@')) setMentionOpen(`reply_${f.id}`); else setMentionOpen(null); }}
+                            onBlur={() => setTimeout(() => setMentionOpen(null), 150)}
                             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitReply(f.id, selectedCard.id, 'reply')}
                             style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 9px', color: 'var(--text)', fontSize: 12 }}
                           />
@@ -668,13 +690,17 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
               {/* Add comment form */}
               <div style={{ marginTop: 8, padding: '12px', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Add a comment</div>
-                <textarea
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                  placeholder="Describe a change or add a note…"
-                  rows={3}
-                  style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 10px', color: 'var(--text)', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  {renderMention('comment', name => setCommentText(v => insertMention(v, name)))}
+                  <textarea
+                    value={commentText}
+                    onChange={e => { setCommentText(e.target.value); if (e.target.value.includes('@')) setMentionOpen('comment'); else setMentionOpen(null); }}
+                    onBlur={() => setTimeout(() => setMentionOpen(null), 150)}
+                    placeholder="Describe a change or add a note… (@ to mention Rachna)"
+                    rows={3}
+                    style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 10px', color: 'var(--text)', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
                 <div style={{ display: 'flex', gap: 7, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <input
                     type="file"

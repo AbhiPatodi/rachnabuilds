@@ -28,6 +28,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       where: { id: feedbackId },
       data: {
         ...(data.status !== undefined && { status: data.status }),
+        ...(data.message !== undefined && { message: data.message.trim() }),
       },
     });
     return NextResponse.json(updated);
@@ -36,6 +37,20 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (error.code === 'P2025') return NextResponse.json({ error: 'Not found' }, { status: 404 });
     console.error(err);
     return NextResponse.json({ error: 'Failed to update feedback' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+  if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { feedbackId } = await params;
+  try {
+    await prisma.deliverableFeedback.delete({ where: { id: feedbackId } });
+    return NextResponse.json({ ok: true });
+  } catch (err: unknown) {
+    const error = err as { code?: string };
+    if (error.code === 'P2025') return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    console.error(err);
+    return NextResponse.json({ error: 'Failed to delete feedback' }, { status: 500 });
   }
 }
 
