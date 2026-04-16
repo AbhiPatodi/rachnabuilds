@@ -303,7 +303,7 @@ const SECTION_LABELS: Record<string, string> = {
 };
 
 const TABS = [
-  { id: 'submissions', label: 'Your Submissions' },
+  { id: 'submissions', label: 'Documents' },
   { id: 'audit',       label: 'Insights' },
   { id: 'competitors', label: 'References' },
   { id: 'proposal',    label: 'Proposal' },
@@ -555,7 +555,7 @@ function DocumentsPanel({
   const [uploadProgress, setUploadProgress] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
   const [docUrls, setDocUrls] = useState<Record<string, string>>(() => Object.fromEntries(documents.map(d => [d.id, d.url ?? ''])));
-  const [subTab, setSubTab] = useState<'files' | 'required'>('files');
+  const [subTab, setSubTab] = useState<'files' | 'required' | 'rachna'>('files');
   // HTML Page viewer
   const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string } | null>(null);
   const [htmlViewerContent, setHtmlViewerContent] = useState<string>('');
@@ -729,34 +729,6 @@ function DocumentsPanel({
 
   return (
     <>
-      {/* ── Pages from Rachna ── */}
-      {htmlPageDocs.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
-            📄 Pages from Rachna
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {htmlPageDocs.map(doc => (
-              <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>📄</span>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{doc.title}</div>
-                    {doc.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{doc.notes}</div>}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setHtmlViewer({ title: doc.title, url: doc.url! })}
-                  style={{ padding: '7px 16px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  View →
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── Sub-tab bar ── */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         <button
@@ -773,6 +745,17 @@ function DocumentsPanel({
             📋 What We Need From You
             <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: submittedCount === requiredDocs.length ? 'rgba(6,214,160,0.15)' : 'rgba(245,158,11,0.15)', color: submittedCount === requiredDocs.length ? '#06D6A0' : '#F59E0B' }}>
               {submittedCount}/{requiredDocs.length}
+            </span>
+          </button>
+        )}
+        {htmlPageDocs.length > 0 && (
+          <button
+            onClick={() => setSubTab('rachna')}
+            style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, color: subTab === 'rachna' ? 'var(--accent)' : 'var(--text-muted)', background: 'none', border: 'none', borderBottom: subTab === 'rachna' ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', marginBottom: -1 }}
+          >
+            ✨ Rachna Submissions
+            <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'rgba(6,214,160,0.12)', color: '#06D6A0' }}>
+              {htmlPageDocs.length}
             </span>
           </button>
         )}
@@ -1109,6 +1092,38 @@ function DocumentsPanel({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── RACHNA SUBMISSIONS tab ── */}
+      {subTab === 'rachna' && (
+        <div>
+          {htmlPageDocs.length === 0 ? (
+            <div className="portal-empty" style={{ marginTop: 16 }}>
+              <div className="portal-empty-icon">✨</div>
+              <p>No pages shared yet. Check back soon!</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+              {htmlPageDocs.map(doc => (
+                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 22 }}>📄</span>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{doc.title}</div>
+                      {doc.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{doc.notes}</div>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setHtmlViewer({ title: doc.title, url: doc.url! })}
+                    style={{ padding: '8px 18px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    View →
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1955,7 +1970,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
 
         {activeTab === 'submissions' && (
           <>
-            <h1 className="portal-tab-heading">Your Submissions</h1>
+            <h1 className="portal-tab-heading">Documents</h1>
             <p className="portal-tab-sub">Documents and files shared with us. Add a note to any document if needed.</p>
             <ProfileCard
               clientSlug={clientSlug}
