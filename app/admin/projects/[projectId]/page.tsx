@@ -416,6 +416,17 @@ export default function ProjectManagePage() {
   const [htmlDocFile, setHtmlDocFile] = useState<File | null>(null);
   // HTML Page viewer
   const [htmlPreview, setHtmlPreview] = useState<{ title: string; url: string } | null>(null);
+  const [htmlPreviewContent, setHtmlPreviewContent] = useState<string>('');
+  const [htmlPreviewLoading, setHtmlPreviewLoading] = useState(false);
+  useEffect(() => {
+    if (!htmlPreview) { setHtmlPreviewContent(''); return; }
+    setHtmlPreviewLoading(true);
+    fetch(htmlPreview.url)
+      .then(r => r.text())
+      .then(html => setHtmlPreviewContent(html))
+      .catch(() => setHtmlPreviewContent('<body style="font-family:sans-serif;padding:40px;color:#666"><h2>⚠️ Failed to load</h2><p>Could not fetch the HTML file. <a href="' + htmlPreview.url + '" target="_blank">Open directly →</a></p></body>'))
+      .finally(() => setHtmlPreviewLoading(false));
+  }, [htmlPreview]);
 
   // Documents — inline edit
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
@@ -2870,12 +2881,18 @@ export default function ProjectManagePage() {
               </button>
             </div>
           </div>
-          <iframe
-            src={htmlPreview.url}
-            style={{ flex: 1, border: 'none', background: '#fff' }}
-            title={htmlPreview.title}
-            sandbox="allow-scripts allow-same-origin"
-          />
+          {htmlPreviewLoading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 14, gap: 10 }}>
+              Loading…
+            </div>
+          ) : (
+            <iframe
+              srcDoc={htmlPreviewContent}
+              style={{ flex: 1, border: 'none', background: '#fff' }}
+              title={htmlPreview.title}
+              sandbox="allow-scripts allow-same-origin"
+            />
+          )}
         </div>
       )}
     </div>

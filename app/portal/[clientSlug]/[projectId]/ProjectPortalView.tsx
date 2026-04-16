@@ -558,6 +558,8 @@ function DocumentsPanel({
   const [subTab, setSubTab] = useState<'files' | 'required'>('files');
   // HTML Page viewer
   const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string } | null>(null);
+  const [htmlViewerContent, setHtmlViewerContent] = useState<string>('');
+  const [htmlViewerLoading, setHtmlViewerLoading] = useState(false);
 
   useEffect(() => {
     fetch(`/api/portal/${clientSlug}/${projectId}/document-logs`)
@@ -565,6 +567,17 @@ function DocumentsPanel({
       .then(d => setLogs(d.logs ?? []))
       .catch(() => {});
   }, [clientSlug, projectId]);
+
+  // Fetch HTML content when viewer opens (srcdoc bypasses X-Frame-Options)
+  useEffect(() => {
+    if (!htmlViewer) { setHtmlViewerContent(''); return; }
+    setHtmlViewerLoading(true);
+    fetch(htmlViewer.url)
+      .then(r => r.text())
+      .then(html => setHtmlViewerContent(html))
+      .catch(() => setHtmlViewerContent('<body style="font-family:sans-serif;padding:40px;color:#666"><h2>⚠️ Failed to load</h2><p>Could not fetch the HTML file. <a href="' + htmlViewer.url + '" target="_blank">Open directly →</a></p></body>'))
+      .finally(() => setHtmlViewerLoading(false));
+  }, [htmlViewer]);
 
   const getNote = useCallback((doc: ProjectDocument) => {
     return noteState[doc.id] ?? { editing: false, value: doc.notes ?? '', saving: false, saved: false };
@@ -707,13 +720,43 @@ function DocumentsPanel({
 
   // "Required from You": explicitly marked as client_required by admin
   const requiredDocs = documents.filter(d => d.docType === 'client_required');
-  // "Your Files": client uploads + any admin doc with a URL
-  const uploadedDocs = documents.filter(d => d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== ''));
+  // "HTML Pages from Rachna": shown in dedicated section above subtabs
+  const htmlPageDocs = documents.filter(d => d.docType === 'html_page' && d.url && d.url.trim() !== '');
+  // "Your Files": client uploads + any admin doc with a URL (excluding html_page which has its own section)
+  const uploadedDocs = documents.filter(d => d.docType !== 'html_page' && (d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== '')));
 
   const submittedCount = requiredDocs.filter(d => { const u = docUrls[d.id] ?? d.url ?? ''; return u && u !== '' && u !== 'pending'; }).length;
 
   return (
     <>
+      {/* ── Pages from Rachna ── */}
+      {htmlPageDocs.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
+            📄 Pages from Rachna
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {htmlPageDocs.map(doc => (
+              <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>📄</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{doc.title}</div>
+                    {doc.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{doc.notes}</div>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setHtmlViewer({ title: doc.title, url: doc.url! })}
+                  style={{ padding: '7px 16px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  View →
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Sub-tab bar ── */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         <button
@@ -1088,13 +1131,20 @@ function DocumentsPanel({
               ✕ Close
             </button>
           </div>
-          {/* iframe */}
-          <iframe
-            src={htmlViewer.url}
-            style={{ flex: 1, border: 'none', background: '#fff' }}
-            title={htmlViewer.title}
-            sandbox="allow-scripts allow-same-origin"
-          />
+          {/* iframe — srcdoc bypasses X-Frame-Options from Vercel Blob */}
+          {htmlViewerLoading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, gap: 10 }}>
+              <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid #334155', borderTop: '2px solid #06D6A0', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              Loading page…
+            </div>
+          ) : (
+            <iframe
+              srcDoc={htmlViewerContent}
+              style={{ flex: 1, border: 'none', background: '#fff' }}
+              title={htmlViewer.title}
+              sandbox="allow-scripts allow-same-origin"
+            />
+          )}
         </div>
       )}
     </>
