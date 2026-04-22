@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         projects: {
           orderBy: { updatedAt: 'desc' },
           take: 1,
-          select: { updatedAt: true, name: true, status: true, contracts: { select: { status: true } } },
+          select: { id: true, updatedAt: true, name: true, status: true, contracts: { select: { status: true } } },
         },
       },
     }),
@@ -351,7 +351,11 @@ export default async function DashboardPage() {
                       </span>
                     </td>
                     <td>
-                      <Link href={`/admin/clients/${client.id}`} className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 11 }}>
+                      <Link
+                        href={latestProject ? `/admin/projects/${latestProject.id}` : `/admin/clients/${client.id}`}
+                        className="admin-btn admin-btn-ghost admin-btn-icon"
+                        style={{ fontSize: 11 }}
+                      >
                         Manage →
                       </Link>
                     </td>
