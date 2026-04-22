@@ -799,10 +799,11 @@ function DocumentsPanel({
 
   // "Required from You": explicitly marked as client_required by admin
   const requiredDocs = documents.filter(d => d.docType === 'client_required');
-  // "Rachna Submissions": html pages (protected or unprotected)
-  const htmlPageDocs = documents.filter(d => (d.docType === 'html_page' || d.docType === 'html_page_protected') && d.url && d.url.trim() !== '');
-  // "Your Files": client uploads + any admin doc with a URL (excluding html pages which have their own tab)
-  const uploadedDocs = documents.filter(d => d.docType !== 'html_page' && d.docType !== 'html_page_protected' && (d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== '')));
+  // "Rachna Submissions": html pages + prototypes (protected or unprotected)
+  const RACHNA_DOC_TYPES = ['html_page', 'html_page_protected', 'prototype', 'prototype_protected'];
+  const htmlPageDocs = documents.filter(d => RACHNA_DOC_TYPES.includes(d.docType) && d.url && d.url.trim() !== '');
+  // "Your Files": client uploads + any admin doc with a URL (excluding rachna submission types)
+  const uploadedDocs = documents.filter(d => !RACHNA_DOC_TYPES.includes(d.docType) && (d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== '')));
 
   const submittedCount = requiredDocs.filter(d => { const u = docUrls[d.id] ?? d.url ?? ''; return u && u !== '' && u !== 'pending'; }).length;
 
@@ -1194,11 +1195,28 @@ function DocumentsPanel({
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {doc.docType === 'html_page_protected' && (
+                    {(doc.docType === 'html_page_protected' || doc.docType === 'prototype_protected') && (
                       <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>🔒 Protected</span>
                     )}
+                    {(doc.docType === 'prototype' || doc.docType === 'prototype_protected') && (
+                      <span style={{ fontSize: 11, color: '#94A3B8', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>🌐 Multi-page</span>
+                    )}
                     <button
-                      onClick={() => setHtmlViewer({ title: doc.title, url: doc.url!, protected: doc.docType === 'html_page_protected' })}
+                      onClick={() => {
+                        const isProto = doc.docType === 'prototype' || doc.docType === 'prototype_protected';
+                        const isProtected = doc.docType === 'html_page_protected' || doc.docType === 'prototype_protected';
+                        if (isProto) {
+                          // URL format: prototype::{projectId}::{entryFile}
+                          const parts = doc.url!.split('::');
+                          const pid = parts[1]; const entry = parts[2] || 'index.html';
+                          const src = isProtected
+                            ? `/api/prototype/${pid}/${entry}?protect=1&client=${encodeURIComponent(clientName)}`
+                            : `/api/prototype/${pid}/${entry}`;
+                          setHtmlViewer({ title: doc.title, url: src, protected: isProtected });
+                        } else {
+                          setHtmlViewer({ title: doc.title, url: doc.url!, protected: isProtected });
+                        }
+                      }}
                       style={{ padding: '8px 18px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
                       View →
@@ -1240,14 +1258,29 @@ function DocumentsPanel({
             </button>
           </div>
 
-          {/* iframe wrapper — position:relative lets the click-shield overlay sit on top */}
+          {/* iframe wrapper */}
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
             {htmlViewerLoading ? (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, gap: 10 }}>
                 <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid #334155', borderTop: '2px solid #06D6A0', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                Loading page…
+                Loading…
               </div>
+            ) : htmlViewer.url.startsWith('/api/prototype/') ? (
+              /* Prototype: use src= so real inter-page navigation works */
+              <>
+                <iframe
+                  src={htmlViewer.url}
+                  style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
+                  title={htmlViewer.title}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
+                />
+                {htmlViewer.protected && (
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }}
+                    onContextMenu={e => e.preventDefault()} onDragStart={e => e.preventDefault()} />
+                )}
+              </>
             ) : (
+              /* Single HTML page: use srcDoc (bypasses X-Frame-Options from Vercel Blob) */
               <>
                 <iframe
                   srcDoc={htmlViewerContent}
@@ -1255,13 +1288,9 @@ function DocumentsPanel({
                   title={htmlViewer.title}
                   sandbox="allow-scripts allow-same-origin"
                 />
-                {/* Transparent click-shield: blocks right-click, drag-select, and image saves on the iframe */}
                 {htmlViewer.protected && (
-                  <div
-                    style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }}
-                    onContextMenu={e => e.preventDefault()}
-                    onDragStart={e => e.preventDefault()}
-                  />
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }}
+                    onContextMenu={e => e.preventDefault()} onDragStart={e => e.preventDefault()} />
                 )}
               </>
             )}

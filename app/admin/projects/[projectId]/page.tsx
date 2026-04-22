@@ -160,8 +160,10 @@ const DOC_TYPES = [
   { value: 'competitor_ref', label: 'Competitor Reference' },
   { value: 'brand_assets', label: 'Brand Assets' },
   { value: 'client_required', label: 'Required from Client' },
-  { value: 'html_page', label: '📄 HTML Page' },
-  { value: 'html_page_protected', label: '🔒 HTML Page (Protected)' },
+  { value: 'html_page', label: '📄 HTML Page (single file)' },
+  { value: 'html_page_protected', label: '🔒 HTML Page Protected (single file)' },
+  { value: 'prototype', label: '🌐 HTML Prototype (ZIP — multi-page)' },
+  { value: 'prototype_protected', label: '🔒 HTML Prototype Protected (ZIP — multi-page)' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -416,6 +418,10 @@ export default function ProjectManagePage() {
   const [docError, setDocError] = useState('');
   const [htmlDocFile, setHtmlDocFile] = useState<File | null>(null);
   const [htmlDocProtected, setHtmlDocProtected] = useState(true); // default: protected ON
+  const [protoZipFile, setProtoZipFile] = useState<File | null>(null);
+  const [protoProtected, setProtoProtected] = useState(true);
+  const [protoUploading, setProtoUploading] = useState(false);
+  const [protoProgress, setProtoProgress] = useState('');
   // HTML Page viewer
   const [htmlPreview, setHtmlPreview] = useState<{ title: string; url: string } | null>(null);
   const [htmlPreviewContent, setHtmlPreviewContent] = useState<string>('');
@@ -967,7 +973,29 @@ export default function ProjectManagePage() {
     try {
       let finalUrl = docUrl;
       let finalDocType = docType;
-      // For HTML pages — upload file to Vercel Blob first, then set protected type
+
+      // ── Prototype ZIP upload ──────────────────────────────────────────────
+      if (docType === 'prototype' || docType === 'prototype_protected') {
+        if (!protoZipFile) { setDocError('Please select a ZIP file'); return; }
+        if (!docTitle.trim()) { setDocError('Please enter a title'); return; }
+        setProtoProgress('Uploading and extracting ZIP…');
+        const fd = new FormData();
+        fd.append('file', protoZipFile, protoZipFile.name);
+        fd.append('protected', protoProtected ? '1' : '0');
+        fd.append('title', docTitle.trim());
+        const up = await fetch(`/api/admin/projects/${projectId}/prototype`, { method: 'POST', body: fd });
+        if (!up.ok) { const e = await up.json(); setDocError(e.error || 'Failed to upload prototype'); setProtoProgress(''); return; }
+        const upData = await up.json();
+        // Document was already created by the prototype route — just refresh project
+        const refreshed = await fetch(`/api/admin/projects/${projectId}`);
+        if (refreshed.ok) { const d = await refreshed.json(); setProject(d); }
+        setDocTitle(''); setDocUrl(''); setDocNotes('');
+        setProtoZipFile(null); setProtoProtected(true); setProtoProgress('');
+        setShowDocForm(false);
+        return;
+      }
+
+      // ── Single HTML page upload ───────────────────────────────────────────
       if (docType === 'html_page' || docType === 'html_page_protected') {
         if (!htmlDocFile) { setDocError('Please select an HTML file'); return; }
         const fd = new FormData();
@@ -976,9 +1004,9 @@ export default function ProjectManagePage() {
         if (!up.ok) { setDocError('Failed to upload HTML file'); return; }
         const upData = await up.json();
         finalUrl = upData.url;
-        // Override docType based on the privacy toggle (regardless of which html type was selected)
         finalDocType = htmlDocProtected ? 'html_page_protected' : 'html_page';
       }
+
       const res = await fetch(`/api/admin/projects/${projectId}/documents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -987,11 +1015,8 @@ export default function ProjectManagePage() {
       if (!res.ok) { setDocError('Failed to add document'); return; }
       const data = await res.json();
       setProject(p => p ? { ...p, documents: [...p.documents, data] } : p);
-      setDocTitle('');
-      setDocUrl('');
-      setDocNotes('');
-      setHtmlDocFile(null);
-      setHtmlDocProtected(true);
+      setDocTitle(''); setDocUrl(''); setDocNotes('');
+      setHtmlDocFile(null); setHtmlDocProtected(true);
       setShowDocForm(false);
     } catch {
       setDocError('Something went wrong');
@@ -1841,7 +1866,40 @@ export default function ProjectManagePage() {
                       />
                     </div>
                   </div>
-                  {(docType === 'html_page' || docType === 'html_page_protected') ? (
+                  {(docType === 'prototype' || docType === 'prototype_protected') ? (
+                    <div className="admin-field">
+                      <label className="admin-label">ZIP File * <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(max 50 MB)</span></label>
+                      <input
+                        type="file"
+                        accept=".zip,application/zip,application/x-zip-compressed"
+                        className="admin-input"
+                        style={{ padding: '6px 10px', cursor: 'pointer' }}
+                        onChange={e => setProtoZipFile(e.target.files?.[0] ?? null)}
+                      />
+                      {protoZipFile && (
+                        <p style={{ fontSize: 11, color: 'var(--accent)', marginTop: 4 }}>
+                          ✓ {protoZipFile.name} ({(protoZipFile.size / 1024).toFixed(1)} KB)
+                        </p>
+                      )}
+                      {protoProgress && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{protoProgress}</p>}
+                      {/* Privacy Protection Toggle */}
+                      <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${protoProtected ? 'rgba(6,214,160,0.35)' : 'var(--border)'}`, background: protoProtected ? 'rgba(6,214,160,0.06)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}
+                        onClick={() => setProtoProtected(v => !v)}>
+                        <input type="checkbox" checked={protoProtected} onChange={e => setProtoProtected(e.target.checked)}
+                          style={{ marginTop: 2, accentColor: '#06D6A0', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
+                          onClick={e => e.stopPropagation()} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: protoProtected ? 'var(--accent)' : 'var(--text)' }}>🔒 Enable Privacy Protection</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+                            Blocks right-click, F12, Ctrl+U/S/P, text selection, image drag. Adds confidentiality watermark with client name + date on every page. Works on Windows & Mac.
+                          </div>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+                        Upload your full HTML project as a ZIP. All pages, CSS, JS, and images will be extracted and hosted — navigation between pages works exactly as in a browser.
+                      </p>
+                    </div>
+                  ) : (docType === 'html_page' || docType === 'html_page_protected') ? (
                     <div className="admin-field">
                       <label className="admin-label">HTML File *</label>
                       <input
@@ -1980,7 +2038,23 @@ export default function ProjectManagePage() {
                         </div>
                         <div className="admin-section-item-actions">
                           {doc.url && !doc.url.startsWith('text://') && (
-                            (doc.docType === 'html_page' || doc.docType === 'html_page_protected') ? (
+                            (doc.docType === 'prototype' || doc.docType === 'prototype_protected') ? (
+                              <>
+                                <span style={{ fontSize: 10, color: doc.docType === 'prototype_protected' ? '#06D6A0' : '#94A3B8', background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.15)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                                  {doc.docType === 'prototype_protected' ? '🔒 Protected' : '🌐'} Prototype
+                                </span>
+                                {(() => {
+                                  const parts = doc.url.split('::');
+                                  const pid = parts[1]; const entry = parts[2] || 'index.html';
+                                  if (!pid) return null;
+                                  return (
+                                    <a href={`/api/prototype/${pid}/${entry}`} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
+                                      Preview ↗
+                                    </a>
+                                  );
+                                })()}
+                              </>
+                            ) : (doc.docType === 'html_page' || doc.docType === 'html_page_protected') ? (
                               <>
                                 {doc.docType === 'html_page_protected' && (
                                   <span style={{ fontSize: 10, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>🔒 Protected</span>
