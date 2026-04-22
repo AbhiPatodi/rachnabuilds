@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import DashboardActions from './DashboardActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +24,6 @@ export default async function DashboardPage() {
     recentClients,
     clientCount,
     activeClientCount,
-    reports,
   ] = await Promise.all([
     prisma.project.count({ where: { isVisible: true } }),
     prisma.testimonial.count({ where: { isVisible: true } }),
@@ -55,15 +53,7 @@ export default async function DashboardPage() {
     }),
     prisma.client.count(),
     prisma.client.count({ where: { isActive: true } }),
-    // Keep old reports — Kruti + Amarja still use them
-    prisma.report.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { sections: true } } },
-    }),
   ]);
-
-  const totalReportViews = reports.reduce((s, r) => s + r.viewCount, 0);
-  const activeReports = reports.filter(r => r.isActive).length;
 
   // Derive overallStatus for each recent client (same logic as API)
   const clientsWithStatus = recentClients.map(c => {
@@ -367,83 +357,6 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Legacy Reports — kept for Kruti + Amarja who use old /reports/[slug] system */}
-      {reports.length > 0 && (
-        <>
-          <div style={{ marginBottom: 8 }}>
-            <div className="dash-section-title">
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                Legacy Reports
-                <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-muted)', fontWeight: 400, background: 'var(--bg-elevated)', padding: '1px 8px', borderRadius: 100 }}>
-                  old system
-                </span>
-              </span>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-muted)' }}>
-                  {activeReports} active · {totalReportViews} total views
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>Portal Link</th>
-                  <th>Created</th>
-                  <th>Views</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map(report => (
-                  <tr key={report.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{report.clientName}</div>
-                      {report.clientEmail && (
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{report.clientEmail}</div>
-                      )}
-                    </td>
-                    <td>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--text-secondary)' }}>
-                        /reports/{report.slug}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                        {new Date(report.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{report.viewCount}</div>
-                      {report.lastViewedAt && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                          {new Date(report.lastViewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`badge ${report.isActive ? 'badge-green' : 'badge-red'}`}>
-                        <span className="badge-dot" />
-                        {report.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>
-                      <DashboardActions
-                        reportId={report.id}
-                        reportSlug={report.slug}
-                        isActive={report.isActive}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
     </div>
   );
 }
