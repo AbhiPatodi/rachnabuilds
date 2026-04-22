@@ -161,6 +161,7 @@ const DOC_TYPES = [
   { value: 'brand_assets', label: 'Brand Assets' },
   { value: 'client_required', label: 'Required from Client' },
   { value: 'html_page', label: '📄 HTML Page' },
+  { value: 'html_page_protected', label: '🔒 HTML Page (Protected)' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -414,6 +415,7 @@ export default function ProjectManagePage() {
   const [docLoading, setDocLoading] = useState(false);
   const [docError, setDocError] = useState('');
   const [htmlDocFile, setHtmlDocFile] = useState<File | null>(null);
+  const [htmlDocProtected, setHtmlDocProtected] = useState(true); // default: protected ON
   // HTML Page viewer
   const [htmlPreview, setHtmlPreview] = useState<{ title: string; url: string } | null>(null);
   const [htmlPreviewContent, setHtmlPreviewContent] = useState<string>('');
@@ -964,8 +966,9 @@ export default function ProjectManagePage() {
     setDocLoading(true);
     try {
       let finalUrl = docUrl;
-      // For HTML pages — upload file to Vercel Blob first
-      if (docType === 'html_page') {
+      let finalDocType = docType;
+      // For HTML pages — upload file to Vercel Blob first, then set protected type
+      if (docType === 'html_page' || docType === 'html_page_protected') {
         if (!htmlDocFile) { setDocError('Please select an HTML file'); return; }
         const fd = new FormData();
         fd.append('file', htmlDocFile, htmlDocFile.name);
@@ -973,11 +976,13 @@ export default function ProjectManagePage() {
         if (!up.ok) { setDocError('Failed to upload HTML file'); return; }
         const upData = await up.json();
         finalUrl = upData.url;
+        // Override docType based on the privacy toggle (regardless of which html type was selected)
+        finalDocType = htmlDocProtected ? 'html_page_protected' : 'html_page';
       }
       const res = await fetch(`/api/admin/projects/${projectId}/documents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docType, title: docTitle, url: finalUrl, notes: docNotes }),
+        body: JSON.stringify({ docType: finalDocType, title: docTitle, url: finalUrl, notes: docNotes }),
       });
       if (!res.ok) { setDocError('Failed to add document'); return; }
       const data = await res.json();
@@ -986,6 +991,7 @@ export default function ProjectManagePage() {
       setDocUrl('');
       setDocNotes('');
       setHtmlDocFile(null);
+      setHtmlDocProtected(true);
       setShowDocForm(false);
     } catch {
       setDocError('Something went wrong');
@@ -1835,7 +1841,7 @@ export default function ProjectManagePage() {
                       />
                     </div>
                   </div>
-                  {docType === 'html_page' ? (
+                  {(docType === 'html_page' || docType === 'html_page_protected') ? (
                     <div className="admin-field">
                       <label className="admin-label">HTML File *</label>
                       <input
@@ -1851,9 +1857,25 @@ export default function ProjectManagePage() {
                           ✓ {htmlDocFile.name} ({(htmlDocFile.size / 1024).toFixed(1)} KB)
                         </p>
                       )}
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                        HTML will be uploaded and rendered inline in the client portal.
-                      </p>
+                      {/* Privacy Protection Toggle */}
+                      <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${htmlDocProtected ? 'rgba(6,214,160,0.35)' : 'var(--border)'}`, background: htmlDocProtected ? 'rgba(6,214,160,0.06)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}
+                        onClick={() => setHtmlDocProtected(v => !v)}>
+                        <input
+                          type="checkbox"
+                          checked={htmlDocProtected}
+                          onChange={e => setHtmlDocProtected(e.target.checked)}
+                          style={{ marginTop: 2, accentColor: '#06D6A0', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: htmlDocProtected ? 'var(--accent)' : 'var(--text)' }}>
+                            🔒 Enable Privacy Protection
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
+                            Blocks right-click, copy, screenshot shortcuts (F12, Ctrl+U, Ctrl+S, Ctrl+P), text selection, and image drag. Adds a confidentiality watermark with client name + date. Works on Windows & Mac.
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="admin-field">
@@ -1958,10 +1980,15 @@ export default function ProjectManagePage() {
                         </div>
                         <div className="admin-section-item-actions">
                           {doc.url && !doc.url.startsWith('text://') && (
-                            doc.docType === 'html_page' ? (
-                              <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => setHtmlPreview({ title: doc.title, url: doc.url })}>
-                                Preview ↗
-                              </button>
+                            (doc.docType === 'html_page' || doc.docType === 'html_page_protected') ? (
+                              <>
+                                {doc.docType === 'html_page_protected' && (
+                                  <span style={{ fontSize: 10, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>🔒 Protected</span>
+                                )}
+                                <button className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }} onClick={() => setHtmlPreview({ title: doc.title, url: doc.url })}>
+                                  Preview ↗
+                                </button>
+                              </>
                             ) : (
                               <a href={doc.url} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-ghost admin-btn-icon" style={{ fontSize: 12 }}>
                                 Open ↗

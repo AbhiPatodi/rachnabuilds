@@ -513,6 +513,81 @@ const ACTION_LABELS: Record<string, string> = {
 
 type ApprovalEntry = { approvedAt: string; approvedBy: string };
 
+// ── HTML Prototype Protection ─────────────────────────────────────────────────
+// Injects anti-theft JS + CSS + watermark into raw HTML before srcdoc rendering.
+// Blocks: right-click, keyboard shortcuts (F12/Ctrl+U/Ctrl+S/Ctrl+P/Ctrl+A),
+// text selection, image dragging. Adds a branded watermark bar with client name.
+function injectProtection(html: string, clientName: string): string {
+  const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const protectionCSS = `
+<style id="__rb_protection__">
+  *{-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;}
+  img,svg,video{pointer-events:none!important;-webkit-user-drag:none!important;}
+  @media print{html,body{display:none!important;visibility:hidden!important;}}
+  #__rb_wm__{position:fixed;bottom:0;left:0;right:0;z-index:2147483647;background:rgba(11,15,26,0.93);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid rgba(6,214,160,0.25);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;color:rgba(255,255,255,0.45);pointer-events:none;user-select:none!important;}
+  #__rb_wm__ strong{color:#06D6A0;font-weight:600;}
+</style>`;
+
+  const protectionScript = `
+<script id="__rb_guard__">
+(function(){
+  // Block right-click everywhere
+  document.addEventListener('contextmenu',function(e){e.preventDefault();e.stopPropagation();return false;},true);
+  // Block keyboard shortcuts
+  document.addEventListener('keydown',function(e){
+    var k=e.key||'';var c=e.ctrlKey||e.metaKey;
+    if(e.keyCode===123)return stop(e);           // F12
+    if(c&&k==='u')return stop(e);                // Ctrl+U view-source
+    if(c&&k==='s')return stop(e);                // Ctrl+S save
+    if(c&&k==='p')return stop(e);                // Ctrl+P print
+    if(c&&k==='a')return stop(e);                // Ctrl+A select-all
+    if(c&&e.shiftKey&&(k==='I'||k==='i'))return stop(e); // Ctrl+Shift+I devtools
+    if(c&&e.shiftKey&&(k==='J'||k==='j'))return stop(e); // Ctrl+Shift+J console
+    if(c&&e.shiftKey&&(k==='C'||k==='c'))return stop(e); // Ctrl+Shift+C inspect
+  },true);
+  function stop(e){e.preventDefault();e.stopPropagation();return false;}
+  // Block text selection via mouse
+  document.addEventListener('selectstart',function(e){e.preventDefault();return false;},true);
+  // Block drag
+  document.addEventListener('dragstart',function(e){e.preventDefault();return false;},true);
+  // Block copy
+  document.addEventListener('copy',function(e){e.preventDefault();return false;},true);
+  // Remove existing download links
+  document.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('a[download]').forEach(function(a){a.removeAttribute('download');a.setAttribute('href','#');});
+  });
+})();
+</script>`;
+
+  const watermark = `
+<div id="__rb_wm__">
+  <span>🔒 Confidential · Shared exclusively with <strong>${clientName}</strong></span>
+  <span>© Rachna Builds · ${dateStr} · Do not distribute or reproduce</span>
+</div>`;
+
+  // Inject CSS right after <head> or at start, script + watermark before </body>
+  let result = html;
+
+  if (result.includes('<head>')) {
+    result = result.replace('<head>', '<head>' + protectionCSS);
+  } else if (result.includes('<html')) {
+    result = protectionCSS + result;
+  } else {
+    result = protectionCSS + result;
+  }
+
+  if (result.includes('</body>')) {
+    result = result.replace('</body>', protectionScript + watermark + '</body>');
+  } else if (result.includes('</html>')) {
+    result = result.replace('</html>', protectionScript + watermark + '</html>');
+  } else {
+    result = result + protectionScript + watermark;
+  }
+
+  return result;
+}
+
 function DocumentsPanel({
   documents,
   clientSlug,
@@ -557,7 +632,7 @@ function DocumentsPanel({
   const [docUrls, setDocUrls] = useState<Record<string, string>>(() => Object.fromEntries(documents.map(d => [d.id, d.url ?? ''])));
   const [subTab, setSubTab] = useState<'files' | 'required' | 'rachna'>('files');
   // HTML Page viewer
-  const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string } | null>(null);
+  const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string; protected: boolean } | null>(null);
   const [htmlViewerContent, setHtmlViewerContent] = useState<string>('');
   const [htmlViewerLoading, setHtmlViewerLoading] = useState(false);
 
@@ -574,10 +649,14 @@ function DocumentsPanel({
     setHtmlViewerLoading(true);
     fetch(htmlViewer.url)
       .then(r => r.text())
-      .then(html => setHtmlViewerContent(html))
-      .catch(() => setHtmlViewerContent('<body style="font-family:sans-serif;padding:40px;color:#666"><h2>⚠️ Failed to load</h2><p>Could not fetch the HTML file. <a href="' + htmlViewer.url + '" target="_blank">Open directly →</a></p></body>'))
+      .then(html => {
+        // Apply protection layer if this doc has it enabled
+        const processed = htmlViewer.protected ? injectProtection(html, clientName) : html;
+        setHtmlViewerContent(processed);
+      })
+      .catch(() => setHtmlViewerContent('<body style="font-family:sans-serif;padding:40px;color:#666"><h2>⚠️ Failed to load</h2><p>Could not fetch the HTML file.</p></body>'))
       .finally(() => setHtmlViewerLoading(false));
-  }, [htmlViewer]);
+  }, [htmlViewer, clientName]);
 
   const getNote = useCallback((doc: ProjectDocument) => {
     return noteState[doc.id] ?? { editing: false, value: doc.notes ?? '', saving: false, saved: false };
@@ -720,10 +799,10 @@ function DocumentsPanel({
 
   // "Required from You": explicitly marked as client_required by admin
   const requiredDocs = documents.filter(d => d.docType === 'client_required');
-  // "HTML Pages from Rachna": shown in dedicated section above subtabs
-  const htmlPageDocs = documents.filter(d => d.docType === 'html_page' && d.url && d.url.trim() !== '');
-  // "Your Files": client uploads + any admin doc with a URL (excluding html_page which has its own section)
-  const uploadedDocs = documents.filter(d => d.docType !== 'html_page' && (d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== '')));
+  // "Rachna Submissions": html pages (protected or unprotected)
+  const htmlPageDocs = documents.filter(d => (d.docType === 'html_page' || d.docType === 'html_page_protected') && d.url && d.url.trim() !== '');
+  // "Your Files": client uploads + any admin doc with a URL (excluding html pages which have their own tab)
+  const uploadedDocs = documents.filter(d => d.docType !== 'html_page' && d.docType !== 'html_page_protected' && (d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== '')));
 
   const submittedCount = requiredDocs.filter(d => { const u = docUrls[d.id] ?? d.url ?? ''; return u && u !== '' && u !== 'pending'; }).length;
 
@@ -897,7 +976,7 @@ function DocumentsPanel({
                   <button
                     className="portal-doc-link"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
-                    onClick={() => { onDocOpen(doc.id, doc.title); setHtmlViewer({ title: doc.title, url: docUrl }); }}
+                    onClick={() => { onDocOpen(doc.id, doc.title); setHtmlViewer({ title: doc.title, url: docUrl, protected: doc.docType === 'html_page_protected' }); }}
                   >
                     View →
                   </button>
@@ -1114,12 +1193,17 @@ function DocumentsPanel({
                       {doc.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{doc.notes}</div>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setHtmlViewer({ title: doc.title, url: doc.url! })}
-                    style={{ padding: '8px 18px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                  >
-                    View →
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {doc.docType === 'html_page_protected' && (
+                      <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>🔒 Protected</span>
+                    )}
+                    <button
+                      onClick={() => setHtmlViewer({ title: doc.title, url: doc.url!, protected: doc.docType === 'html_page_protected' })}
+                      style={{ padding: '8px 18px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      View →
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1132,12 +1216,21 @@ function DocumentsPanel({
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column' }}
           onClick={e => { if (e.target === e.currentTarget) setHtmlViewer(null); }}
+          onKeyDown={e => {
+            // Block devtools / save shortcuts at React level (catches before iframe focus)
+            if (e.key === 'F12') e.preventDefault();
+            if ((e.ctrlKey || e.metaKey) && ['u','s','p','a'].includes(e.key.toLowerCase())) e.preventDefault();
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase())) e.preventDefault();
+          }}
         >
           {/* Header bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#0B0F1A', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 16 }}>📄</span>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#E8ECF4' }}>{htmlViewer.title}</span>
+              {htmlViewer.protected && (
+                <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 5, padding: '2px 8px', fontWeight: 600 }}>🔒 Protected</span>
+              )}
             </div>
             <button
               onClick={() => setHtmlViewer(null)}
@@ -1146,20 +1239,33 @@ function DocumentsPanel({
               ✕ Close
             </button>
           </div>
-          {/* iframe — srcdoc bypasses X-Frame-Options from Vercel Blob */}
-          {htmlViewerLoading ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, gap: 10 }}>
-              <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid #334155', borderTop: '2px solid #06D6A0', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-              Loading page…
-            </div>
-          ) : (
-            <iframe
-              srcDoc={htmlViewerContent}
-              style={{ flex: 1, border: 'none', background: '#fff' }}
-              title={htmlViewer.title}
-              sandbox="allow-scripts allow-same-origin"
-            />
-          )}
+
+          {/* iframe wrapper — position:relative lets the click-shield overlay sit on top */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            {htmlViewerLoading ? (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: 14, gap: 10 }}>
+                <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid #334155', borderTop: '2px solid #06D6A0', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                Loading page…
+              </div>
+            ) : (
+              <>
+                <iframe
+                  srcDoc={htmlViewerContent}
+                  style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
+                  title={htmlViewer.title}
+                  sandbox="allow-scripts allow-same-origin"
+                />
+                {/* Transparent click-shield: blocks right-click, drag-select, and image saves on the iframe */}
+                {htmlViewer.protected && (
+                  <div
+                    style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }}
+                    onContextMenu={e => e.preventDefault()}
+                    onDragStart={e => e.preventDefault()}
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
     </>
