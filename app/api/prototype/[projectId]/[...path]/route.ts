@@ -1,11 +1,10 @@
 // GET /api/prototype/[projectId]/[...path]
-// Serves prototype files from Vercel Blob, same-origin so no X-Frame-Options issues.
-// Injects protection scripts into HTML if ?protect=1&client=Name is passed.
+// Serves prototype files from Vercel Blob (same-origin → no X-Frame-Options issues).
+// Always injects anti-copy protection + watermark into HTML responses.
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteContext { params: Promise<{ projectId: string; path: string[] }> }
 
-// Inject anti-theft CSS + JS + watermark into HTML (same as portal viewer)
 function injectProtection(html: string, clientName: string): string {
   const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -23,8 +22,8 @@ img,svg,video{pointer-events:none!important;-webkit-user-drag:none!important;}
   document.addEventListener('keydown',function(e){
     var k=e.key||'';var c=e.ctrlKey||e.metaKey;
     if(e.keyCode===123)return s(e);
-    if(c&&'uUsSaApP'.indexOf(k)>-1)return s(e);
-    if(c&&e.shiftKey&&'iIjJcC'.indexOf(k)>-1)return s(e);
+    if(c&&(k==='u'||k==='s'||k==='p'||k==='a'))return s(e);
+    if(c&&e.shiftKey&&(k==='i'||k==='I'||k==='j'||k==='J'||k==='c'||k==='C'))return s(e);
   },true);
   function s(e){e.preventDefault();e.stopPropagation();return false;}
   document.addEventListener('selectstart',function(e){e.preventDefault();return false;},true);
@@ -49,13 +48,8 @@ img,svg,video{pointer-events:none!important;-webkit-user-drag:none!important;}
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { projectId, path: pathSegments } = await params;
   const relativePath = pathSegments.join('/');
-
-  const protect = req.nextUrl.searchParams.get('protect') === '1';
   const clientName = req.nextUrl.searchParams.get('client') ?? 'Client';
 
-  // Construct Vercel Blob URL — files stored as prototypes/{projectId}/{relativePath}
-  // The blob store URL is derived from the BLOB_READ_WRITE_TOKEN env var
-  // We use the public URL pattern: https://{store}.public.blob.vercel-storage.com/...
   const blobBaseUrl = process.env.BLOB_BASE_URL;
   if (!blobBaseUrl) {
     return new NextResponse('BLOB_BASE_URL not configured', { status: 500 });
@@ -72,24 +66,23 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
     const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream';
     const isHtml = contentType.includes('text/html') || relativePath.endsWith('.html');
 
-    if (isHtml && protect) {
+    if (isHtml) {
       const html = await upstream.text();
       const protected_html = injectProtection(html, decodeURIComponent(clientName));
       return new NextResponse(protected_html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-store',
-          // Explicitly NO X-Frame-Options — served from same origin so safe
         },
       });
     }
 
-    // For non-HTML or non-protected: stream through as-is
+    // Non-HTML assets: stream through as-is
     const body = await upstream.arrayBuffer();
     return new NextResponse(body, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': isHtml ? 'no-store' : 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=3600',
       },
     });
   } catch (err) {

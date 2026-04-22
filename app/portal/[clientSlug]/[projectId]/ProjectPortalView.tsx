@@ -632,7 +632,7 @@ function DocumentsPanel({
   const [docUrls, setDocUrls] = useState<Record<string, string>>(() => Object.fromEntries(documents.map(d => [d.id, d.url ?? ''])));
   const [subTab, setSubTab] = useState<'files' | 'required' | 'rachna'>('files');
   // HTML Page viewer
-  const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string; protected: boolean } | null>(null);
+  const [htmlViewer, setHtmlViewer] = useState<{ title: string; url: string } | null>(null);
   const [htmlViewerContent, setHtmlViewerContent] = useState<string>('');
   const [htmlViewerLoading, setHtmlViewerLoading] = useState(false);
 
@@ -650,9 +650,7 @@ function DocumentsPanel({
     fetch(htmlViewer.url)
       .then(r => r.text())
       .then(html => {
-        // Apply protection layer if this doc has it enabled
-        const processed = htmlViewer.protected ? injectProtection(html, clientName) : html;
-        setHtmlViewerContent(processed);
+        setHtmlViewerContent(injectProtection(html, clientName));
       })
       .catch(() => setHtmlViewerContent('<body style="font-family:sans-serif;padding:40px;color:#666"><h2>⚠️ Failed to load</h2><p>Could not fetch the HTML file.</p></body>'))
       .finally(() => setHtmlViewerLoading(false));
@@ -799,8 +797,8 @@ function DocumentsPanel({
 
   // "Required from You": explicitly marked as client_required by admin
   const requiredDocs = documents.filter(d => d.docType === 'client_required');
-  // "Rachna Submissions": html pages + prototypes (protected or unprotected)
-  const RACHNA_DOC_TYPES = ['html_page', 'html_page_protected', 'prototype', 'prototype_protected'];
+  // "Rachna Submissions": html pages + prototypes
+  const RACHNA_DOC_TYPES = ['html_page', 'prototype'];
   const htmlPageDocs = documents.filter(d => RACHNA_DOC_TYPES.includes(d.docType) && d.url && d.url.trim() !== '');
   // "Your Files": client uploads + any admin doc with a URL (excluding rachna submission types)
   const uploadedDocs = documents.filter(d => !RACHNA_DOC_TYPES.includes(d.docType) && (d.docType === 'client_upload' || (d.docType !== 'client_required' && d.url && d.url.trim() !== '')));
@@ -977,7 +975,7 @@ function DocumentsPanel({
                   <button
                     className="portal-doc-link"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
-                    onClick={() => { onDocOpen(doc.id, doc.title); setHtmlViewer({ title: doc.title, url: docUrl, protected: doc.docType === 'html_page_protected' }); }}
+                    onClick={() => { onDocOpen(doc.id, doc.title); setHtmlViewer({ title: doc.title, url: docUrl }); }}
                   >
                     View →
                   </button>
@@ -1195,26 +1193,18 @@ function DocumentsPanel({
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {(doc.docType === 'html_page_protected' || doc.docType === 'prototype_protected') && (
-                      <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>🔒 Protected</span>
-                    )}
-                    {(doc.docType === 'prototype' || doc.docType === 'prototype_protected') && (
+                    {doc.docType === 'prototype' && (
                       <span style={{ fontSize: 11, color: '#94A3B8', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '3px 8px', fontWeight: 600 }}>🌐 Multi-page</span>
                     )}
                     <button
                       onClick={() => {
-                        const isProto = doc.docType === 'prototype' || doc.docType === 'prototype_protected';
-                        const isProtected = doc.docType === 'html_page_protected' || doc.docType === 'prototype_protected';
-                        if (isProto) {
+                        if (doc.docType === 'prototype') {
                           // URL format: prototype::{projectId}::{entryFile}
                           const parts = doc.url!.split('::');
                           const pid = parts[1]; const entry = parts[2] || 'index.html';
-                          const src = isProtected
-                            ? `/api/prototype/${pid}/${entry}?protect=1&client=${encodeURIComponent(clientName)}`
-                            : `/api/prototype/${pid}/${entry}`;
-                          setHtmlViewer({ title: doc.title, url: src, protected: isProtected });
+                          setHtmlViewer({ title: doc.title, url: `/api/prototype/${pid}/${entry}?client=${encodeURIComponent(clientName)}` });
                         } else {
-                          setHtmlViewer({ title: doc.title, url: doc.url!, protected: isProtected });
+                          setHtmlViewer({ title: doc.title, url: doc.url! });
                         }
                       }}
                       style={{ padding: '8px 18px', borderRadius: 8, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -1253,12 +1243,7 @@ function DocumentsPanel({
               {/* Divider */}
               <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)', margin: '0 14px' }} />
               {/* Doc title */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 14, color: '#C8D0E0', fontWeight: 500 }}>{htmlViewer.title}</span>
-                {htmlViewer.protected && (
-                  <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 5, padding: '2px 8px', fontWeight: 600 }}>🔒 Protected</span>
-                )}
-              </div>
+              <span style={{ fontSize: 14, color: '#C8D0E0', fontWeight: 500 }}>{htmlViewer.title}</span>
             </div>
             {/* Right: close */}
             <button
@@ -1278,32 +1263,20 @@ function DocumentsPanel({
               </div>
             ) : htmlViewer.url.startsWith('/api/prototype/') ? (
               /* Prototype: use src= so real inter-page navigation works */
-              <>
-                <iframe
-                  src={htmlViewer.url}
-                  style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
-                  title={htmlViewer.title}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
-                />
-                {htmlViewer.protected && (
-                  <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }}
-                    onContextMenu={e => e.preventDefault()} onDragStart={e => e.preventDefault()} />
-                )}
-              </>
+              <iframe
+                src={htmlViewer.url}
+                style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
+                title={htmlViewer.title}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
+              />
             ) : (
               /* Single HTML page: use srcDoc (bypasses X-Frame-Options from Vercel Blob) */
-              <>
-                <iframe
-                  srcDoc={htmlViewerContent}
-                  style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
-                  title={htmlViewer.title}
-                  sandbox="allow-scripts allow-same-origin"
-                />
-                {htmlViewer.protected && (
-                  <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'default' }}
-                    onContextMenu={e => e.preventDefault()} onDragStart={e => e.preventDefault()} />
-                )}
-              </>
+              <iframe
+                srcDoc={htmlViewerContent}
+                style={{ width: '100%', height: '100%', border: 'none', background: '#fff', display: 'block' }}
+                title={htmlViewer.title}
+                sandbox="allow-scripts allow-same-origin"
+              />
             )}
           </div>
         </div>

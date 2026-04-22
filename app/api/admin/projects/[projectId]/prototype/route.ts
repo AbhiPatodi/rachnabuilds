@@ -54,7 +54,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const form = await req.formData();
     const file = form.get('file') as File | null;
-    const isProtected = form.get('protected') === '1';
     const docTitle = (form.get('title') as string) || 'Prototype';
 
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -69,7 +68,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     let prefix = '';
     const firstDir = entries.find(e => zip.files[e].dir);
     if (firstDir) {
-      // Check if ALL files share this prefix
       const candidate = firstDir;
       if (entries.every(e => e === candidate || e.startsWith(candidate))) {
         prefix = candidate;
@@ -78,13 +76,12 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
     // Upload all non-directory files to Vercel Blob
     let fileCount = 0;
-    let entryFile = 'index.html'; // default entry
+    let entryFile = 'index.html';
     const uploadedFiles: string[] = [];
 
     for (const [zipPath, zipEntry] of Object.entries(zip.files)) {
       if (zipEntry.dir) continue;
 
-      // Strip the top-level folder prefix
       const relativePath = prefix ? zipPath.slice(prefix.length) : zipPath;
       if (!relativePath) continue;
 
@@ -109,26 +106,24 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     else if (rootHtmlFiles.length > 0) entryFile = rootHtmlFiles[0];
 
     // Create document record
-    // URL encodes: projectId::entryFile so portal can construct the serving URL
-    const docType = isProtected ? 'prototype_protected' : 'prototype';
     const doc = await prisma.projectDocument.create({
       data: {
         projectId,
-        docType,
+        docType: 'prototype',
         title: docTitle,
         url: `prototype::${projectId}::${entryFile}`,
         notes: `${fileCount} files · Entry: ${entryFile}`,
       },
     });
 
-    return NextResponse.json({ documentId: doc.id, fileCount, entryFile, docType });
+    return NextResponse.json({ documentId: doc.id, fileCount, entryFile });
   } catch (err) {
     console.error('[prototype upload]', err);
     return NextResponse.json({ error: 'Failed to process prototype zip' }, { status: 500 });
   }
 }
 
-// DELETE — remove prototype files + document
+// DELETE — remove prototype document record
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
   if (!await auth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { projectId } = await params;
