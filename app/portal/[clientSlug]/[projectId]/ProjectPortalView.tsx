@@ -1242,14 +1242,25 @@ function DocumentsPanel({
           }}
         >
           {/* Header bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#0B0F1A', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 16 }}>📄</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#E8ECF4' }}>{htmlViewer.title}</span>
-              {htmlViewer.protected && (
-                <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 5, padding: '2px 8px', fontWeight: 600 }}>🔒 Protected</span>
-              )}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: '#0B0F1A', borderBottom: '1px solid rgba(6,214,160,0.15)', flexShrink: 0 }}>
+            {/* Left: Rachna Builds brand + divider + doc title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+              {/* Logo + wordmark */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#06D6A0' }}>
+                <LogoSVG />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#06D6A0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Rachna Builds</span>
+              </div>
+              {/* Divider */}
+              <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)', margin: '0 14px' }} />
+              {/* Doc title */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14, color: '#C8D0E0', fontWeight: 500 }}>{htmlViewer.title}</span>
+                {htmlViewer.protected && (
+                  <span style={{ fontSize: 11, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)', borderRadius: 5, padding: '2px 8px', fontWeight: 600 }}>🔒 Protected</span>
+                )}
+              </div>
             </div>
+            {/* Right: close */}
             <button
               onClick={() => setHtmlViewer(null)}
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#E8ECF4', borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
