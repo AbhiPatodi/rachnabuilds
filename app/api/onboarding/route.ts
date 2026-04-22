@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { notifyNewLead } from '@/lib/email';
 
 // Simple rate limit: 5 submissions per IP per hour
 const rateMap = new Map<string, { count: number; resetAt: number }>();
@@ -50,6 +51,20 @@ export async function POST(req: NextRequest) {
         message: message?.trim() || null,
       },
     });
+
+    notifyNewLead({
+      source: 'Get Started',
+      fields: [
+        { label: 'Name',          value: name.trim() },
+        { label: 'Email',         value: email.trim().toLowerCase() },
+        ...(phone?.trim()         ? [{ label: 'Phone',         value: phone.trim() }]         : []),
+        ...(businessName?.trim()  ? [{ label: 'Business',      value: businessName.trim() }]  : []),
+        ...(website?.trim()       ? [{ label: 'Website',       value: website.trim() }]       : []),
+        { label: 'Project Type',  value: clientType || 'new_build' },
+        ...(platform              ? [{ label: 'Platform',      value: platform }]             : []),
+      ],
+      message: message?.trim() || undefined,
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true, id: lead.id }, { status: 201 });
   } catch (err) {

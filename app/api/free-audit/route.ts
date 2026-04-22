@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
+import { notifyNewLead } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,18 @@ export async function POST(req: NextRequest) {
       `${name.trim()} · ${storeUrl.trim()} · ${revenue || 'revenue n/a'}`,
       '/admin/leads'
     ).catch(() => {});
+
+    notifyNewLead({
+      source: 'Free Audit',
+      fields: [
+        { label: 'Name',      value: name.trim() },
+        { label: 'Email',     value: email.trim().toLowerCase() },
+        { label: 'Store URL', value: storeUrl.trim() },
+        ...(revenue          ? [{ label: 'Revenue',   value: revenue }]           : []),
+        ...(challenge        ? [{ label: 'Challenge', value: String(challenge) }] : []),
+      ],
+      message: details?.trim() || undefined,
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (err) {

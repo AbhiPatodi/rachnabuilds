@@ -332,6 +332,42 @@ export async function notifyClientComment(
   return sendEmail(ADMIN_EMAIL, `💬 ${clientName} commented — ${projectName}`, html);
 }
 
+// ─── Lead notifications ───────────────────────────────────────────────────────
+
+/** New lead from any public form — sent to Rachna (admin) */
+export async function notifyNewLead(opts: {
+  source: string;           // e.g. "Contact Form", "Free Audit", "CRO Checklist", "Get Started"
+  fields: Array<{ label: string; value: string }>;
+  message?: string;         // optional quote block
+}): Promise<{ ok: boolean; reason?: string }> {
+  const { source, fields, message } = opts;
+  const subjectEmoji: Record<string, string> = {
+    'Contact Form': '📬',
+    'Free Audit': '🔍',
+    'CRO Checklist': '📋',
+    'Get Started': '🚀',
+  };
+  const emoji = subjectEmoji[source] ?? '📩';
+
+  const html = base(
+    `New ${source} submission on rachnabuilds.com`,
+    `
+    ${heading(`${emoji} New lead — ${source}`)}
+    ${subheading(`Submitted just now via rachnabuilds.com`)}
+    ${infoBox([
+      { label: 'Source', value: source },
+      ...fields,
+    ])}
+    ${message ? quoteBox(message) : ''}
+    ${adminCtaButton('View in Admin → Leads', `${SITE_URL}/admin/leads`)}
+    ${divider()}
+    ${bodyText(`<span style="font-size:13px;color:#94A3B8;">Reply directly to the lead's email or manage them in your admin panel.</span>`)}
+    `,
+  );
+
+  return sendEmail(ADMIN_EMAIL, `${emoji} New ${source} — rachnabuilds.com`, html);
+}
+
 /** Proposal accepted — sent to Rachna */
 export async function notifyProposalAccepted(
   projectName: string,
