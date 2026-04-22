@@ -981,7 +981,7 @@ export default function ProjectManagePage() {
         setProtoProgress('Uploading and extracting ZIP…');
         const fd = new FormData();
         fd.append('file', protoZipFile, protoZipFile.name);
-        fd.append('protected', protoProtected ? '1' : '0');
+        fd.append('protected', docType === 'prototype_protected' ? '1' : '0');
         fd.append('title', docTitle.trim());
         const up = await fetch(`/api/admin/projects/${projectId}/prototype`, { method: 'POST', body: fd });
         if (!up.ok) { const e = await up.json(); setDocError(e.error || 'Failed to upload prototype'); setProtoProgress(''); return; }
@@ -1882,19 +1882,11 @@ export default function ProjectManagePage() {
                         </p>
                       )}
                       {protoProgress && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{protoProgress}</p>}
-                      {/* Privacy Protection Toggle */}
-                      <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${protoProtected ? 'rgba(6,214,160,0.35)' : 'var(--border)'}`, background: protoProtected ? 'rgba(6,214,160,0.06)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}
-                        onClick={() => setProtoProtected(v => !v)}>
-                        <input type="checkbox" checked={protoProtected} onChange={e => setProtoProtected(e.target.checked)}
-                          style={{ marginTop: 2, accentColor: '#06D6A0', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
-                          onClick={e => e.stopPropagation()} />
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: protoProtected ? 'var(--accent)' : 'var(--text)' }}>🔒 Enable Privacy Protection</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, lineHeight: 1.5 }}>
-                            Blocks right-click, F12, Ctrl+U/S/P, text selection, image drag. Adds confidentiality watermark with client name + date on every page. Works on Windows & Mac.
-                          </div>
+                      {docType === 'prototype_protected' && (
+                        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(6,214,160,0.2)', background: 'rgba(6,214,160,0.06)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                          🔒 <strong style={{ color: '#06D6A0' }}>Privacy protection enabled</strong> — blocks right-click, F12, Ctrl+U/S/P, text selection, image drag. Adds confidentiality watermark with client name + date on every page.
                         </div>
-                      </div>
+                      )}
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
                         Upload your full HTML project as a ZIP. All pages, CSS, JS, and images will be extracted and hosted — navigation between pages works exactly as in a browser.
                       </p>
