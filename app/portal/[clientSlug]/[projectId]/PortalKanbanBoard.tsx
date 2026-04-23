@@ -136,6 +136,10 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   // Selected card panel
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
 
+  // Sub-task form
+  const [newSubTaskText, setNewSubTaskText] = useState('');
+  const [addingSubTask, setAddingSubTask] = useState(false);
+
   // Drag state
   const [dragCardId, setDragCardId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -210,6 +214,9 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards, selectedCard?.id]);
+
+  // Clear subtask input when switching cards
+  useEffect(() => { setNewSubTaskText(''); }, [selectedCard?.id]);
 
   // ── Move card ──────────────────────────────────────────────────────────────
 
@@ -436,8 +443,7 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
   const toggleSubTask = async (cardId: string, subTaskId: string) => {
     const card = cards.find(c => c.id === cardId);
     if (!card) return;
-    const updated = card.subTasks.map(s => s.id === subTaskId ? { ...s, done: !s.done } : s);
-    // Optimistic update
+    const updated = (card.subTasks || []).map(s => s.id === subTaskId ? { ...s, done: !s.done } : s);
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, subTasks: updated } : c));
     if (selectedCard?.id === cardId) setSelectedCard(prev => prev ? { ...prev, subTasks: updated } : prev);
     await fetch(`/api/portal/${clientSlug}/${projectId}/deliverables/${cardId}`, {
@@ -445,6 +451,30 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subTasks: updated }),
     });
+  };
+
+  // ── Add sub-task ───────────────────────────────────────────────────────────
+
+  const addSubTask = async (cardId: string) => {
+    if (!newSubTaskText.trim() || addingSubTask) return;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+    const newItem: SubTask = {
+      id: `st_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      text: newSubTaskText.trim(),
+      done: false,
+    };
+    const updated = [...(card.subTasks || []), newItem];
+    setAddingSubTask(true);
+    setNewSubTaskText('');
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, subTasks: updated } : c));
+    if (selectedCard?.id === cardId) setSelectedCard(prev => prev ? { ...prev, subTasks: updated } : prev);
+    await fetch(`/api/portal/${clientSlug}/${projectId}/deliverables/${cardId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subTasks: updated }),
+    }).catch(() => {});
+    setAddingSubTask(false);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -516,18 +546,31 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
               )}
             </div>
 
-            {/* Sub-tasks */}
-            {(selectedCard.subTasks || []).length > 0 && (
-              <div style={{ paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                  Checklist ({(selectedCard.subTasks || []).filter(s => s.done).length}/{(selectedCard.subTasks || []).length})
-                </div>
-                {/* Progress bar */}
+            {/* Sub-tasks / Checklist */}
+            <div style={{ paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Checklist
+                  {(selectedCard.subTasks || []).length > 0 && (
+                    <span style={{ marginLeft: 6, fontWeight: 400, color: 'var(--text-muted)' }}>
+                      ({(selectedCard.subTasks || []).filter(s => s.done).length}/{(selectedCard.subTasks || []).length})
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              {/* Progress bar — only when items exist */}
+              {(selectedCard.subTasks || []).length > 0 && (
                 <div style={{ height: 4, background: 'var(--border)', borderRadius: 4, marginBottom: 10, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 4, width: `${Math.round(((selectedCard.subTasks || []).filter(s => s.done).length / (selectedCard.subTasks || []).length) * 100)}%`, transition: 'width 0.3s' }} />
+                  <div style={{ height: '100%', background: 'var(--accent)', borderRadius: 4, transition: 'width 0.3s', width: `${Math.round(((selectedCard.subTasks || []).filter(s => s.done).length / (selectedCard.subTasks || []).length) * 100)}%` }} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[...(selectedCard.subTasks || [])].reverse().map(s => (
+              )}
+
+              {/* Item list */}
+              {(selectedCard.subTasks || []).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                  {(selectedCard.subTasks || []).map(s => (
                     <div key={s.id} style={{ background: s.done ? 'rgba(6,214,160,0.06)' : 'var(--bg)', border: `1px solid ${s.done ? 'rgba(6,214,160,0.2)' : 'var(--border)'}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div onClick={() => toggleSubTask(selectedCard.id, s.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' }}>
                         <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${s.done ? 'var(--accent)' : 'var(--border)'}`, background: s.done ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
@@ -551,8 +594,27 @@ export default function PortalKanbanBoard({ projectId, clientSlug }: Props) {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Add item input */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  value={newSubTaskText}
+                  onChange={e => setNewSubTaskText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSubTask(selectedCard.id); } }}
+                  placeholder="+ Add checklist item…"
+                  style={{ flex: 1, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 13, color: 'var(--text)', outline: 'none' }}
+                />
+                <button
+                  onClick={() => addSubTask(selectedCard.id)}
+                  disabled={!newSubTaskText.trim() || addingSubTask}
+                  style={{ background: newSubTaskText.trim() ? 'var(--accent)' : 'var(--bg-elevated)', color: newSubTaskText.trim() ? '#0B0F1A' : 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: newSubTaskText.trim() ? 'pointer' : 'default', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+                >
+                  Add
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Move To buttons */}
             <div style={{ paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
