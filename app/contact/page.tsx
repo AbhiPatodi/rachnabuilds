@@ -40,7 +40,7 @@ export default async function ContactPage() {
       <SiteNav whatsappNumber={whatsappNumber} />
       <ContactClient
         whatsappNumber={whatsappNumber}
-        contactEmail={map["contact_email"] ?? "rachnajain2103@gmail.com"}
+        contactEmail={map["contact_email"] ?? "hello@rachnabuilds.com"}
       />
       <SiteFooter />
     </>

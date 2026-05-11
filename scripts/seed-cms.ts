@@ -212,7 +212,7 @@ async function main() {
   const settings: Array<{ key: string; value: string }> = [
     { key: "availability_status", value: "available" },
     { key: "whatsapp_number", value: "919404643510" },
-    { key: "contact_email", value: "rachnajain2103@gmail.com" },
+    { key: "contact_email", value: "hello@rachnabuilds.com" },
     { key: "stat_stores", value: "50" },
     { key: "stat_delivery", value: "7" },
     { key: "stat_countries", value: "12" },

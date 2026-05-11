@@ -203,7 +203,7 @@ p { color: #4A5568; margin-top: 6px; }
     ${sigBlock}
     <div class="print-footer">
       <span>Rachna Builds — rachnabuilds.com</span>
-      <span>rachnajain2103@gmail.com</span>
+      <span>hello@rachnabuilds.com</span>
       <span>Confidential — ${esc(data.meta.clientName)}</span>
     </div>
   </body></html>`;

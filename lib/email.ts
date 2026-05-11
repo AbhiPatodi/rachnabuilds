@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 const FROM = 'Rachna Builds <noreply@rachnabuilds.com>';
-const ADMIN_EMAIL = 'rachnajain2103@gmail.com';
+const ADMIN_EMAIL = 'hello@rachnabuilds.com';
 const SITE_URL = 'https://rachnabuilds.com';
 
 let resend: Resend | null = null;
@@ -66,7 +66,7 @@ function base(preheader: string, bodyHtml: string): string {
                   <td style="font-size:12px;color:#94A3B8;line-height:1.7;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
                     You received this because you are a client of Rachna Builds.
                     Questions? Reply to this email or write to
-                    <a href="mailto:rachnajain2103@gmail.com" style="color:#06D6A0;text-decoration:none;">rachnajain2103@gmail.com</a>
+                    <a href="mailto:hello@rachnabuilds.com" style="color:#06D6A0;text-decoration:none;">hello@rachnabuilds.com</a>
                   </td>
                   <td align="right" style="vertical-align:middle;">
                     <a href="${SITE_URL}" style="font-size:11px;color:#CBD5E1;text-decoration:none;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;white-space:nowrap;">rachnabuilds.com</a>
@@ -241,7 +241,7 @@ export async function notifyContractReady(
     ${ctaButton('Review & Sign Contract', portalUrl)}
     ${paymentBlock}
     ${divider()}
-    ${bodyText(`If you have any questions before signing, simply reply to this email or message Rachna directly at <a href="mailto:rachnajain2103@gmail.com" style="color:#06D6A0;text-decoration:none;">rachnajain2103@gmail.com</a>.`)}
+    ${bodyText(`If you have any questions before signing, simply reply to this email or message Rachna directly at <a href="mailto:hello@rachnabuilds.com" style="color:#06D6A0;text-decoration:none;">hello@rachnabuilds.com</a>.`)}
     `,
   );
 

@@ -24,7 +24,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     prisma.setting.findUnique({ where: { key: 'contact_email' } }),
   ]);
 
-  const contactEmail = emailSetting?.value ?? 'rachnajain2103@gmail.com';
+  const contactEmail = emailSetting?.value ?? 'hello@rachnabuilds.com';
 
   // Not found or inactive
   if (!report || !report.isActive) {

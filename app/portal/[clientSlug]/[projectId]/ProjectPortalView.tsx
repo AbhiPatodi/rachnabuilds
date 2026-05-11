@@ -2850,7 +2850,7 @@ export default function ProjectPortalView({ clientSlug, clientName, project, has
         <div className="portal-footer-inner">
           <div className="portal-footer-credit">
             Prepared by <strong>Rachna Builds</strong> &middot;{' '}
-            <a href="mailto:rachnajain2103@gmail.com">rachnajain2103@gmail.com</a> &middot;{' '}
+            <a href="mailto:hello@rachnabuilds.com">hello@rachnabuilds.com</a> &middot;{' '}
             <a href="https://rachnabuilds.com" target="_blank" rel="noopener noreferrer">rachnabuilds.com</a>
             {project.updatedAt && (
               <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontSize: 11 }}>

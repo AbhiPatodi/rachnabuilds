@@ -43,8 +43,8 @@ export default async function ClientPortalPage({ params, searchParams }: PagePro
           </h1>
           <p style={{ fontSize: '14px', color: '#8B95A8', lineHeight: 1.6 }}>
             This portal link is no longer active. Please contact{' '}
-            <a href="mailto:rachnajain2103@gmail.com" style={{ color: '#06D6A0', textDecoration: 'none' }}>
-              rachnajain2103@gmail.com
+            <a href="mailto:hello@rachnabuilds.com" style={{ color: '#06D6A0', textDecoration: 'none' }}>
+              hello@rachnabuilds.com
             </a>{' '}
             if you believe this is an error.
           </p>

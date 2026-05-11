@@ -55,7 +55,7 @@ export default async function Home() {
     stat_countries: settingsMap["stat_countries"] ?? "12",
     stat_pagespeed: settingsMap["stat_pagespeed"] ?? "90",
     whatsapp_number: settingsMap["whatsapp_number"] ?? "919404643510",
-    contact_email: settingsMap["contact_email"] ?? "rachnajain2103@gmail.com",
+    contact_email: settingsMap["contact_email"] ?? "hello@rachnabuilds.com",
     availability_status: settingsMap["availability_status"] ?? "available",
     hero_typewriter: settingsMap["hero_typewriter"],
   };
@@ -167,7 +167,7 @@ export default async function Home() {
     name: 'Rachna Builds',
     description: 'Shopify & E-Commerce Developer — Fast, conversion-optimised Shopify stores.',
     url: 'https://rachnabuilds.com',
-    email: 'rachnajain2103@gmail.com',
+    email: 'hello@rachnabuilds.com',
     areaServed: 'Worldwide',
     serviceType: ['Shopify Development', 'E-commerce Development', 'Store Optimization'],
     sameAs: [

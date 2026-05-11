@@ -124,13 +124,13 @@ const WEBFLOW_NEW_BUILD: DocTemplate[] = [
 
 const OPTIMISATION_ANY: DocTemplate[] = [
   { title: 'Site Admin Access',       notes: 'Shopify collaborator invite / WordPress admin / Webflow editor access' },
-  { title: 'Google Analytics Access', notes: 'Share view access to your GA4 property with rachnajain2103@gmail.com' },
+  { title: 'Google Analytics Access', notes: 'Share view access to your GA4 property with hello@rachnabuilds.com' },
   { title: 'Pain Points & Goals Brief',notes: 'What is not working? What do you want to improve? Any targets?' },
 ];
 
 const AUDIT_ANY: DocTemplate[] = [
   { title: 'Site Access',             notes: 'Read-only collaborator / WordPress admin / staging URL — we will not make changes' },
-  { title: 'Google Analytics Access', notes: 'Share view access to your GA4 property with rachnajain2103@gmail.com' },
+  { title: 'Google Analytics Access', notes: 'Share view access to your GA4 property with hello@rachnabuilds.com' },
   { title: 'Pain Points Brief',       notes: 'What is not working? What are your main concerns?' },
 ];
 

@@ -448,7 +448,7 @@ export default function HomepageClient({ projects, testimonials, faqs, stats, se
   };
 
   const waNumber = stats.whatsapp_number || "919404643510";
-  const email = stats.contact_email || "rachnajain2103@gmail.com";
+  const email = stats.contact_email || "hello@rachnabuilds.com";
   const statStores = stats.stat_stores || "50";
   const statDelivery = stats.stat_delivery || "7";
   const statCountries = stats.stat_countries || "12";
