@@ -14,7 +14,14 @@ export async function GET(req: NextRequest) {
       ...(stage ? { stage } : {}),
     },
     orderBy: { createdAt: 'desc' },
+    include: {
+      auditReports: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { id: true, status: true, token: true, error: true, updatedAt: true },
+      },
+    },
   });
 
-  return NextResponse.json(leads);
+  return NextResponse.json(leads.map((l) => ({ ...l, hasCallScript: !!l.callScript, callScript: undefined })));
 }

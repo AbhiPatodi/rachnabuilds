@@ -25,6 +25,8 @@ interface FunnelLead {
   notes: string | null;
   appliedAt: string | null;
   createdAt: string;
+  hasCallScript?: boolean;
+  auditReports?: { id: string; status: string; token: string; error: string | null; updatedAt: string }[];
 }
 
 const LABELS: Record<string, string> = {
@@ -99,6 +101,46 @@ export default function FunnelLeadsPage() {
         const updated = await res.json();
         setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, ...updated } : l)));
       }
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const generateAudit = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/funnel-leads/${id}/audit`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { alert(`Audit failed: ${data.error}`); return; }
+      await fetchLeads();
+      alert('Audit generated! Review it, then click Send Report.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendAudit = async (auditId: string) => {
+    if (!confirm('Email the audit report link to this lead?')) return;
+    setBusyId(auditId);
+    try {
+      const res = await fetch(`/api/admin/audit-reports/${auditId}/send`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { alert(`Send failed: ${data.error}`); return; }
+      await fetchLeads();
+      alert('Report sent ✓');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const generateScript = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/funnel-leads/${id}/script`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { alert(`Script failed: ${data.error}`); return; }
+      await fetchLeads();
+      window.open(`/admin/funnel-leads/${id}/script`, '_blank');
     } finally {
       setBusyId(null);
     }
@@ -260,6 +302,51 @@ export default function FunnelLeadsPage() {
                       {STATUSES.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
                     </select>
                     <a href={`mailto:${l.email}`} className="admin-btn admin-btn-secondary" style={{ fontSize: 12, padding: '7px 12px' }}>Email</a>
+
+                    {l.storeUrl && (() => {
+                      const audit = l.auditReports?.[0];
+                      return (
+                        <>
+                          {!audit || audit.status === 'failed' ? (
+                            <button type="button" disabled={busyId === l.id}
+                              onClick={() => generateAudit(l.id)}
+                              className="admin-btn admin-btn-secondary" style={{ fontSize: 12, padding: '7px 12px' }}>
+                              {busyId === l.id ? '⏳ Auditing (1-2 min)…' : `⚡ Generate Audit${audit?.status === 'failed' ? ' (retry)' : ''}`}
+                            </button>
+                          ) : (
+                            <>
+                              <a href={`/audit/${audit.token}`} target="_blank" rel="noopener noreferrer"
+                                className="admin-btn admin-btn-secondary" style={{ fontSize: 12, padding: '7px 12px' }}>
+                                📊 View Report
+                              </a>
+                              {audit.status === 'draft' && (
+                                <button type="button" disabled={busyId === audit.id}
+                                  onClick={() => sendAudit(audit.id)}
+                                  className="admin-btn admin-btn-primary" style={{ fontSize: 12, padding: '7px 12px' }}>
+                                  {busyId === audit.id ? 'Sending…' : '📤 Send Report'}
+                                </button>
+                              )}
+                              {audit.status === 'sent' && (
+                                <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>✓ Report sent</span>
+                              )}
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {l.hasCallScript ? (
+                      <a href={`/admin/funnel-leads/${l.id}/script`} target="_blank" rel="noopener noreferrer"
+                        className="admin-btn admin-btn-secondary" style={{ fontSize: 12, padding: '7px 12px' }}>
+                        📞 View Script
+                      </a>
+                    ) : (
+                      <button type="button" disabled={busyId === l.id}
+                        onClick={() => generateScript(l.id)}
+                        className="admin-btn admin-btn-secondary" style={{ fontSize: 12, padding: '7px 12px' }}>
+                        {busyId === l.id ? '⏳ Writing…' : '📞 Generate Call Script'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={busyId === l.id}

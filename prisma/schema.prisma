@@ -493,15 +493,35 @@ model FunnelLead {
   utmCampaign   String?
   utmContent    String?
   notes         String?
+  callScript    String?   // generated SLOSHED call-prep JSON
   appliedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   bookings      Booking[]
+  auditReports  AuditReport[]
 
   @@index([stage])
   @@index([status])
   @@map("funnel_leads")
+}
+
+model AuditReport {
+  id           String     @id @default(cuid())
+  funnelLeadId String
+  funnelLead   FunnelLead @relation(fields: [funnelLeadId], references: [id], onDelete: Cascade)
+  token        String     @unique @default(cuid())
+  storeUrl     String
+  status       String     @default("draft") // generating | draft | sent | failed
+  reportJson   String     @default("{}")     // full structured audit
+  rawData      String?                        // pagespeed + scrape payload for debugging
+  error        String?
+  sentAt       DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([funnelLeadId])
+  @@map("audit_reports")
 }
 
 model Booking {
