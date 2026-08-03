@@ -58,17 +58,22 @@ export default function TrainingLanding() {
 
   return (
     <>
-      <div className="fn-callout">DTC E-commerce Brands · $5K–$50K/month in revenue</div>
+      <div className="fn-hero">
+        <div className="fn-hero-inner">
+          <div className="fn-callout">DTC E-commerce Brands · $5K–$50K/month in revenue</div>
 
-      <h1 className="fn-h1">
-        Increase Your Shopify Store&apos;s Conversion Rate to <em>2%+ Consistently</em> Every
-        Month in Just 90 Days
-      </h1>
+          <h1 className="fn-h1">
+            Increase Your Shopify Store&apos;s Conversion Rate to <em>2%+ Consistently</em> Every
+            Month in Just 90 Days
+          </h1>
 
-      <p className="fn-sub">
-        Free training for founder-led DTC brands already investing in paid traffic.
-      </p>
+          <p className="fn-sub">
+            Free training for founder-led DTC brands already investing in paid traffic.
+          </p>
+        </div>
+      </div>
 
+      <div className="fn-body fn-body-raised">
       <div className="fn-card">
         <h2 className="fn-card-title">Enter your details to unlock your next steps</h2>
         <form onSubmit={submit}>
@@ -108,6 +113,7 @@ export default function TrainingLanding() {
         <li><span className="tick">✅</span> The hidden conversion mistakes silently killing your ROAS and profits.</li>
         <li><span className="tick">✅</span> The exact conversion optimization system that helps Shopify brands consistently achieve 2%+ conversion rates without increasing ad spend.</li>
       </ul>
+      </div>
     </>
   );
 }

@@ -12,16 +12,21 @@ const VSL_EMBED_URL = ''; // e.g. 'https://fast.wistia.net/embed/iframe/XXXXXXXX
 export default function WatchVsl() {
   return (
     <>
-      <div className="fn-callout">Free Training · Watch Now</div>
+      <div className="fn-hero">
+        <div className="fn-hero-inner">
+          <div className="fn-callout">Free Training · Watch Now</div>
 
-      <h1 className="fn-h1">
-        How To Build A <em>2%+ Converting</em> Shopify Store In 14 Days
-      </h1>
+          <h1 className="fn-h1">
+            How To Build A <em>2%+ Converting</em> Shopify Store In 14 Days
+          </h1>
 
-      <p className="fn-sub">
-        Without increasing your ad budget, or constantly tweaking your ads.
-      </p>
+          <p className="fn-sub">
+            Without increasing your ad budget, or constantly tweaking your ads.
+          </p>
+        </div>
+      </div>
 
+      <div className="fn-body fn-body-raised">
       <div className="fn-video-wrap">
         {VSL_EMBED_URL ? (
           <iframe
@@ -48,6 +53,7 @@ export default function WatchVsl() {
         Apply for your <strong>Free Shopify Conversion Audit</strong> — we&apos;ll identify the
         conversion bottlenecks reducing your sales, whether you decide to work with us or not.
       </p>
+      </div>
     </>
   );
 }

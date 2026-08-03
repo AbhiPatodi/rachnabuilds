@@ -1,16 +1,21 @@
 export default function ThankYouPage() {
   return (
     <>
-      <div className="fn-callout">Application Received</div>
+      <div className="fn-hero">
+        <div className="fn-hero-inner">
+          <div className="fn-callout">Application Received</div>
 
-      <h1 className="fn-h1">
-        Congratulations! <br />
-        Your Application Is <em>Being Reviewed.</em>
-      </h1>
+          <h1 className="fn-h1">
+            Congratulations! <br />
+            Your Application Is <em>Being Reviewed.</em>
+          </h1>
 
-      <p className="fn-sub">Here&apos;s what happens next:</p>
+          <p className="fn-sub">Here&apos;s what happens next:</p>
+        </div>
+      </div>
 
-      <div className="fn-steps">
+      <div className="fn-body fn-body-raised">
+      <div className="fn-steps" style={{ marginTop: 0 }}>
         <div className="fn-step">
           <h3>1. Confirmation Email</h3>
           <p>
@@ -31,6 +36,7 @@ export default function ThankYouPage() {
             <li>Be ready to discuss your current marketing and conversion challenges openly.</li>
           </ul>
         </div>
+      </div>
       </div>
     </>
   );

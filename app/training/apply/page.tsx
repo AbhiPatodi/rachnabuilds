@@ -107,12 +107,17 @@ export default function ApplyPage() {
 
   return (
     <>
-      <div className="fn-callout">Application · Takes 2 Minutes</div>
+      <div className="fn-hero">
+        <div className="fn-hero-inner">
+          <div className="fn-callout">Application · Takes 2 Minutes</div>
 
-      <h1 className="fn-h1">
-        Apply to Get Your <em>Free Shopify Conversion Audit</em> &amp; Growth Strategy Session 👇
-      </h1>
+          <h1 className="fn-h1">
+            Apply to Get Your <em>Free Shopify Conversion Audit</em> &amp; Growth Strategy Session 👇
+          </h1>
+        </div>
+      </div>
 
+      <div className="fn-body fn-body-raised">
       <div className="fn-card fn-card-wide">
         <form onSubmit={submit}>
           <div className="fn-field">
@@ -170,6 +175,7 @@ export default function ApplyPage() {
             {submitting ? 'Submitting…' : 'Submit My Application →'}
           </button>
         </form>
+      </div>
       </div>
     </>
   );
