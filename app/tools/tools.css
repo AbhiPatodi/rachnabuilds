@@ -258,7 +258,7 @@
 .speed-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(11,15,26,.3);
+  border: 2px solid rgba(6,22,13,.3);
   border-top-color: var(--bg);
   border-radius: 50%;
   animation: spin .7s linear infinite;
@@ -598,7 +598,7 @@
   border: 1px solid transparent;
 }
 .checklist-item:hover { background: var(--bg-card); border-color: var(--border); }
-.checklist-item.checked { background: var(--accent-dim); border-color: rgba(6,214,160,.2); }
+.checklist-item.checked { background: var(--accent-dim); border-color: rgba(16,185,129,.2); }
 
 .checklist-item input[type="checkbox"] {
   width: 18px;

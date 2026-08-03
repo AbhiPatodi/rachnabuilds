@@ -7,8 +7,7 @@ export type Theme = 'light' | 'dark';
 const STORAGE_KEY = 'rb_theme';
 
 export function autoTheme(): Theme {
-  const h = new Date().getHours();
-  return h >= 6 && h < 20 ? 'light' : 'dark'; // 6am–8pm = light
+  return 'dark'; // brand default: dark forest green (user can still toggle light)
 }
 
 interface ThemeCtx { theme: Theme; mode: ThemeMode; toggle: () => void; }

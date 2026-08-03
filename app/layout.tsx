@@ -55,7 +55,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Prevent flash: set theme before paint */}
-        <script dangerouslySetInnerHTML={{ __html: `try{const m=localStorage.getItem('rb_theme');const h=new Date().getHours();const auto=h>=6&&h<20?'light':'dark';document.documentElement.setAttribute('data-theme',m==='light'||m==='dark'?m:auto);}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{const m=localStorage.getItem('rb_theme');document.documentElement.setAttribute('data-theme',m==='light'||m==='dark'?m:'dark');}catch(e){}` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
