@@ -4,21 +4,21 @@ import SiteNav from '@/app/components/SiteNav';
 import SiteFooter from '@/app/components/SiteFooter';
 
 export const metadata: Metadata = {
-  title: 'Free Store Audit (Shopify & WordPress) | Rachna Builds',
-  description: 'Get a free 15-minute personal Loom video audit of your Shopify or WordPress store. Specific, actionable recommendations — no pitch, no obligation.',
+  title: 'Free Shopify Conversion Audit | Rachna Builds',
+  description: 'Find out why your store gets traffic but not enough sales. Free 15-minute personal Loom video audit of your Shopify (or WordPress) store — specific conversion fixes, no pitch, no obligation.',
   alternates: {
     canonical: 'https://rachnabuilds.com/free-audit',
   },
   openGraph: {
-    title: 'Free Store Audit — Shopify & WordPress',
-    description: 'Personal 15-minute Loom review of your store with specific fixes. Free, no obligation.',
+    title: 'Free Shopify Conversion Audit',
+    description: "Why isn't your store converting? Personal 15-minute Loom review with specific conversion fixes. Free, no obligation.",
     url: 'https://rachnabuilds.com/free-audit',
     images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Free Store Audit — Rachna Builds' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free Store Audit — Shopify & WordPress',
-    description: 'Personal 15-minute Loom review of your store with specific fixes. Free, no obligation.',
+    title: 'Free Shopify Conversion Audit',
+    description: "Why isn't your store converting? Personal 15-minute Loom review with specific conversion fixes. Free, no obligation.",
     images: ['/og-image.png'],
   },
 };

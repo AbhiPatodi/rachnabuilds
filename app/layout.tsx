@@ -7,13 +7,14 @@ import { ThemeProvider } from "./components/ThemeProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://rachnabuilds.com'),
-  title: "Rachna Builds — Shopify & E-Commerce Developer",
+  title: "Rachna Builds — Shopify Conversion Optimization & Store Development",
   description:
-    "Rachna Jain — Shopify, WordPress, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
+    "Rachna Jain — Shopify conversion optimization specialist & store developer. I turn underperforming stores into 2%+ converting storefronts, and build new ones that convert from day one. 50+ stores, 4+ years.",
   keywords: [
-    'Shopify developer', 'WordPress developer', 'e-commerce developer India',
-    'Shopify store build', 'WooCommerce developer', 'Webflow developer',
-    'Shopify speed optimisation', 'CRO specialist', 'Rachna Jain', 'Rachna Builds',
+    'Shopify conversion optimization', 'Shopify CRO specialist', 'Shopify conversion rate',
+    'Shopify developer', 'Shopify expert', 'Shopify store build',
+    'WooCommerce to Shopify migration', 'Shopify speed optimisation',
+    'e-commerce developer India', 'Rachna Jain', 'Rachna Builds',
   ],
   manifest: "/manifest.json",
   appleWebApp: {
@@ -25,9 +26,9 @@ export const metadata: Metadata = {
     "mobile-web-app-capable": "yes",
   },
   openGraph: {
-    title: "Rachna Builds — Shopify & E-Commerce Developer",
+    title: "Rachna Builds — Shopify Conversion Optimization & Store Development",
     description:
-      "Rachna Jain — Shopify, WordPress, WooCommerce & Webflow developer. 4+ years, 50+ stores launched. Fast, conversion-focused builds.",
+      "Shopify stores that convert — built, fixed, and scaled. 2%+ converting storefronts for D2C brands. 50+ stores, 4+ years.",
     url: "https://rachnabuilds.com",
     siteName: "Rachna Builds",
     type: "website",
@@ -80,8 +81,8 @@ export default function RootLayout({
                 "name": "Rachna Jain",
                 "url": "https://rachnabuilds.com",
                 "image": "https://rachnabuilds.com/og-image.png",
-                "jobTitle": "Shopify & E-Commerce Developer",
-                "description": "Shopify, WordPress, WooCommerce & Webflow developer with 4+ years experience and 50+ stores launched.",
+                "jobTitle": "Shopify Conversion Optimization Specialist & E-Commerce Developer",
+                "description": "Shopify conversion optimization specialist and store developer with 4+ years experience and 50+ stores launched. Turns underperforming stores into 2%+ converting storefronts.",
                 "sameAs": [
                   "https://www.linkedin.com/in/rachnabuilds",
                   "https://www.instagram.com/rachnabuilds"
@@ -97,10 +98,10 @@ export default function RootLayout({
                 "founder": { "@id": "https://rachnabuilds.com/#person" },
                 "areaServed": ["IN", "GB", "US", "AU", "FR"],
                 "serviceType": [
+                  "Shopify Conversion Optimization",
                   "Shopify Development",
                   "Shopify Plus Development",
-                  "WooCommerce Development",
-                  "E-Commerce CRO",
+                  "Platform Migration to Shopify",
                   "Shopify Speed Optimisation"
                 ],
                 "offers": {

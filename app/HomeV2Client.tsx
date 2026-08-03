@@ -265,14 +265,14 @@ export default function HomeV2Client() {
             </div>
           </div>
 
-          <div className="hero-heading-block reveal reveal-delay-1">
-            <span className="hero-line">The Results-Driven</span>
-            <span className="hero-line-outline">Shopify Expert</span>
-            <span className="hero-line">Your Store Deserves</span>
-          </div>
+          <h1 className="hero-heading-block reveal reveal-delay-1">
+            <span className="hero-line">Shopify Stores</span>
+            <span className="hero-line-outline">That Convert.</span>
+            <span className="hero-line">Built. Fixed. Scaled.</span>
+          </h1>
 
           <p className="hero-sub reveal reveal-delay-2">
-            Build <span>·</span> Migrate <span>·</span> Optimise
+            Optimise <span>·</span> Build <span>·</span> Migrate
           </p>
 
           <div className="hero-cta-row reveal reveal-delay-3">
@@ -360,13 +360,14 @@ export default function HomeV2Client() {
           <div className="join-text-block">
             <p className="join-label reveal">Certified Shopify Expert</p>
             <h2 className="join-headline reveal reveal-delay-1">
-              Join Forces with<br />
-              <em>Rachna Builds</em>
+              Traffic isn&apos;t the problem.<br />
+              <em>Conversion is.</em>
             </h2>
             <p className="join-sub reveal reveal-delay-2">
-              to build, grow, and thrive on Shopify.
-              Partnering with brands across the globe to create high-converting stores,
-              seamless migrations, and performance-first experiences.
+              Most founders keep paying for visitors their store can&apos;t convert.
+              I turn underperforming Shopify stores into 2%+ converting storefronts —
+              and build new ones that convert from day one. Partnering with D2C brands
+              across the globe.
             </p>
           </div>
           <div className="join-cta reveal reveal-delay-3">
@@ -387,12 +388,61 @@ export default function HomeV2Client() {
             </h2>
           </div>
           <p className="services-intro-right reveal reveal-delay-2">
-            End-to-end Shopify expertise — from blank canvas to optimised, revenue-generating store.
+            Whether your store underperforms or doesn&apos;t exist yet — every engagement
+            starts with conversion principles, not just design.
           </p>
         </div>
 
         <div className="services-carousel-outer">
           <div className="services-carousel-track">
+
+            {/* Card 3 — We Optimise */}
+            <div className="service-card">
+              <div className="service-card-icon">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <span className="service-card-we">We</span>
+              <h3 className="service-card-name">Optimise</h3>
+              <p className="service-card-tagline">Already have a store that isn&apos;t converting?</p>
+              <p className="service-card-desc">
+                My Conversion Bottleneck process finds exactly why visitors leave without
+                buying — then fixes it. Audit, rebuild, and revenue systems (cart recovery,
+                upsells, trust) delivered in 14 days.
+              </p>
+              <ul className="service-card-list">
+                <li>
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  PageSpeed &amp; Core Web Vitals
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  CRO Audits &amp; A/B Testing
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  Klaviyo Email Flows
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  Search Engine Optimisation
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  Analytics &amp; Tracking
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                  Store Speed Audit
+                </li>
+              </ul>
+              <div className="service-card-cta">
+                <a href="#contact" className="btn-cream">Request an Audit →</a>
+              </div>
+            </div>
+
 
             {/* Card 1 — We Build */}
             <div className="service-card">
@@ -406,7 +456,7 @@ export default function HomeV2Client() {
               </div>
               <span className="service-card-we">We</span>
               <h3 className="service-card-name">Build</h3>
-              <p className="service-card-tagline">From blank canvas to conversion machine.</p>
+              <p className="service-card-tagline">Starting fresh? Built to convert from day one.</p>
               <p className="service-card-desc">
                 Every store is custom-coded for your brand — fast, functional, and built
                 for long-term growth. We design and develop Shopify experiences that turn
@@ -488,53 +538,6 @@ export default function HomeV2Client() {
               </ul>
               <div className="service-card-cta">
                 <a href="#contact" className="btn-cream">Plan a Migration →</a>
-              </div>
-            </div>
-
-            {/* Card 3 — We Optimise */}
-            <div className="service-card">
-              <div className="service-card-icon">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </div>
-              <span className="service-card-we">We</span>
-              <h3 className="service-card-name">Optimise</h3>
-              <p className="service-card-tagline">Make your store perform like new.</p>
-              <p className="service-card-desc">
-                Through strategic SEO, speed, and conversion-rate optimisation, we drive
-                high-intent customers and real revenue from your existing store — without
-                rebuilding from scratch.
-              </p>
-              <ul className="service-card-list">
-                <li>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                  PageSpeed &amp; Core Web Vitals
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                  CRO Audits &amp; A/B Testing
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                  Klaviyo Email Flows
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                  Search Engine Optimisation
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                  Analytics &amp; Tracking
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
-                  Store Speed Audit
-                </li>
-              </ul>
-              <div className="service-card-cta">
-                <a href="#contact" className="btn-cream">Request an Audit →</a>
               </div>
             </div>
 

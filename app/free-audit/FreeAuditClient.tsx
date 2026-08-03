@@ -57,9 +57,11 @@ export default function FreeAuditClient() {
 
       <div className="tool-hero">
         <div className="tool-tag">Free · No Obligation</div>
-        <h1 className="tool-h1">Free Shopify &amp; WordPress<br />Store Audit</h1>
+        <h1 className="tool-h1">Free Shopify<br />Conversion Audit</h1>
         <p className="tool-sub">
-          Shopify or WordPress — I&apos;ll personally record a 15-minute Loom video reviewing your store and send you specific, actionable fixes.<br />
+          Getting traffic but not enough sales? I&apos;ll personally record a 15-minute Loom video
+          showing exactly what&apos;s stopping visitors from buying — and how to fix it.
+          Works for Shopify and WordPress stores.<br />
           No pitch. No sales call. Just real recommendations.
         </p>
       </div>

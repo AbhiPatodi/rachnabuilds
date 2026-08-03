@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '',                    priority: 1.0, freq: 'weekly'  },
     { route: '/blog',               priority: 0.8, freq: 'weekly'  },
     { route: '/contact',            priority: 0.7, freq: 'monthly' },
+    { route: '/start',              priority: 0.7, freq: 'monthly' },
     { route: '/free-audit',         priority: 0.9, freq: 'monthly' },
     { route: '/tools',              priority: 0.9, freq: 'monthly' },
     { route: '/tools/cro-checklist',priority: 0.8, freq: 'monthly' },
