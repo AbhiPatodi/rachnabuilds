@@ -27,6 +27,7 @@ export default function BookingWidget() {
   const router = useRouter();
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [connected, setConnected] = useState(true);
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [activeDay, setActiveDay] = useState<string | null>(null);
   const [selected, setSelected] = useState<Slot | null>(null);
   const [name, setName] = useState('');
@@ -48,6 +49,7 @@ export default function BookingWidget() {
       .then((r) => r.json())
       .then((data) => {
         setConnected(data.connected);
+        setEmbedUrl(data.embedUrl || null);
         setSlots(data.slots || []);
         const groups = groupByDay(data.slots || []);
         if (groups.length) setActiveDay(groups[0].key);
@@ -106,6 +108,22 @@ export default function BookingWidget() {
 
   if (slots === null) {
     return <div className="fn-card" style={{ textAlign: 'center', color: 'rgba(10,31,19,0.5)' }}>Loading available times…</div>;
+  }
+
+  if (!connected && embedUrl) {
+    // Google Calendar appointment-schedule booking page embed
+    return (
+      <div className="fn-card fn-card-wide" style={{ padding: 12 }}>
+        <iframe
+          src={embedUrl}
+          title="Book your strategy call"
+          style={{ width: '100%', height: 640, border: 0, borderRadius: 10 }}
+        />
+        <button className="fn-btn" type="button" style={{ marginTop: 14 }} onClick={() => router.push('/training/thank-you')}>
+          I&apos;ve Booked My Call →
+        </button>
+      </div>
+    );
   }
 
   if (!connected || slots.length === 0) {

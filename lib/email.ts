@@ -1,16 +1,7 @@
-import { Resend } from 'resend';
+import { sendViaGmail } from './googleCalendar';
 
-const FROM = 'Rachna Builds <noreply@rachnabuilds.com>';
 const ADMIN_EMAIL = 'hello@rachnabuilds.com';
 const SITE_URL = 'https://rachnabuilds.com';
-
-let resend: Resend | null = null;
-
-function getResend(): Resend | null {
-  if (!process.env.RESEND_API_KEY) return null;
-  if (!resend) resend = new Resend(process.env.RESEND_API_KEY);
-  return resend;
-}
 
 // ─── Base layout ─────────────────────────────────────────────────────────────
 
@@ -168,23 +159,8 @@ export async function sendEmail(
   subject: string,
   html: string,
 ): Promise<{ ok: boolean; reason?: string }> {
-  const client = getResend();
-  if (!client) {
-    console.log(`[email] RESEND_API_KEY not set — skipping email to ${to} | subject: ${subject}`);
-    return { ok: false, reason: 'no key' };
-  }
-
-  try {
-    const { error } = await client.emails.send({ from: FROM, to, subject, html });
-    if (error) {
-      console.error('[email] Resend error:', error);
-      return { ok: false, reason: error.message };
-    }
-    return { ok: true };
-  } catch (err) {
-    console.error('[email] sendEmail threw:', err);
-    return { ok: false, reason: 'exception' };
-  }
+  // Sends from the connected Google account (hello@rachnabuilds.com) via the Gmail API.
+  return sendViaGmail(to, subject, html);
 }
 
 // ─── Client notifications ─────────────────────────────────────────────────────

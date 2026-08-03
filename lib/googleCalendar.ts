@@ -24,6 +24,7 @@ export function getAuthUrl() {
     scope: [
       'https://www.googleapis.com/auth/calendar.events',
       'https://www.googleapis.com/auth/calendar.readonly',
+      'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/userinfo.email',
     ],
   });
@@ -61,12 +62,41 @@ export async function disconnectCalendar() {
   await prisma.setting.deleteMany({ where: { key: { in: [TOKEN_KEY, EMAIL_KEY] } } });
 }
 
-async function getAuthedClient() {
+export async function getAuthedClient() {
   const row = await prisma.setting.findUnique({ where: { key: TOKEN_KEY } });
   if (!row) return null;
   const client = getOAuthClient();
   client.setCredentials({ refresh_token: row.value });
   return client;
+}
+
+/** Send an HTML email via the Gmail API using the connected Google account. */
+export async function sendViaGmail(to: string, subject: string, html: string): Promise<{ ok: boolean; reason?: string }> {
+  const auth = await getAuthedClient();
+  if (!auth) {
+    console.log(`[email] Google account not connected — skipping email to ${to} | subject: ${subject}`);
+    return { ok: false, reason: 'not connected' };
+  }
+  try {
+    const fromEmail = (await getConnectedEmail()) || 'hello@rachnabuilds.com';
+    const gmail = google.gmail({ version: 'v1', auth });
+    const encodedSubject = `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`;
+    const mime = [
+      `From: Rachna Builds <${fromEmail}>`,
+      `To: ${to}`,
+      `Subject: ${encodedSubject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      html,
+    ].join('\r\n');
+    const raw = Buffer.from(mime, 'utf8').toString('base64url');
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+    return { ok: true };
+  } catch (err) {
+    console.error('[email] Gmail send error:', err);
+    return { ok: false, reason: err instanceof Error ? err.message : 'send failed' };
+  }
 }
 
 export async function isCalendarConnected() {

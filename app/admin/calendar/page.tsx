@@ -1,27 +1,59 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 export default function CalendarSettingsPage() {
+  return (
+    <Suspense fallback={<div className="admin-content" />}>
+      <CalendarSettings />
+    </Suspense>
+  );
+}
+
+function CalendarSettings() {
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [embedUrl, setEmbedUrl] = useState('');
+  const [savingEmbed, setSavingEmbed] = useState(false);
+  const [embedSaved, setEmbedSaved] = useState(false);
   const params = useSearchParams();
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/calendar/status');
-      const data = await res.json();
+      const [statusRes, settingsRes] = await Promise.all([
+        fetch('/api/admin/calendar/status'),
+        fetch('/api/admin/settings'),
+      ]);
+      const data = await statusRes.json();
       setConnected(data.connected);
       setEmail(data.email);
+      const settings = await settingsRes.json();
+      setEmbedUrl(settings.booking_embed_url || '');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  const saveEmbed = async () => {
+    setSavingEmbed(true);
+    setEmbedSaved(false);
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'booking_embed_url', value: embedUrl.trim() }),
+      });
+      setEmbedSaved(true);
+      setTimeout(() => setEmbedSaved(false), 2500);
+    } finally {
+      setSavingEmbed(false);
+    }
+  };
 
   const disconnect = async () => {
     if (!confirm('Disconnect Google Calendar? Bookings will stop syncing until you reconnect.')) return;
@@ -74,7 +106,8 @@ export default function CalendarSettingsPage() {
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20 }}>
               Bookings sync to <strong style={{ color: 'var(--text)' }}>{email}</strong>. New calls check this
-              calendar for conflicts and appear here automatically with a Google Meet link.
+              calendar for conflicts and get a Google Meet link automatically. All site emails
+              (lead notifications, booking confirmations) are also sent from this account via Gmail.
             </p>
             <button
               type="button"
@@ -89,14 +122,41 @@ export default function CalendarSettingsPage() {
           <>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>
               Connect the Google account you want bookings synced to (e.g. hello@rachnabuilds.com).
-              Free/busy times block out slots automatically, and every booking creates a calendar
-              event with a Google Meet link.
+              Free/busy times block out slots automatically, every booking creates a calendar event
+              with a Google Meet link, and all site emails (lead notifications, booking
+              confirmations) send from this account via Gmail.
             </p>
             <a href="/api/admin/calendar/connect" className="admin-btn admin-btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
               Connect Google Calendar
             </a>
           </>
         )}
+      </div>
+
+      <div className="admin-card" style={{ padding: 24, maxWidth: 560, marginTop: 16 }}>
+        <strong style={{ fontSize: 13 }}>Simple option — Google booking page embed</strong>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '8px 0 14px', lineHeight: 1.7 }}>
+          No OAuth setup needed: in calendar.google.com create an <em>Appointment schedule</em>,
+          copy its booking page link, and paste it here. The funnel shows this embed whenever the
+          full integration above isn&apos;t connected.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={embedUrl}
+            onChange={(e) => setEmbedUrl(e.target.value)}
+            placeholder="https://calendar.google.com/calendar/appointments/schedules/..."
+            style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', color: 'var(--text)', fontSize: 13 }}
+          />
+          <button
+            type="button"
+            onClick={saveEmbed}
+            disabled={savingEmbed}
+            className="admin-btn admin-btn-primary"
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {embedSaved ? '✓ Saved' : savingEmbed ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       </div>
 
       <div className="admin-card" style={{ padding: 24, maxWidth: 560, marginTop: 16 }}>
