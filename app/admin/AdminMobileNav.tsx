@@ -60,6 +60,16 @@ export default function AdminMobileNav() {
       </Link>
 
       <Link
+        href="/admin/funnel-leads"
+        className={`anm-item${pathname.startsWith('/admin/funnel-leads') ? ' active' : ''}`}
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/>
+        </svg>
+        <span>Funnel</span>
+      </Link>
+
+      <Link
         href="/admin/settings"
         className={`anm-item${pathname.startsWith('/admin/settings') ? ' active' : ''}`}
       >

@@ -467,3 +467,37 @@ model ProjectSession {
 
   @@map("project_sessions")
 }
+
+model FunnelLead {
+  id            String    @id @default(cuid())
+  // Stage 1 — VSL opt-in gate
+  name          String
+  email         String    @unique
+  phone         String?
+  profession    String?
+  // Stage 2 — application form
+  whatsapp      String?
+  storeUrl      String?
+  role          String?
+  challenge     String?   // traffic_no_sales | low_conversion | poor_roas | cart_abandonment | brand_mismatch | other
+  revenue       String?   // under_5k | 5k_10k | 10k_25k | 25k_50k | over_50k
+  blocker       String?   // "Be 100% honest..." free text
+  financial     String?   // ready_now | can_invest | budget_challenge
+  readiness     String?   // right_now | within_30_days | later
+  // Funnel state
+  stage         String    @default("optin")   // optin | applied
+  status        String    @default("new")     // new | confirmed | call_booked | showed | closed_won | closed_lost | disqualified
+  // Attribution
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  utmContent    String?
+  notes         String?
+  appliedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([stage])
+  @@index([status])
+  @@map("funnel_leads")
+}

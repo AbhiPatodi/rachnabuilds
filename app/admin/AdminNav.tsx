@@ -99,6 +99,16 @@ export default function AdminNav() {
         Leads
       </Link>
 
+      <Link
+        href="/admin/funnel-leads"
+        className={pathname.startsWith('/admin/funnel-leads') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/>
+        </svg>
+        Funnel Leads
+      </Link>
+
       {/* SETTINGS */}
       <div className="admin-nav-section">Settings</div>
 
