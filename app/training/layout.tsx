@@ -12,7 +12,7 @@ export default function FunnelLayout({ children }: { children: React.ReactNode }
   return (
     <div className="fn-root">
       <header className="fn-header">
-        <span className="fn-logo">Rachna <span>Builds</span></span>
+        <span className="fn-logo"><img src="/branding/rachna-builds-wordmark.svg" alt="Rachna Builds" style={{ height: 22, width: 'auto', display: 'block' }} /></span>
       </header>
       <main className="fn-main">{children}</main>
       <footer className="fn-footer">

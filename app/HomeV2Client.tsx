@@ -213,7 +213,7 @@ export default function HomeV2Client() {
       <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-inner">
           <a href="#" className="nav-logo">
-            Rachna <span>Builds</span>
+            <img src="/branding/rachna-builds-wordmark-on-dark.svg" alt="Rachna Builds" style={{ height: 20, width: 'auto', display: 'block' }} />
           </a>
           <div className="nav-links">
             <a href="#work">Our Work</a>
@@ -804,7 +804,7 @@ export default function HomeV2Client() {
       <footer className="footer">
         <div className="footer-inner">
           <div>
-            <p className="footer-logo">Rachna <span>Builds</span></p>
+            <p className="footer-logo"><img src="/branding/rachna-builds-wordmark-on-dark.svg" alt="Rachna Builds" style={{ height: 20, width: 'auto', display: 'block' }} /></p>
             <p className="footer-tagline">Certified Shopify Expert &amp; E-Commerce Developer. Custom stores, migrations, and speed optimisation.</p>
             <div className="footer-contact">
               <a href="mailto:rachna@rachnabuilds.com">rachna@rachnabuilds.com</a>

@@ -5,18 +5,8 @@ export default function SiteFooter() {
         <div className="foot-top">
           <div className="foot-brand">
             <span className="logo">
-              <span className="logo-mark">
-                <svg viewBox="0 0 64 72" fill="none">
-                  <rect width="11" height="72" fill="currentColor" />
-                  <rect width="42" height="11" fill="currentColor" />
-                  <path d="M42 0Q64 0 64 16Q64 32 42 32" stroke="currentColor" strokeWidth="11" fill="none" />
-                  <rect y="27" width="38" height="11" fill="currentColor" />
-                  <path d="M36 38L64 72" stroke="currentColor" strokeWidth="11" strokeLinecap="square" />
-                  <path className="la" d="M36 38L64 72" strokeWidth="4" strokeLinecap="square" />
-                  <rect className="la" x="30" y="32" width="14" height="14" transform="rotate(-45 37 39)" />
-                </svg>
-              </span>
-              <span className="logo-text"><span className="ln">Rachna</span><span className="lb">Builds</span></span>
+              <img className="logo-img logo-on-dark" src="/branding/rachna-builds-wordmark-on-dark.svg" alt="Rachna Builds" />
+              <img className="logo-img logo-on-light" src="/branding/rachna-builds-wordmark.svg" alt="Rachna Builds" />
             </span>
             <p>Building stores that sell.</p>
           </div>
