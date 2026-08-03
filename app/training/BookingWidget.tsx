@@ -111,18 +111,37 @@ export default function BookingWidget() {
   }
 
   if (!connected && embedUrl) {
-    // Google Calendar appointment-schedule booking page embed
+    // Google Calendar appointment-schedule booking page embed.
+    // Google shows its own "Booking confirmed" modal in-place, so no extra
+    // step or button — the checklist below completes the page.
     return (
-      <div className="fn-card fn-card-wide" style={{ padding: 12 }}>
-        <iframe
-          src={embedUrl}
-          title="Book your strategy call"
-          style={{ width: '100%', height: 640, border: 0, borderRadius: 10 }}
-        />
-        <button className="fn-btn" type="button" style={{ marginTop: 14 }} onClick={() => router.push('/training/thank-you')}>
-          I&apos;ve Booked My Call →
-        </button>
-      </div>
+      <>
+        <div className="fn-card fn-card-wide" style={{ padding: 12 }}>
+          <iframe
+            src={embedUrl}
+            title="Book your strategy call"
+            style={{ width: '100%', height: 640, border: 0, borderRadius: 10 }}
+          />
+        </div>
+        <div className="fn-steps">
+          <div className="fn-step">
+            <h3>After you book</h3>
+            <p>
+              You&apos;ll instantly get a calendar invite with your Google Meet link —
+              check your inbox and save the event. Reminders are sent automatically.
+            </p>
+          </div>
+          <div className="fn-step">
+            <h3>Before we meet</h3>
+            <ul>
+              <li>Join from a quiet, distraction-free location.</li>
+              <li>Be on time — this is a high-value strategy session.</li>
+              <li>Have access to your Shopify store analytics if possible.</li>
+              <li>Be ready to discuss your current marketing and conversion challenges openly.</li>
+            </ul>
+          </div>
+        </div>
+      </>
     );
   }
 
