@@ -70,6 +70,17 @@ export default function AdminMobileNav() {
       </Link>
 
       <Link
+        href="/admin/bookings"
+        className={`anm-item${pathname.startsWith('/admin/bookings') ? ' active' : ''}`}
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+        <span>Bookings</span>
+      </Link>
+
+      <Link
         href="/admin/settings"
         className={`anm-item${pathname.startsWith('/admin/settings') ? ' active' : ''}`}
       >

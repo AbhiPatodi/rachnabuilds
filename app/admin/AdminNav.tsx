@@ -109,6 +109,28 @@ export default function AdminNav() {
         Funnel Leads
       </Link>
 
+      <Link
+        href="/admin/bookings"
+        className={pathname.startsWith('/admin/bookings') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+        Bookings
+      </Link>
+
+      <Link
+        href="/admin/calendar"
+        className={pathname.startsWith('/admin/calendar') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        Calendar Sync
+      </Link>
+
       {/* SETTINGS */}
       <div className="admin-nav-section">Settings</div>
 

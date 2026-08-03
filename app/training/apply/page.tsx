@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import BookingWidget from '../BookingWidget';
 
 const CHALLENGES = [
   { value: 'traffic_no_sales', label: 'Getting traffic but not enough sales' },
@@ -59,13 +59,13 @@ function RadioGroup({
 }
 
 export default function ApplyPage() {
-  const router = useRouter();
   const [form, setForm] = useState({
     name: '', email: '', whatsapp: '', storeUrl: '', role: '',
     challenge: '', revenue: '', blocker: '', financial: '', readiness: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [applied, setApplied] = useState(false);
 
   // Prefill from the opt-in step
   useEffect(() => {
@@ -98,9 +98,14 @@ export default function ApplyPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
-      router.push('/training/thank-you');
+      try {
+        sessionStorage.setItem('fn_lead', JSON.stringify({ name: form.name, email: form.email, phone: form.whatsapp }));
+        sessionStorage.setItem('fn_lead_id', data.id || '');
+      } catch {}
+      setApplied(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -109,15 +114,22 @@ export default function ApplyPage() {
     <>
       <div className="fn-hero">
         <div className="fn-hero-inner">
-          <div className="fn-callout">Application · Takes 2 Minutes</div>
+          <div className="fn-callout">{applied ? 'Last Step' : 'Application · Takes 2 Minutes'}</div>
 
           <h1 className="fn-h1">
-            Apply to Get Your <em>Free Shopify Conversion Audit</em> &amp; Growth Strategy Session 👇
+            {applied ? (
+              <>Now, <em>Pick Your Call Time.</em></>
+            ) : (
+              <>Apply to Get Your <em>Free Shopify Conversion Audit</em> &amp; Growth Strategy Session 👇</>
+            )}
           </h1>
         </div>
       </div>
 
       <div className="fn-body fn-body-raised">
+      {applied ? (
+        <BookingWidget />
+      ) : (
       <div className="fn-card fn-card-wide">
         <form onSubmit={submit}>
           <div className="fn-field">
@@ -176,6 +188,7 @@ export default function ApplyPage() {
           </button>
         </form>
       </div>
+      )}
       </div>
     </>
   );

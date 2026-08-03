@@ -395,3 +395,54 @@ export async function notifyProposalAccepted(
 
   return sendEmail(ADMIN_EMAIL, `✅ Proposal accepted — ${projectName}`, html);
 }
+
+/** Call booked — sent to Rachna (admin) */
+export async function notifyCallBooked(opts: {
+  name: string;
+  email: string;
+  whatsapp?: string | null;
+  startTime: Date;
+  meetLink?: string | null;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const when = opts.startTime.toLocaleString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  });
+  const html = base(
+    `${opts.name} just booked a call for ${when} IST`,
+    `
+    ${heading('📅 New call booked')}
+    ${subheading(`${opts.name} scheduled a strategy call.`)}
+    ${infoBox([
+      { label: 'Name', value: opts.name },
+      { label: 'Email', value: opts.email },
+      ...(opts.whatsapp ? [{ label: 'WhatsApp', value: opts.whatsapp }] : []),
+      { label: 'When', value: `${when} IST` },
+      ...(opts.meetLink ? [{ label: 'Meet link', value: opts.meetLink }] : []),
+    ])}
+    ${adminCtaButton('View in Admin → Funnel Leads', `${SITE_URL}/admin/funnel-leads`)}
+    `,
+  );
+  return sendEmail(ADMIN_EMAIL, `📅 Call booked — ${opts.name} (${when})`, html);
+}
+
+/** Call confirmation — sent to the lead */
+export async function sendBookingConfirmationToLead(opts: {
+  name: string;
+  email: string;
+  startTime: Date;
+  meetLink?: string | null;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const when = opts.startTime.toLocaleString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  });
+  const html = base(
+    `Your call is confirmed for ${when} IST`,
+    `
+    ${heading('You’re confirmed! ✅')}
+    ${subheading(`Your call with Rachna is booked for ${when} IST.`)}
+    ${bodyText('A calendar invite with the Google Meet link has been sent to your email. Please join a few minutes early from a quiet, distraction-free spot.')}
+    ${opts.meetLink ? ctaButton('Join the Meeting', opts.meetLink) : ''}
+    `,
+  );
+  return sendEmail(opts.email, `Your call is confirmed — ${when} IST`, html);
+}

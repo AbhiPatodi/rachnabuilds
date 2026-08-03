@@ -497,7 +497,30 @@ model FunnelLead {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  bookings      Booking[]
+
   @@index([stage])
   @@index([status])
   @@map("funnel_leads")
+}
+
+model Booking {
+  id            String      @id @default(cuid())
+  funnelLeadId  String?
+  funnelLead    FunnelLead? @relation(fields: [funnelLeadId], references: [id])
+  name          String
+  email         String
+  whatsapp      String?
+  startTime     DateTime
+  endTime       DateTime
+  timezone      String      @default("Asia/Kolkata")
+  googleEventId String?
+  meetLink      String?
+  status        String      @default("confirmed") // confirmed | cancelled | completed | no_show
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status])
+  @@index([startTime])
+  @@map("bookings")
 }
