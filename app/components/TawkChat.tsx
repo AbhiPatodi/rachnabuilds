@@ -8,7 +8,7 @@ export function TawkChat() {
   const widgetId = process.env.NEXT_PUBLIC_TAWK_WIDGET_ID || '1icu6kbmf'
 
   // Don't show on admin pages
-  if (!propertyId || pathname?.startsWith('/admin')) return null
+  if (!propertyId || pathname?.startsWith('/admin') || pathname?.startsWith('/training')) return null
 
   return (
     <Script id="tawk-to" strategy="afterInteractive">{`

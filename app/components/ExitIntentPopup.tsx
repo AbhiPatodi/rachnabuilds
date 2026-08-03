@@ -12,8 +12,8 @@ export function ExitIntentPopup() {
   const pathname = usePathname()
 
   useEffect(() => {
-    // Only on public non-admin pages
-    if (pathname?.startsWith('/admin') || pathname?.startsWith('/reports') || pathname?.startsWith('/portal')) return
+    // Only on public non-admin pages (funnel pages excluded — no distractions)
+    if (pathname?.startsWith('/admin') || pathname?.startsWith('/reports') || pathname?.startsWith('/portal') || pathname?.startsWith('/training')) return
     // Only once per session
     if (sessionStorage.getItem('exit_popup_shown')) return
 
