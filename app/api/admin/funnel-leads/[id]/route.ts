@@ -9,6 +9,19 @@ interface RouteContext {
 
 const VALID_STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'closed_won', 'closed_lost', 'disqualified'];
 
+export async function GET(_req: NextRequest, { params }: RouteContext) {
+  const { id } = await params;
+  const lead = await prisma.funnelLead.findUnique({
+    where: { id },
+    include: {
+      auditReports: { orderBy: { createdAt: 'desc' } },
+      bookings: { orderBy: { startTime: 'desc' } },
+    },
+  });
+  if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+  return NextResponse.json(lead);
+}
+
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const body = await req.json();
