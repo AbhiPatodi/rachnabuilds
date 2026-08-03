@@ -165,6 +165,17 @@ export default function BookingWidget() {
     <div className="fn-card fn-card-wide">
       <h3 className="fn-card-title">Pick a time for your strategy call</h3>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(10,31,19,0.55)' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#4285F4" strokeWidth="2"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#4285F4" strokeWidth="2" strokeLinecap="round"/></svg>
+          Synced with Google Calendar
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(10,31,19,0.55)' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="14" height="12" rx="2" fill="#00AC47"/><path d="M16 10l6-3v10l-6-3z" fill="#00AC47"/></svg>
+          Google Meet link included
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 16 }}>
         {days.map((d) => (
           <button

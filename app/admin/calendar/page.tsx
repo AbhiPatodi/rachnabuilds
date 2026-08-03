@@ -11,6 +11,26 @@ export default function CalendarSettingsPage() {
   );
 }
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function decimalToTimeStr(dec: number) {
+  const h = Math.floor(dec);
+  const m = Math.round((dec - h) * 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+function timeStrToDecimal(str: string) {
+  const [h, m] = str.split(':').map(Number);
+  return h + (m || 0) / 60;
+}
+
+interface BookingConfigState {
+  slotMinutes: number;
+  bufferMinutes: number;
+  lookaheadDays: number;
+  minNoticeHours: number;
+  workHours: Record<number, { start: number; end: number } | null>;
+}
+
 function CalendarSettings() {
   const [connected, setConnected] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
@@ -19,25 +39,68 @@ function CalendarSettings() {
   const [embedUrl, setEmbedUrl] = useState('');
   const [savingEmbed, setSavingEmbed] = useState(false);
   const [embedSaved, setEmbedSaved] = useState(false);
+  const [config, setConfig] = useState<BookingConfigState | null>(null);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
   const params = useSearchParams();
 
   const fetchStatus = useCallback(async () => {
     try {
-      const [statusRes, settingsRes] = await Promise.all([
+      const [statusRes, settingsRes, configRes] = await Promise.all([
         fetch('/api/admin/calendar/status'),
         fetch('/api/admin/settings'),
+        fetch('/api/admin/calendar/config'),
       ]);
       const data = await statusRes.json();
       setConnected(data.connected);
       setEmail(data.email);
       const settings = await settingsRes.json();
       setEmbedUrl(settings.booking_embed_url || '');
+      setConfig(await configRes.json());
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  const toggleDay = (dow: number) => {
+    if (!config) return;
+    setConfig({
+      ...config,
+      workHours: {
+        ...config.workHours,
+        [dow]: config.workHours[dow] ? null : { start: 9, end: 18 },
+      },
+    });
+  };
+
+  const setDayTime = (dow: number, field: 'start' | 'end', value: string) => {
+    if (!config) return;
+    const current = config.workHours[dow];
+    if (!current) return;
+    setConfig({
+      ...config,
+      workHours: { ...config.workHours, [dow]: { ...current, [field]: timeStrToDecimal(value) } },
+    });
+  };
+
+  const saveConfig = async () => {
+    if (!config) return;
+    setSavingConfig(true);
+    setConfigSaved(false);
+    try {
+      await fetch('/api/admin/calendar/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      setConfigSaved(true);
+      setTimeout(() => setConfigSaved(false), 2500);
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   const saveEmbed = async () => {
     setSavingEmbed(true);
@@ -159,14 +222,78 @@ function CalendarSettings() {
         </div>
       </div>
 
-      <div className="admin-card" style={{ padding: 24, maxWidth: 560, marginTop: 16 }}>
-        <strong style={{ fontSize: 13 }}>Working hours (fixed in code for now)</strong>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 8, lineHeight: 1.7 }}>
-          Mon–Fri 9:00 AM–6:00 PM IST · Sat 10:00 AM–2:00 PM IST · Sun off<br />
-          20-minute slots, 10-minute buffer, 12h minimum notice, 14 days ahead.<br />
-          Edit <code>lib/availability.ts</code> to change these.
-        </p>
-      </div>
+      {config && (
+        <div className="admin-card" style={{ padding: 24, maxWidth: 640, marginTop: 16 }}>
+          <strong style={{ fontSize: 13 }}>Working hours &amp; slot settings</strong>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: '6px 0 18px' }}>
+            All times in IST. Applies to both the custom picker and, once connected, conflict-checking.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            {DAY_LABELS.map((label, dow) => {
+              const hours = config.workHours[dow];
+              return (
+                <div key={dow} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, width: 90, fontSize: 13, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={!!hours} onChange={() => toggleDay(dow)} />
+                    {label}
+                  </label>
+                  {hours ? (
+                    <>
+                      <input
+                        type="time"
+                        value={decimalToTimeStr(hours.start)}
+                        onChange={(e) => setDayTime(dow, 'start', e.target.value)}
+                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 13 }}
+                      />
+                      <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>to</span>
+                      <input
+                        type="time"
+                        value={decimalToTimeStr(hours.end)}
+                        onChange={(e) => setDayTime(dow, 'end', e.target.value)}
+                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', color: 'var(--text)', fontSize: 13 }}
+                      />
+                    </>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Off</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Slot length (min)</label>
+              <input type="number" min={5} step={5} value={config.slotMinutes}
+                onChange={(e) => setConfig({ ...config, slotMinutes: Number(e.target.value) })}
+                style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', color: 'var(--text)', fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Buffer between calls (min)</label>
+              <input type="number" min={0} step={5} value={config.bufferMinutes}
+                onChange={(e) => setConfig({ ...config, bufferMinutes: Number(e.target.value) })}
+                style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', color: 'var(--text)', fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Minimum notice (hours)</label>
+              <input type="number" min={0} step={1} value={config.minNoticeHours}
+                onChange={(e) => setConfig({ ...config, minNoticeHours: Number(e.target.value) })}
+                style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', color: 'var(--text)', fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Days ahead to show</label>
+              <input type="number" min={1} max={60} step={1} value={config.lookaheadDays}
+                onChange={(e) => setConfig({ ...config, lookaheadDays: Number(e.target.value) })}
+                style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', color: 'var(--text)', fontSize: 13 }} />
+            </div>
+          </div>
+
+          <button type="button" onClick={saveConfig} disabled={savingConfig} className="admin-btn admin-btn-primary">
+            {configSaved ? '✓ Saved' : savingConfig ? 'Saving…' : 'Save Hours & Settings'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAvailableSlots, BOOKING_TIMEZONE, BOOKING_SLOT_MINUTES } from '@/lib/availability';
+import { getAvailableSlots, BOOKING_TIMEZONE, getBookingSlotMinutes } from '@/lib/availability';
 import { isCalendarConnected } from '@/lib/googleCalendar';
 import { prisma } from '@/lib/prisma';
 
@@ -12,6 +12,6 @@ export async function GET() {
     const embed = await prisma.setting.findUnique({ where: { key: 'booking_embed_url' } });
     return NextResponse.json({ connected: false, slots: [], embedUrl: embed?.value || null });
   }
-  const slots = await getAvailableSlots();
-  return NextResponse.json({ connected: true, slots, timezone: BOOKING_TIMEZONE, slotMinutes: BOOKING_SLOT_MINUTES });
+  const [slots, slotMinutes] = await Promise.all([getAvailableSlots(), getBookingSlotMinutes()]);
+  return NextResponse.json({ connected: true, slots, timezone: BOOKING_TIMEZONE, slotMinutes });
 }
