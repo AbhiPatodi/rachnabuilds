@@ -790,7 +790,7 @@ export default function HomeV2Client() {
               Let&apos;s discuss your expectations →
             </a>
             <a
-              href="https://wa.me/919999999999?text=Hi%20Rachna%2C%20I%27d%20like%20to%20discuss%20a%20Shopify%20project"
+              href="https://wa.me/919404643510?text=Hi%20Rachna%2C%20I%27d%20like%20to%20discuss%20a%20Shopify%20project"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-ghost"
@@ -811,7 +811,7 @@ export default function HomeV2Client() {
             <p className="footer-tagline">Certified Shopify Expert &amp; E-Commerce Developer. Custom stores, migrations, and speed optimisation.</p>
             <div className="footer-contact">
               <a href="mailto:rachna@rachnabuilds.com">rachna@rachnabuilds.com</a>
-              <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              <a href="https://wa.me/919404643510" target="_blank" rel="noopener noreferrer">WhatsApp</a>
             </div>
           </div>
 

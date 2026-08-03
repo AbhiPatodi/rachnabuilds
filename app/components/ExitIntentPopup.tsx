@@ -17,53 +17,47 @@ export function ExitIntentPopup() {
     // Only once per session
     if (sessionStorage.getItem('exit_popup_shown')) return
 
-    // Desktop: mouse leave top of page
-    const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 5 && !triggered.current) {
-        triggered.current = true
-        sessionStorage.setItem('exit_popup_shown', '1')
-        // Delay 300ms to feel less jarring
-        setTimeout(() => setVisible(true), 300)
-      }
+    const fire = () => {
+      if (triggered.current) return
+      triggered.current = true
+      sessionStorage.setItem('exit_popup_shown', '1')
+      // Delay 300ms to feel less jarring
+      setTimeout(() => setVisible(true), 300)
     }
 
-    // Mobile: fast scroll up
+    // Desktop only: cursor leaves through the top of the viewport (real exit intent)
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 5) fire()
+    }
+
+    // Touch devices only: sustained fast scroll-up from deep in the page
     let lastScrollY = window.scrollY
     let lastScrollTime = Date.now()
     const handleScroll = () => {
       const now = Date.now()
       const dy = window.scrollY - lastScrollY
-      const dt = now - lastScrollTime
-      const velocity = dy / dt // px/ms, negative = scrolling up fast
-      if (velocity < -1.5 && window.scrollY > 200 && !triggered.current) {
-        triggered.current = true
-        sessionStorage.setItem('exit_popup_shown', '1')
-        setTimeout(() => setVisible(true), 300)
-      }
+      const dt = Math.max(now - lastScrollTime, 1)
+      const velocity = dy / dt // px/ms, negative = scrolling up
+      if (velocity < -3 && window.scrollY > 800) fire()
       lastScrollY = window.scrollY
       lastScrollTime = now
     }
 
-    // Tab close / navigate away — show browser's native "Leave site?" dialog
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!triggered.current) {
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
 
-    // Only trigger popup after 5 seconds on page
+    // Arm only after the visitor has actually engaged with the page
     const timer = setTimeout(() => {
-      document.addEventListener('mouseleave', handleMouseLeave)
-      window.addEventListener('scroll', handleScroll, { passive: true })
-    }, 5000)
+      if (isTouch) {
+        window.addEventListener('scroll', handleScroll, { passive: true })
+      } else {
+        document.addEventListener('mouseleave', handleMouseLeave)
+      }
+    }, isTouch ? 20000 : 10000)
 
     return () => {
       clearTimeout(timer)
       document.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [pathname])
 
