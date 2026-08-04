@@ -74,7 +74,15 @@ export default function TrainingLanding() {
       </div>
 
       <div className="fn-body fn-body-raised">
-      <div className="fn-card">
+      <div className="fn-optin-row">
+        <div className="fn-thumb">
+          <div className="fn-thumb-play">▶</div>
+          <div className="fn-thumb-caption">
+            <span className="fn-thumb-eyebrow">Watch Now</span>
+            <span className="fn-thumb-title">The Conversion Bottleneck Framework</span>
+          </div>
+        </div>
+      <div className="fn-card" style={{ margin: 0, maxWidth: 'none' }}>
         <h2 className="fn-card-title">Enter your details to unlock your next steps</h2>
         <form onSubmit={submit}>
           <div className="fn-field">
@@ -106,6 +114,7 @@ export default function TrainingLanding() {
           specifically designed for DTC e-commerce brands already investing in paid traffic.
           Please don&apos;t proceed if you don&apos;t belong to this audience.
         </p>
+      </div>
       </div>
 
       <ul className="fn-bullets">
