@@ -77,15 +77,15 @@ export default function TrainingLanding() {
 
       <div className="fn-body fn-body-raised">
       <div className="fn-optin-row" id="optin">
-        <div className="fn-thumb">
+        <a href="#optin" className="fn-thumb" aria-label="Enter your details below to unlock the free training">
           <img
             src="/training/vsl-thumbnail.jpg"
             alt="2%+ CRO Shopify Store in 14 Days — Audit, Optimize, Convert, Grow"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,31,19,.18)' }} />
-          <div className="fn-thumb-play">▶</div>
-        </div>
+          <span className="fn-thumb-lock">🔒 Enter your details to unlock</span>
+        </a>
       <div className="fn-card" style={{ margin: 0, maxWidth: 'none' }}>
         <h2 className="fn-card-title">Enter your details to unlock your next steps</h2>
         <form onSubmit={submit}>
