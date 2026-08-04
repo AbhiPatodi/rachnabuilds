@@ -422,3 +422,61 @@ export async function sendBookingConfirmationToLead(opts: {
   );
   return sendEmail(opts.email, `Your call is confirmed — ${when} IST`, html);
 }
+
+/** Timed call reminders — sent to the lead by the cron */
+export type ReminderKind = '12h' | '1h' | '30m' | 'live';
+
+export async function sendCallReminderToLead(opts: {
+  name: string;
+  email: string;
+  startTime: Date;
+  meetLink?: string | null;
+  kind: ReminderKind;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const firstName = opts.name.split(' ')[0];
+  const when = opts.startTime.toLocaleString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  });
+  const timeOnly = opts.startTime.toLocaleTimeString('en-IN', {
+    hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  });
+
+  const copy: Record<ReminderKind, { subject: string; heading: string; body: string; cta: string }> = {
+    '12h': {
+      subject: `Tomorrow: your strategy call with Rachna — ${when} IST`,
+      heading: `See you soon, ${firstName} 👋`,
+      body: `Your Shopify conversion strategy call is coming up on <strong>${when} IST</strong>. Take 2 minutes today to note down your store's biggest conversion questions — we'll get through much more if you come prepared.`,
+      cta: 'Add to your plan: join 2–3 min early',
+    },
+    '1h': {
+      subject: `In 1 hour: your call with Rachna (${timeOnly} IST)`,
+      heading: `Your call is in 1 hour, ${firstName}`,
+      body: `We're on at <strong>${timeOnly} IST</strong>. Grab your Shopify analytics if you can, find a quiet spot, and keep this email handy — the meeting link is below.`,
+      cta: 'Join the Meeting',
+    },
+    '30m': {
+      subject: `30 minutes to go — ${timeOnly} IST`,
+      heading: `30 minutes, ${firstName}!`,
+      body: `Your strategy call starts at <strong>${timeOnly} IST</strong>. Time to wrap up what you're doing and get set up.`,
+      cta: 'Join the Meeting',
+    },
+    live: {
+      subject: `🔴 We're live — join your call now`,
+      heading: `We're live, ${firstName}!`,
+      body: `Rachna is on the call now waiting for you. Click below to join.`,
+      cta: 'Join Now',
+    },
+  };
+
+  const c = copy[opts.kind];
+  const html = base(
+    c.subject,
+    `
+    ${heading(c.heading)}
+    ${bodyText(c.body)}
+    ${opts.meetLink ? ctaButton(c.cta, opts.meetLink) : bodyText('Use the Google Meet link from your calendar invite to join.')}
+    ${bodyText('Need to reschedule? Just reply to this email.')}
+    `,
+  );
+  return sendEmail(opts.email, c.subject, html);
+}

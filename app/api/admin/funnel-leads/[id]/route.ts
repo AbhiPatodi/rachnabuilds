@@ -19,7 +19,20 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     },
   });
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
-  return NextResponse.json(lead);
+
+  const watches = await prisma.videoWatch.findMany({ where: { email: lead.email } });
+  const videoWatch = watches.length
+    ? watches.reduce(
+        (acc, w) => ({
+          secondsWatched: acc.secondsWatched + w.secondsWatched,
+          maxPosition: Math.max(acc.maxPosition, w.maxPosition),
+          duration: Math.max(acc.duration, w.duration),
+        }),
+        { secondsWatched: 0, maxPosition: 0, duration: 0 },
+      )
+    : null;
+
+  return NextResponse.json({ ...lead, videoWatch });
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {

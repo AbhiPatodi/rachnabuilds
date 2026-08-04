@@ -70,11 +70,13 @@ export default function TrainingLanding() {
           <p className="fn-sub">
             Free training for founder-led DTC brands already investing in paid traffic.
           </p>
+
+          <a href="#optin" className="fn-btn fn-hero-cta">Get Free Access Now ↓</a>
         </div>
       </div>
 
       <div className="fn-body fn-body-raised">
-      <div className="fn-optin-row">
+      <div className="fn-optin-row" id="optin">
         <div className="fn-thumb-col">
           <span className="fn-thumb-label">▶&nbsp; Watch the free training below</span>
           <div className="fn-thumb">

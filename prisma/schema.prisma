@@ -537,10 +537,25 @@ model Booking {
   googleEventId String?
   meetLink      String?
   status        String      @default("confirmed") // confirmed | cancelled | completed | no_show
+  remindersSent String      @default("[]")        // JSON array of sent reminder keys: 12h | 1h | 30m | live
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([status])
   @@index([startTime])
   @@map("bookings")
+}
+
+model VideoWatch {
+  id             String   @id @default(cuid())
+  sessionId      String   @unique
+  email          String?
+  secondsWatched Int      @default(0) // accumulated real playtime (includes rewatches)
+  maxPosition    Int      @default(0) // furthest second reached in the video
+  duration       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([email])
+  @@map("video_watches")
 }

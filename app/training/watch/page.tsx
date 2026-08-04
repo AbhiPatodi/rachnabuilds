@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 const VSL_URL = 'https://qkuazelkfqffcp2x.public.blob.vercel-storage.com/vsl/rachna-builds-vsl.mp4';
@@ -8,6 +8,67 @@ const VSL_URL = 'https://qkuazelkfqffcp2x.public.blob.vercel-storage.com/vsl/rac
 export default function WatchVsl() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+
+  // ── Watch analytics: accumulate real playtime + furthest position,
+  //    beacon to our API so admin can see per-lead watch progress.
+  const trackRef = useRef({ sessionId: '', email: '', watched: 0, maxPos: 0, lastT: -1, dirty: false });
+
+  useEffect(() => {
+    const t = trackRef.current;
+    try {
+      t.sessionId = sessionStorage.getItem('fn_vid_sid') || crypto.randomUUID();
+      sessionStorage.setItem('fn_vid_sid', t.sessionId);
+      t.email = (JSON.parse(sessionStorage.getItem('fn_lead') || '{}').email || '');
+    } catch {
+      t.sessionId = t.sessionId || `anon-${Math.random().toString(36).slice(2, 12)}`;
+    }
+  }, []);
+
+  const sendProgress = useCallback((useBeacon = false) => {
+    const t = trackRef.current;
+    const v = videoRef.current;
+    if (!t.sessionId || !t.dirty) return;
+    t.dirty = false;
+    const payload = JSON.stringify({
+      sessionId: t.sessionId,
+      email: t.email || undefined,
+      secondsWatched: Math.round(t.watched),
+      maxPosition: Math.round(t.maxPos),
+      duration: Math.round(v?.duration || 0),
+    });
+    if (useBeacon && navigator.sendBeacon) {
+      navigator.sendBeacon('/api/funnel/video-progress', new Blob([payload], { type: 'application/json' }));
+    } else {
+      fetch('/api/funnel/video-progress', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true,
+      }).catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => sendProgress(), 15000);
+    const onHide = () => sendProgress(true);
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
+      onHide();
+    };
+  }, [sendProgress]);
+
+  const onTimeUpdate = () => {
+    const t = trackRef.current;
+    const v = videoRef.current;
+    if (!v || v.paused) return;
+    const cur = v.currentTime;
+    // Count only small forward deltas as real watch time (ignores seeks).
+    if (t.lastT >= 0 && cur > t.lastT && cur - t.lastT < 2) t.watched += cur - t.lastT;
+    if (cur > t.maxPos) t.maxPos = cur;
+    t.lastT = cur;
+    t.dirty = true;
+  };
 
   const handlePlay = () => {
     setPlaying(true);
@@ -39,6 +100,10 @@ export default function WatchVsl() {
           controls={playing}
           playsInline
           preload="metadata"
+          onTimeUpdate={onTimeUpdate}
+          onPause={() => { trackRef.current.lastT = -1; sendProgress(); }}
+          onSeeked={() => { trackRef.current.lastT = videoRef.current?.currentTime ?? -1; }}
+          onEnded={() => sendProgress()}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
         {!playing && (

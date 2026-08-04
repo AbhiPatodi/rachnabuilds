@@ -23,5 +23,25 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(leads.map((l) => ({ ...l, hasCallScript: !!l.callScript, callScript: undefined })));
+  // Attach VSL watch progress (a lead may have several sessions — aggregate)
+  const watches = await prisma.videoWatch.findMany({
+    where: { email: { in: leads.map((l) => l.email) } },
+  });
+  const watchByEmail = new Map<string, { secondsWatched: number; maxPosition: number; duration: number }>();
+  for (const w of watches) {
+    if (!w.email) continue;
+    const cur = watchByEmail.get(w.email) || { secondsWatched: 0, maxPosition: 0, duration: 0 };
+    watchByEmail.set(w.email, {
+      secondsWatched: cur.secondsWatched + w.secondsWatched,
+      maxPosition: Math.max(cur.maxPosition, w.maxPosition),
+      duration: Math.max(cur.duration, w.duration),
+    });
+  }
+
+  return NextResponse.json(leads.map((l) => ({
+    ...l,
+    hasCallScript: !!l.callScript,
+    callScript: undefined,
+    videoWatch: watchByEmail.get(l.email) || null,
+  })));
 }
