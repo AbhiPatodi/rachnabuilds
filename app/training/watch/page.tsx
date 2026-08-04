@@ -70,6 +70,10 @@ export default function WatchVsl() {
         conversion bottlenecks reducing your sales, whether you decide to work with us or not.
       </p>
       </div>
+
+      <div className="fn-sticky-cta">
+        <Link href="/training/apply" className="fn-btn">Apply Now for a 1:1 Consultation →</Link>
+      </div>
     </>
   );
 }

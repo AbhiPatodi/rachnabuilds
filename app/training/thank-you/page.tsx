@@ -50,6 +50,19 @@ export default function ThankYouPage() {
           </ul>
         </div>
       </div>
+
+      <a
+        href="https://wa.me/919404643510?text=Hi%20Rachna%2C%20I%20just%20applied%20for%20the%20free%20Shopify%20audit%20call"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fn-btn"
+        style={{ maxWidth: 420, margin: '28px auto 0' }}
+      >
+        Message Us on WhatsApp →
+      </a>
+      <p className="fn-disclaimer" style={{ maxWidth: 420, margin: '14px auto 0' }}>
+        Have a question before the call, or need to reschedule? WhatsApp is the fastest way to reach us.
+      </p>
       </div>
     </>
   );
