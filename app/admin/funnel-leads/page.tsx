@@ -45,10 +45,6 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 
 type StageTab = 'all' | 'applied' | 'optin';
 
-function isHot(l: FunnelLead) {
-  return l.readiness === 'right_now' && l.financial === 'ready_now';
-}
-
 function sourceLabel(l: FunnelLead) {
   return l.utmSource || 'Organic / direct';
 }
@@ -77,7 +73,6 @@ export default function FunnelLeadsPage() {
   const stageFiltered = stageTab === 'all' ? leads : leads.filter((l) => l.stage === stageTab);
   const filtered = sourceFilter === 'all' ? stageFiltered : stageFiltered.filter((l) => sourceLabel(l) === sourceFilter);
   const applied = leads.filter((l) => l.stage === 'applied');
-  const hot = applied.filter(isHot);
   const sources = ['all', ...Array.from(new Set(leads.map(sourceLabel))).sort()];
 
   if (loading) {
@@ -116,10 +111,6 @@ export default function FunnelLeadsPage() {
         <div className="admin-stat-card">
           <div className="admin-stat-label">Opt-in Only (follow up!)</div>
           <div className="admin-stat-value" style={{ color: '#FBBF24' }}>{leads.length - applied.length}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">🔥 Hot (now + budget)</div>
-          <div className="admin-stat-value" style={{ color: '#FF6B6B' }}>{hot.length}</div>
         </div>
       </div>
 
@@ -185,7 +176,7 @@ export default function FunnelLeadsPage() {
                       <td>
                         <Link href={`/admin/funnel-leads/${l.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>
-                            {isHot(l) && '🔥 '}{l.name}
+                            {l.name}
                             <span style={{
                               marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                               padding: '2px 8px', borderRadius: 100,

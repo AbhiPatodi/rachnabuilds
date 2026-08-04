@@ -100,10 +100,6 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 
 type TabId = 'overview' | 'application' | 'audit' | 'script' | 'bookings';
 
-function isHot(l: FunnelLead) {
-  return l.readiness === 'right_now' && l.financial === 'ready_now';
-}
-
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 18 }}>
@@ -242,9 +238,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
 
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">
-            {isHot(lead) && '🔥 '}{lead.name}
-          </h1>
+          <h1 className="admin-page-title">{lead.name}</h1>
           <p className="admin-page-subtitle">{lead.email} · Applied {new Date(lead.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
         </div>
         <select
@@ -304,11 +298,6 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                 )
               }
             />
-            {isHot(lead) && (
-              <div style={{ marginTop: 4, padding: '10px 14px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 8, fontSize: 13, color: '#FF6B6B', fontWeight: 600 }}>
-                🔥 Hot lead — ready now + has budget
-              </div>
-            )}
           </div>
 
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
