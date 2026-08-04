@@ -20,6 +20,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Admin toggles (admin → Settings → Funnel). Absent key = enabled.
+  const toggleRows = await prisma.setting.findMany({
+    where: { key: { in: WINDOWS.map((w) => `funnel_reminder_${w.kind}`) } },
+  });
+  const disabled = new Set(
+    toggleRows.filter((r) => r.value === 'off').map((r) => r.key.replace('funnel_reminder_', '')),
+  );
+
   const now = Date.now();
   const bookings = await prisma.booking.findMany({
     where: {
@@ -39,7 +47,7 @@ export async function GET(req: NextRequest) {
     try { sent = JSON.parse(b.remindersSent); } catch {}
 
     const due = WINDOWS.find(
-      (w) => minutesUntil > w.min && minutesUntil <= w.max && !sent.includes(w.kind),
+      (w) => minutesUntil > w.min && minutesUntil <= w.max && !sent.includes(w.kind) && !disabled.has(w.kind),
     );
     if (!due) continue;
 

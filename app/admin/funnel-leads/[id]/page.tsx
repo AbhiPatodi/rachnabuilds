@@ -51,6 +51,20 @@ interface FunnelLead {
   createdAt: string;
   auditReports: AuditReport[];
   bookings: Booking[];
+  videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
+  emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
+}
+
+const EMAIL_KIND_LABELS: Record<string, string> = {
+  confirmation: 'Confirmed',
+  '12h': '12h before',
+  '1h': '1h before',
+  '30m': '30m before',
+  live: 'We’re live',
+};
+
+function fmtMins(sec: number): string {
+  return `${Math.floor(sec / 60)}m ${Math.round(sec % 60)}s`;
 }
 
 const LABELS: Record<string, string> = {
@@ -274,9 +288,50 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             <Field label="Stage" value={lead.stage === 'applied' ? 'Applied (full application)' : 'Opt-in only'} />
             <Field label="Source" value={lead.utmSource ? `${lead.utmSource}${lead.utmCampaign ? ` / ${lead.utmCampaign}` : ''}${lead.utmContent ? ` / ${lead.utmContent}` : ''}` : 'Organic / direct'} />
             <Field label="Applied on" value={lead.appliedAt ? new Date(lead.appliedAt).toLocaleString('en-IN') : null} />
+            <Field
+              label="VSL watched"
+              value={
+                lead.videoWatch && lead.videoWatch.duration > 0 ? (
+                  <span>
+                    <strong style={{ color: lead.videoWatch.maxPosition / lead.videoWatch.duration >= 0.75 ? '#06D6A0' : '#FBBF24' }}>
+                      {Math.min(100, Math.round((lead.videoWatch.maxPosition / lead.videoWatch.duration) * 100))}%
+                    </strong>
+                    {' '}— reached {fmtMins(lead.videoWatch.maxPosition)} of {fmtMins(lead.videoWatch.duration)}
+                    {' '}({fmtMins(lead.videoWatch.secondsWatched)} total play time)
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)' }}>Not watched yet</span>
+                )
+              }
+            />
             {isHot(lead) && (
               <div style={{ marginTop: 4, padding: '10px 14px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: 8, fontSize: 13, color: '#FF6B6B', fontWeight: 600 }}>
                 🔥 Hot lead — ready now + has budget
+              </div>
+            )}
+          </div>
+
+          <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Email history</h3>
+            {(!lead.emailLogs || lead.emailLogs.length === 0) ? (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+                No automated funnel emails sent to this lead yet. Booking confirmation and
+                call reminders will appear here.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {lead.emailLogs.map((log) => (
+                  <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                    <span title={log.ok ? 'Sent' : `Failed${log.error ? `: ${log.error}` : ''}`}>{log.ok ? '✅' : '❌'}</span>
+                    <span style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--accent)', flexShrink: 0, width: 96 }}>
+                      {EMAIL_KIND_LABELS[log.kind] || log.kind}
+                    </span>
+                    <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{log.subject}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                      {new Date(log.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>

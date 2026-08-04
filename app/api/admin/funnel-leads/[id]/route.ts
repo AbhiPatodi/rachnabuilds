@@ -20,6 +20,12 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   });
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
 
+  const emailLogs = await prisma.funnelEmailLog.findMany({
+    where: { email: lead.email.toLowerCase() },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
   const watches = await prisma.videoWatch.findMany({ where: { email: lead.email } });
   const videoWatch = watches.length
     ? watches.reduce(
@@ -32,7 +38,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       )
     : null;
 
-  return NextResponse.json({ ...lead, videoWatch });
+  return NextResponse.json({ ...lead, videoWatch, emailLogs });
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {

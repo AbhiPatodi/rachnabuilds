@@ -31,10 +31,19 @@ const SERVICE_ICON_KEYS = [
   { value: 'ai',        label: '✦ AI' },
 ];
 
-type TabId = 'general' | 'stats' | 'hero' | 'services' | 'pricing' | 'process' | 'marquee';
+type TabId = 'general' | 'funnel' | 'stats' | 'hero' | 'services' | 'pricing' | 'process' | 'marquee';
+
+const FUNNEL_EMAIL_TOGGLES: { key: string; label: string; hint: string }[] = [
+  { key: 'funnel_reminder_confirmation', label: 'Booking confirmation', hint: 'Sent immediately after a lead books a call' },
+  { key: 'funnel_reminder_12h', label: '12-hour reminder', hint: 'Sent ~12 hours before the call' },
+  { key: 'funnel_reminder_1h', label: '1-hour reminder', hint: 'Sent ~1 hour before the call' },
+  { key: 'funnel_reminder_30m', label: '30-minute reminder', hint: 'Sent ~30 minutes before the call' },
+  { key: 'funnel_reminder_live', label: '"We are live" email', hint: 'Sent at call start time with the join link' },
+];
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'general', label: 'General' },
+  { id: 'funnel', label: 'Funnel Emails' },
   { id: 'stats', label: 'Stats' },
   { id: 'hero', label: 'Hero' },
   { id: 'services', label: 'Services' },
@@ -98,6 +107,8 @@ export default function SettingsPage() {
   const [processStatus, setProcessStatus] = useState<{ ok?: boolean; msg: string } | null>(null);
   const [marqueeStatus, setMarqueeStatus] = useState<{ ok?: boolean; msg: string } | null>(null);
   const [generalSaving, setGeneralSaving] = useState(false);
+  const [funnelSaving, setFunnelSaving] = useState(false);
+  const [funnelStatus, setFunnelStatus] = useState<{ ok?: boolean; msg: string } | null>(null);
   const [statsSaving, setStatsSaving] = useState(false);
   const [heroSaving, setHeroSaving] = useState(false);
   const [servicesSaving, setServicesSaving] = useState(false);
@@ -184,6 +195,14 @@ export default function SettingsPage() {
       },
       setGeneralSaving,
       setGeneralStatus
+    );
+  };
+
+  const handleSaveFunnel = () => {
+    saveBulk(
+      Object.fromEntries(FUNNEL_EMAIL_TOGGLES.map((t) => [t.key, get(t.key, 'on')])),
+      setFunnelSaving,
+      setFunnelStatus
     );
   };
 
@@ -388,6 +407,45 @@ export default function SettingsPage() {
             disabled={generalSaving}
           >
             {generalSaving ? 'Saving...' : 'Save General Settings'}
+          </button>
+        </div>
+      )}
+
+      {/* ── FUNNEL EMAILS ── */}
+      {activeTab === 'funnel' && (
+        <div className="admin-card">
+          <div className="admin-card-title" style={{ marginBottom: 6 }}>Funnel Emails</div>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
+            Automatic emails sent to leads who book a strategy call via /training.
+            Every send is recorded on the lead&apos;s detail page.
+          </p>
+
+          {FUNNEL_EMAIL_TOGGLES.map((t) => {
+            const on = get(t.key, 'on') !== 'off';
+            return (
+              <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{t.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t.hint}</div>
+                </div>
+                <Toggle value={on} onChange={(v) => set(t.key, v ? 'on' : 'off')} />
+              </div>
+            );
+          })}
+
+          {funnelStatus && (
+            <div className={`admin-alert ${funnelStatus.ok ? 'admin-alert-success' : 'admin-alert-error'}`} style={{ margin: '16px 0 0' }}>
+              {funnelStatus.msg}
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary"
+            style={{ marginTop: 20 }}
+            onClick={handleSaveFunnel}
+            disabled={funnelSaving}
+          >
+            {funnelSaving ? 'Saving...' : 'Save Funnel Email Settings'}
           </button>
         </div>
       )}

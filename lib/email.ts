@@ -1,6 +1,23 @@
 import { sendViaGmail } from './googleCalendar';
+import { prisma } from './prisma';
 
 const ADMIN_EMAIL = 'hello@rachnabuilds.com';
+
+/** Record a lead-facing funnel email in the log shown on the admin lead page. */
+async function logFunnelEmail(
+  email: string,
+  kind: string,
+  subject: string,
+  result: { ok: boolean; reason?: string },
+): Promise<void> {
+  try {
+    await prisma.funnelEmailLog.create({
+      data: { email: email.toLowerCase(), kind, subject, ok: result.ok, error: result.reason || null },
+    });
+  } catch (err) {
+    console.error('funnel email log failed', err);
+  }
+}
 const SITE_URL = 'https://rachnabuilds.com';
 
 // ─── Base layout ─────────────────────────────────────────────────────────────
@@ -420,7 +437,10 @@ export async function sendBookingConfirmationToLead(opts: {
     ${opts.meetLink ? ctaButton('Join the Meeting', opts.meetLink) : ''}
     `,
   );
-  return sendEmail(opts.email, `Your call is confirmed — ${when} IST`, html);
+  const subject = `Your call is confirmed — ${when} IST`;
+  const result = await sendEmail(opts.email, subject, html);
+  await logFunnelEmail(opts.email, 'confirmation', subject, result);
+  return result;
 }
 
 /** Timed call reminders — sent to the lead by the cron */
@@ -478,5 +498,7 @@ export async function sendCallReminderToLead(opts: {
     ${bodyText('Need to reschedule? Just reply to this email.')}
     `,
   );
-  return sendEmail(opts.email, c.subject, html);
+  const result = await sendEmail(opts.email, c.subject, html);
+  await logFunnelEmail(opts.email, opts.kind, c.subject, result);
+  return result;
 }

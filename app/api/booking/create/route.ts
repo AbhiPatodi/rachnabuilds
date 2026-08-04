@@ -58,7 +58,12 @@ export async function POST(req: NextRequest) {
 
     sendPushToAll('📅 Call booked!', `${name} booked a call`, '/admin/funnel-leads').catch(() => {});
     notifyCallBooked({ name: name.trim(), email: cleanEmail, whatsapp, startTime, meetLink }).catch(() => {});
-    sendBookingConfirmationToLead({ name: name.trim(), email: cleanEmail, startTime, meetLink }).catch(() => {});
+    prisma.setting.findUnique({ where: { key: 'funnel_reminder_confirmation' } })
+      .then((s) => {
+        if (s?.value === 'off') return;
+        return sendBookingConfirmationToLead({ name: name.trim(), email: cleanEmail, startTime, meetLink });
+      })
+      .catch(() => {});
 
     return NextResponse.json({ ok: true, id: booking.id, meetLink, startTime: startTime.toISOString() });
   } catch (err) {

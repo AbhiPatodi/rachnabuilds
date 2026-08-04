@@ -20,6 +20,12 @@ interface FunnelLead {
   utmMedium: string | null;
   utmCampaign: string | null;
   utmContent: string | null;
+  videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
+}
+
+function watchPct(l: FunnelLead): number | null {
+  if (!l.videoWatch || !l.videoWatch.duration) return null;
+  return Math.min(100, Math.round((l.videoWatch.maxPosition / l.videoWatch.duration) * 100));
 }
 
 const LABELS: Record<string, string> = {
@@ -205,9 +211,20 @@ export default function FunnelLeadsPage() {
                       <td className="fl-col-revenue" style={{ fontSize: 13 }}>{l.revenue ? LABELS[l.revenue] : '—'}</td>
                       <td className="fl-col-readiness" style={{ fontSize: 13 }}>{l.readiness ? LABELS[l.readiness] : '—'}</td>
                       <td style={{ fontSize: 12 }}>
+                        {(() => {
+                          const pct = watchPct(l);
+                          return pct !== null && (
+                            <span
+                              title={`Watched ${Math.floor(l.videoWatch!.secondsWatched / 60)}m ${l.videoWatch!.secondsWatched % 60}s of the VSL — reached ${pct}%`}
+                              style={{ marginRight: 6, fontWeight: 700, color: pct >= 75 ? '#06D6A0' : pct >= 25 ? '#FBBF24' : 'var(--text-muted)' }}
+                            >
+                              📺{pct}%
+                            </span>
+                          );
+                        })()}
                         {audit && audit.status !== 'failed' && <span title="Audit generated" style={{ marginRight: 6 }}>⚡</span>}
                         {l.hasCallScript && <span title="Call script generated">📞</span>}
-                        {!audit && !l.hasCallScript && <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        {!audit && !l.hasCallScript && watchPct(l) === null && <span style={{ color: 'var(--text-muted)' }}>—</span>}
                       </td>
                       <td>
                         <span style={{ fontSize: 11, fontWeight: 700, color: meta.color, background: `${meta.color}1f`, padding: '4px 10px', borderRadius: 100, whiteSpace: 'nowrap' }}>

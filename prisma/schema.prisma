@@ -546,6 +546,19 @@ model Booking {
   @@map("bookings")
 }
 
+model FunnelEmailLog {
+  id        String   @id @default(cuid())
+  email     String
+  kind      String   // confirmation | 12h | 1h | 30m | live
+  subject   String
+  ok        Boolean
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("funnel_email_logs")
+}
+
 model VideoWatch {
   id             String   @id @default(cuid())
   sessionId      String   @unique
