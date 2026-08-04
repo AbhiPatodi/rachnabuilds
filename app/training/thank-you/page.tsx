@@ -15,6 +15,19 @@ export default function ThankYouPage() {
       </div>
 
       <div className="fn-body fn-body-raised">
+      <div className="fn-card fn-card-wide" style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 28 }}>
+        <img
+          src="/training/rachna-headshot.jpg"
+          alt="Rachna, Shopify Conversion Optimization Specialist"
+          style={{ width: 76, height: 76, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(16,185,129,.3)' }}
+        />
+        <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: 'rgba(10,31,19,.75)' }}>
+          &ldquo;I personally review every application myself — no sales team, no gatekeepers.
+          I&apos;ll come to our call already familiar with your store.&rdquo;
+          <br />
+          <strong style={{ color: '#0A1F13' }}>— Rachna</strong>, Shopify Conversion Optimization Specialist
+        </p>
+      </div>
       <div className="fn-steps" style={{ marginTop: 0 }}>
         <div className="fn-step">
           <h3>1. Confirmation Email</h3>

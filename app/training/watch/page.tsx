@@ -35,6 +35,7 @@ export default function WatchVsl() {
         <video
           ref={videoRef}
           src={VSL_URL}
+          poster="/training/vsl-thumbnail.jpg"
           controls={playing}
           playsInline
           preload="metadata"

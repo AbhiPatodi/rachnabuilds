@@ -76,10 +76,15 @@ export default function TrainingLanding() {
       <div className="fn-body fn-body-raised">
       <div className="fn-optin-row">
         <div className="fn-thumb">
+          <img
+            src="/training/vsl-thumbnail.jpg"
+            alt="2%+ CRO Shopify Store in 14 Days — Audit, Optimize, Convert, Grow"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,31,19,.05) 0%, rgba(10,31,19,.55) 100%)' }} />
           <div className="fn-thumb-play">▶</div>
           <div className="fn-thumb-caption">
             <span className="fn-thumb-eyebrow">Watch Now</span>
-            <span className="fn-thumb-title">The Conversion Bottleneck Framework</span>
           </div>
         </div>
       <div className="fn-card" style={{ margin: 0, maxWidth: 'none' }}>
