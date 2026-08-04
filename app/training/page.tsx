@@ -75,14 +75,22 @@ export default function TrainingLanding() {
 
       <div className="fn-body fn-body-raised">
       <div className="fn-optin-row">
-        <div className="fn-thumb">
-          <img
-            src="/training/vsl-thumbnail.jpg"
-            alt="2%+ CRO Shopify Store in 14 Days — Audit, Optimize, Convert, Grow"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,31,19,.18)' }} />
-          <div className="fn-thumb-play">▶</div>
+        <div className="fn-thumb-col">
+          <span className="fn-thumb-label">▶&nbsp; Watch the free training below</span>
+          <div className="fn-thumb">
+            <img
+              src="/training/vsl-thumbnail.jpg"
+              alt="2%+ CRO Shopify Store in 14 Days — Audit, Optimize, Convert, Grow"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,31,19,.18)' }} />
+            <div className="fn-thumb-play">▶</div>
+          </div>
+          <div className="fn-thumb-stats">
+            <div className="fn-thumb-stat"><strong>~12 min</strong><span>Watch time</span></div>
+            <div className="fn-thumb-stat"><strong>100% Free</strong><span>No credit card</span></div>
+            <div className="fn-thumb-stat"><strong>$5K–$50K/mo</strong><span>Built for you</span></div>
+          </div>
         </div>
       <div className="fn-card" style={{ margin: 0, maxWidth: 'none' }}>
         <h2 className="fn-card-title">Enter your details to unlock your next steps</h2>
