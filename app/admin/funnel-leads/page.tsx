@@ -16,6 +16,10 @@ interface FunnelLead {
   createdAt: string;
   hasCallScript?: boolean;
   auditReports?: { id: string; status: string; token: string }[];
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
 }
 
 const LABELS: Record<string, string> = {
@@ -39,11 +43,16 @@ function isHot(l: FunnelLead) {
   return l.readiness === 'right_now' && l.financial === 'ready_now';
 }
 
+function sourceLabel(l: FunnelLead) {
+  return l.utmSource || 'Organic / direct';
+}
+
 export default function FunnelLeadsPage() {
   const [leads, setLeads] = useState<FunnelLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stageTab, setStageTab] = useState<StageTab>('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -59,9 +68,11 @@ export default function FunnelLeadsPage() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
-  const filtered = stageTab === 'all' ? leads : leads.filter((l) => l.stage === stageTab);
+  const stageFiltered = stageTab === 'all' ? leads : leads.filter((l) => l.stage === stageTab);
+  const filtered = sourceFilter === 'all' ? stageFiltered : stageFiltered.filter((l) => sourceLabel(l) === sourceFilter);
   const applied = leads.filter((l) => l.stage === 'applied');
   const hot = applied.filter(isHot);
+  const sources = ['all', ...Array.from(new Set(leads.map(sourceLabel))).sort()];
 
   if (loading) {
     return (
@@ -73,6 +84,11 @@ export default function FunnelLeadsPage() {
 
   return (
     <div className="admin-content">
+      <style>{`
+        @media (max-width: 767px) {
+          .fl-col-source, .fl-col-revenue, .fl-col-readiness, .fl-col-applied { display: none; }
+        }
+      `}</style>
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Funnel Leads</h1>
@@ -101,23 +117,36 @@ export default function FunnelLeadsPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
-        {(['all', 'applied', 'optin'] as StageTab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setStageTab(t)}
-            style={{
-              padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 500,
-              color: stageTab === t ? 'var(--accent)' : 'var(--text-secondary)',
-              borderBottom: stageTab === t ? '2px solid var(--accent)' : '2px solid transparent',
-              marginBottom: -1,
-            }}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 20, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['all', 'applied', 'optin'] as StageTab[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setStageTab(t)}
+              style={{
+                padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 500,
+                color: stageTab === t ? 'var(--accent)' : 'var(--text-secondary)',
+                borderBottom: stageTab === t ? '2px solid var(--accent)' : '2px solid transparent',
+                marginBottom: -1,
+              }}
+            >
+              {t === 'all' ? 'All' : t === 'applied' ? 'Applications' : 'Opt-ins only'}
+            </button>
+          ))}
+        </div>
+        {sources.length > 2 && (
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            style={{ marginBottom: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--text)', fontSize: 12.5 }}
           >
-            {t === 'all' ? 'All' : t === 'applied' ? 'Applications' : 'Opt-ins only'}
-          </button>
-        ))}
+            {sources.map((s) => (
+              <option key={s} value={s}>{s === 'all' ? 'All sources' : s}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className="admin-card" style={{ padding: 0, overflow: 'clip' }}>
@@ -133,11 +162,12 @@ export default function FunnelLeadsPage() {
               <thead>
                 <tr>
                   <th>Lead</th>
-                  <th>Revenue</th>
-                  <th>Readiness</th>
+                  <th className="fl-col-source">Source</th>
+                  <th className="fl-col-revenue">Revenue</th>
+                  <th className="fl-col-readiness">Readiness</th>
                   <th>Assets</th>
                   <th>Status</th>
-                  <th>Applied</th>
+                  <th className="fl-col-applied">Applied</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,8 +192,18 @@ export default function FunnelLeadsPage() {
                           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.email}</div>
                         </Link>
                       </td>
-                      <td style={{ fontSize: 13 }}>{l.revenue ? LABELS[l.revenue] : '—'}</td>
-                      <td style={{ fontSize: 13 }}>{l.readiness ? LABELS[l.readiness] : '—'}</td>
+                      <td className="fl-col-source" style={{ fontSize: 12.5 }}>
+                        {l.utmSource ? (
+                          <span title={[l.utmMedium, l.utmCampaign, l.utmContent].filter(Boolean).join(' / ') || undefined}>
+                            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{l.utmSource}</span>
+                            {l.utmCampaign && <span style={{ color: 'var(--text-muted)' }}> · {l.utmCampaign}</span>}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>Organic / direct</span>
+                        )}
+                      </td>
+                      <td className="fl-col-revenue" style={{ fontSize: 13 }}>{l.revenue ? LABELS[l.revenue] : '—'}</td>
+                      <td className="fl-col-readiness" style={{ fontSize: 13 }}>{l.readiness ? LABELS[l.readiness] : '—'}</td>
                       <td style={{ fontSize: 12 }}>
                         {audit && audit.status !== 'failed' && <span title="Audit generated" style={{ marginRight: 6 }}>⚡</span>}
                         {l.hasCallScript && <span title="Call script generated">📞</span>}
@@ -174,7 +214,7 @@ export default function FunnelLeadsPage() {
                           {meta.label}
                         </span>
                       </td>
-                      <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      <td className="fl-col-applied" style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {new Date(l.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </td>
                     </tr>
