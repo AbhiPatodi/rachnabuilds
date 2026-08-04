@@ -1,15 +1,19 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 
-/**
- * VSL video embed.
- * The SOP's Wistia code is still pending — paste the Wistia (or YouTube/Vimeo)
- * embed URL below when ready and the placeholder disappears automatically.
- */
-const VSL_EMBED_URL = ''; // e.g. 'https://fast.wistia.net/embed/iframe/XXXXXXXX'
+const VSL_URL = 'https://qkuazelkfqffcp2x.public.blob.vercel-storage.com/vsl/rachna-builds-vsl.mp4';
 
 export default function WatchVsl() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const handlePlay = () => {
+    setPlaying(true);
+    videoRef.current?.play();
+  };
+
   return (
     <>
       <div className="fn-hero">
@@ -28,18 +32,29 @@ export default function WatchVsl() {
 
       <div className="fn-body fn-body-raised">
       <div className="fn-video-wrap">
-        {VSL_EMBED_URL ? (
-          <iframe
-            src={VSL_EMBED_URL}
-            title="Free Training — 2%+ Converting Shopify Store"
-            allow="autoplay; fullscreen"
-            allowFullScreen
-          />
-        ) : (
-          <div className="fn-video-placeholder">
+        <video
+          ref={videoRef}
+          src={VSL_URL}
+          controls={playing}
+          playsInline
+          preload="metadata"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        {!playing && (
+          <button
+            type="button"
+            onClick={handlePlay}
+            aria-label="Play the training video"
+            className="fn-video-placeholder"
+            style={{
+              position: 'absolute', inset: 0, width: '100%', border: 'none', cursor: 'pointer',
+              background: 'rgba(10,31,19,0.5)', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 16,
+            }}
+          >
             <div className="play">▶</div>
-            <p>Training video coming right up — meanwhile, apply below for your free audit.</p>
-          </div>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, margin: 0 }}>Click to play</p>
+          </button>
         )}
       </div>
 
