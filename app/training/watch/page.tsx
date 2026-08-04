@@ -1,13 +1,22 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRef, useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 const VSL_URL = 'https://qkuazelkfqffcp2x.public.blob.vercel-storage.com/vsl/rachna-builds-vsl.mp4';
 
-export default function WatchVsl() {
+export default function WatchVslPage() {
+  return (
+    <Suspense fallback={null}>
+      <WatchVsl />
+    </Suspense>
+  );
+}
+
+function WatchVsl() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [gateChecked, setGateChecked] = useState(false);
@@ -27,13 +36,32 @@ export default function WatchVsl() {
     } catch {
       t.sessionId = t.sessionId || `anon-${Math.random().toString(36).slice(2, 12)}`;
     }
-    // Soft gate: no opt-in in this browser session → back to the opt-in form
-    if (!email) {
-      router.replace('/training');
+
+    const leadParam = searchParams.get('lead');
+    if (email) {
+      setGateChecked(true);
       return;
     }
-    setGateChecked(true);
-  }, [router]);
+    if (leadParam) {
+      // Magic link from a follow-up email — restore this lead's session instead
+      // of bouncing them to the opt-in form.
+      fetch(`/api/funnel/lead/${leadParam}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((lead) => {
+          if (!lead) { router.replace('/training'); return; }
+          try {
+            sessionStorage.setItem('fn_lead', JSON.stringify({ name: lead.name, email: lead.email, phone: lead.phone }));
+            sessionStorage.setItem('fn_lead_id', lead.id);
+          } catch {}
+          t.email = lead.email;
+          setGateChecked(true);
+        })
+        .catch(() => router.replace('/training'));
+      return;
+    }
+    // Soft gate: no opt-in in this browser session and no magic link → back to opt-in
+    router.replace('/training');
+  }, [router, searchParams]);
 
   const sendProgress = useCallback((useBeacon = false) => {
     const t = trackRef.current;

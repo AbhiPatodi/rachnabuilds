@@ -61,6 +61,9 @@ const EMAIL_KIND_LABELS: Record<string, string> = {
   '1h': '1h before',
   '30m': '30m before',
   live: 'We’re live',
+  nudge_cold: 'Cold nudge',
+  nudge_watched: 'Watched nudge',
+  nudge_book: 'Book-call nudge',
 };
 
 function fmtMins(sec: number): string {

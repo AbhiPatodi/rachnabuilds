@@ -41,6 +41,12 @@ const FUNNEL_EMAIL_TOGGLES: { key: string; label: string; hint: string }[] = [
   { key: 'funnel_reminder_live', label: '"We are live" email', hint: 'Sent at call start time with the join link' },
 ];
 
+const FUNNEL_NUDGE_TOGGLES: { key: string; label: string; hint: string }[] = [
+  { key: 'funnel_nudge_cold', label: 'Cold opt-in nudge', hint: 'Opted in but never started watching — sent ~2h after opt-in' },
+  { key: 'funnel_nudge_watched', label: 'Watched but stalled nudge', hint: 'Watched 50%+ of the training but never applied — sent ~2h after they stop watching' },
+  { key: 'funnel_nudge_book', label: 'Applied but no call booked nudge', hint: 'Applied but never picked a call time — sent ~3h after applying' },
+];
+
 const TABS: { id: TabId; label: string }[] = [
   { id: 'general', label: 'General' },
   { id: 'funnel', label: 'Funnel Emails' },
@@ -200,7 +206,7 @@ export default function SettingsPage() {
 
   const handleSaveFunnel = () => {
     saveBulk(
-      Object.fromEntries(FUNNEL_EMAIL_TOGGLES.map((t) => [t.key, get(t.key, 'on')])),
+      Object.fromEntries([...FUNNEL_EMAIL_TOGGLES, ...FUNNEL_NUDGE_TOGGLES].map((t) => [t.key, get(t.key, 'on')])),
       setFunnelSaving,
       setFunnelStatus
     );
@@ -416,11 +422,30 @@ export default function SettingsPage() {
         <div className="admin-card">
           <div className="admin-card-title" style={{ marginBottom: 6 }}>Funnel Emails</div>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px' }}>
-            Automatic emails sent to leads who book a strategy call via /training.
-            Every send is recorded on the lead&apos;s detail page.
+            Automatic emails sent to leads via /training. Every send is recorded
+            on the lead&apos;s detail page.
           </p>
 
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 4px' }}>
+            Call reminders
+          </div>
           {FUNNEL_EMAIL_TOGGLES.map((t) => {
+            const on = get(t.key, 'on') !== 'off';
+            return (
+              <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{t.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{t.hint}</div>
+                </div>
+                <Toggle value={on} onChange={(v) => set(t.key, v ? 'on' : 'off')} />
+              </div>
+            );
+          })}
+
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '28px 0 4px' }}>
+            Drop-off nudges
+          </div>
+          {FUNNEL_NUDGE_TOGGLES.map((t) => {
             const on = get(t.key, 'on') !== 'off';
             return (
               <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>

@@ -502,3 +502,76 @@ export async function sendCallReminderToLead(opts: {
   await logFunnelEmail(opts.email, opts.kind, c.subject, result);
   return result;
 }
+
+// ─── Funnel drop-off nudges (opt-in never watched/applied, watched but
+//     stalled, applied but never booked) — sent by the funnel-nudges cron ───
+
+export type NudgeKind = 'nudge_cold' | 'nudge_watched' | 'nudge_book';
+
+/** Has this lead already received this nudge kind? Prevents duplicate sends. */
+export async function hasSentKind(email: string, kind: string): Promise<boolean> {
+  const existing = await prisma.funnelEmailLog.findFirst({
+    where: { email: email.toLowerCase(), kind, ok: true },
+    select: { id: true },
+  });
+  return !!existing;
+}
+
+export async function sendColdOptinNudge(opts: {
+  id: string; name: string; email: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const firstName = opts.name.split(' ')[0];
+  const watchUrl = `${SITE_URL}/training/watch?lead=${opts.id}`;
+  const subject = `${firstName}, your Shopify training is still waiting`;
+  const html = base(
+    subject,
+    `
+    ${heading(`Hey ${firstName} 👋`)}
+    ${bodyText('You unlocked the free training on building a 2%+ converting Shopify store — but haven\'t watched it yet. It only takes about 12 minutes, and it walks through the exact audit → optimize → convert → grow system we use with clients.')}
+    ${ctaButton('Watch the Training Now', watchUrl)}
+    ${bodyText('No pressure if it\'s not the right time — just didn\'t want you to miss it.')}
+    `,
+  );
+  const result = await sendEmail(opts.email, subject, html);
+  await logFunnelEmail(opts.email, 'nudge_cold', subject, result);
+  return result;
+}
+
+export async function sendWatchedStalledNudge(opts: {
+  id: string; name: string; email: string; watchedPct: number;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const firstName = opts.name.split(' ')[0];
+  const applyUrl = `${SITE_URL}/training/apply?lead=${opts.id}`;
+  const subject = `${firstName}, you're most of the way through — one step left`;
+  const html = base(
+    subject,
+    `
+    ${heading(`You're ${opts.watchedPct}% through, ${firstName}`)}
+    ${bodyText('You\'ve watched most of the training — nice. The next step is a free Shopify Conversion Audit: a real look at your store\'s conversion bottlenecks, plus a 1:1 strategy session to walk through what to fix first.')}
+    ${ctaButton('Apply for Your Free Audit', applyUrl)}
+    ${bodyText('Takes about 2 minutes, and we\'ll come to the call already familiar with your store.')}
+    `,
+  );
+  const result = await sendEmail(opts.email, subject, html);
+  await logFunnelEmail(opts.email, 'nudge_watched', subject, result);
+  return result;
+}
+
+export async function sendBookCallNudge(opts: {
+  id: string; name: string; email: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const firstName = opts.name.split(' ')[0];
+  const bookUrl = `${SITE_URL}/training/apply?lead=${opts.id}`;
+  const subject = `${firstName}, let's lock in your strategy call`;
+  const html = base(
+    subject,
+    `
+    ${heading(`Almost there, ${firstName}`)}
+    ${bodyText('Your application for a free Shopify Conversion Audit is in — but you haven\'t picked a time for your strategy call yet. It takes 30 seconds to grab a slot, and the sooner we talk, the sooner we can start fixing what\'s costing you sales.')}
+    ${ctaButton('Pick Your Call Time', bookUrl)}
+    `,
+  );
+  const result = await sendEmail(opts.email, subject, html);
+  await logFunnelEmail(opts.email, 'nudge_book', subject, result);
+  return result;
+}

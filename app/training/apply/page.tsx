@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import BookingWidget from '../BookingWidget';
 
 const CHALLENGES = [
@@ -58,7 +59,16 @@ function RadioGroup({
   );
 }
 
-export default function ApplyPage() {
+export default function ApplyPageRoot() {
+  return (
+    <Suspense fallback={null}>
+      <ApplyPage />
+    </Suspense>
+  );
+}
+
+function ApplyPage() {
+  const searchParams = useSearchParams();
   const [form, setForm] = useState({
     name: '', email: '', whatsapp: '', storeUrl: '', role: '',
     challenge: '', revenue: '', blocker: '', financial: '', readiness: '',
@@ -66,6 +76,7 @@ export default function ApplyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [applied, setApplied] = useState(false);
+  const [checkingLead, setCheckingLead] = useState(true);
 
   // Prefill from the opt-in step
   useEffect(() => {
@@ -79,6 +90,30 @@ export default function ApplyPage() {
       }));
     } catch {}
   }, []);
+
+  // Magic-link from a "you applied but haven't booked" nudge email — restore
+  // the lead's session and jump straight to the call-time picker.
+  useEffect(() => {
+    const leadParam = searchParams.get('lead');
+    if (!leadParam) { setCheckingLead(false); return; }
+    fetch(`/api/funnel/lead/${leadParam}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((lead) => {
+        if (!lead) return;
+        setForm((f) => ({
+          ...f,
+          name: lead.name || f.name,
+          email: lead.email || f.email,
+          whatsapp: lead.whatsapp || lead.phone || f.whatsapp,
+        }));
+        try {
+          sessionStorage.setItem('fn_lead', JSON.stringify({ name: lead.name, email: lead.email, phone: lead.whatsapp || lead.phone }));
+          sessionStorage.setItem('fn_lead_id', lead.id);
+        } catch {}
+        if (lead.stage === 'applied') setApplied(true);
+      })
+      .finally(() => setCheckingLead(false));
+  }, [searchParams]);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -109,6 +144,8 @@ export default function ApplyPage() {
       setSubmitting(false);
     }
   };
+
+  if (checkingLead) return null;
 
   return (
     <>

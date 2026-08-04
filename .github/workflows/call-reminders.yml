@@ -1,8 +1,8 @@
 name: Call reminder emails
 
 # Vercel Hobby only allows daily crons, so GitHub Actions drives the
-# 10-minute reminder cadence instead. GitHub may delay scheduled runs by
-# a few minutes under load — the reminder windows are wide enough.
+# 10-minute cadence instead. GitHub may delay scheduled runs by a few
+# minutes under load — all windows below are wide enough to absorb that.
 on:
   schedule:
     - cron: '*/10 * * * *'
@@ -12,10 +12,17 @@ jobs:
   send-reminders:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger reminder check
+      - name: Trigger call reminder check
         run: |
           code=$(curl -s -o /tmp/out.json -w '%{http_code}' \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             https://rachnabuilds.com/api/cron/reminders)
           cat /tmp/out.json
+          [ "$code" = "200" ] || exit 1
+      - name: Trigger funnel drop-off nudges
+        run: |
+          code=$(curl -s -o /tmp/out2.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://rachnabuilds.com/api/cron/funnel-nudges)
+          cat /tmp/out2.json
           [ "$code" = "200" ] || exit 1
