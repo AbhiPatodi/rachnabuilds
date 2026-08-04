@@ -264,7 +264,16 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
         <div style={{ marginTop: 20 }}>
           {lead.stage !== 'applied' && (
             <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, fontSize: 13, color: '#FBBF24', fontWeight: 600 }}>
-              ✋ Opt-in only — hasn&apos;t submitted the full application yet. See the Application tab.
+              ✋ Opt-in only — hasn&apos;t submitted the full application yet.
+              {lead.videoWatch && lead.videoWatch.duration > 0 && (
+                <> Watched {Math.min(100, Math.round((lead.videoWatch.maxPosition / lead.videoWatch.duration) * 100))}% of the training —
+                {' '}{lead.videoWatch.maxPosition / lead.videoWatch.duration >= 0.5 ? 'worth a follow-up nudge.' : 'may not have gotten far.'}</>
+              )}
+            </div>
+          )}
+          {lead.stage === 'applied' && lead.bookings.length === 0 && (
+            <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13, color: '#38BDF8', fontWeight: 600 }}>
+              📞 Applied but hasn&apos;t booked a call yet — high intent, one email/call away. See the Bookings tab.
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
