@@ -1,13 +1,16 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const VSL_URL = 'https://qkuazelkfqffcp2x.public.blob.vercel-storage.com/vsl/rachna-builds-vsl.mp4';
 
 export default function WatchVsl() {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [gateChecked, setGateChecked] = useState(false);
 
   // ── Watch analytics: accumulate real playtime + furthest position,
   //    beacon to our API so admin can see per-lead watch progress.
@@ -15,14 +18,22 @@ export default function WatchVsl() {
 
   useEffect(() => {
     const t = trackRef.current;
+    let email = '';
     try {
       t.sessionId = sessionStorage.getItem('fn_vid_sid') || crypto.randomUUID();
       sessionStorage.setItem('fn_vid_sid', t.sessionId);
-      t.email = (JSON.parse(sessionStorage.getItem('fn_lead') || '{}').email || '');
+      email = JSON.parse(sessionStorage.getItem('fn_lead') || '{}').email || '';
+      t.email = email;
     } catch {
       t.sessionId = t.sessionId || `anon-${Math.random().toString(36).slice(2, 12)}`;
     }
-  }, []);
+    // Soft gate: no opt-in in this browser session → back to the opt-in form
+    if (!email) {
+      router.replace('/training');
+      return;
+    }
+    setGateChecked(true);
+  }, [router]);
 
   const sendProgress = useCallback((useBeacon = false) => {
     const t = trackRef.current;
@@ -74,6 +85,8 @@ export default function WatchVsl() {
     setPlaying(true);
     videoRef.current?.play();
   };
+
+  if (!gateChecked) return null;
 
   return (
     <>
