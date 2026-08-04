@@ -104,6 +104,7 @@ html:has(.fn-root){scroll-behavior:smooth}
 @media(max-width:640px){
   .fn-hero{padding:36px 18px 30px}
   .fn-body{padding:36px 18px 60px}
+  .fn-body-raised{margin-top:-14px}
   .fn-card{padding:26px 20px}
   .fn-hero-cta{margin-top:22px;display:block;width:100%}
 }
