@@ -119,13 +119,16 @@ export default function TrainingLanding() {
           Please don&apos;t proceed if you don&apos;t belong to this audience.
         </p>
       </div>
-      </div>
 
-      <ul className="fn-bullets">
-        <li><span className="tick">✅</span> Why founder-led Shopify brands aren&apos;t converting the traffic they&apos;re already paying for.</li>
-        <li><span className="tick">✅</span> The hidden conversion mistakes silently killing your ROAS and profits.</li>
-        <li><span className="tick">✅</span> The exact conversion optimization system that helps Shopify brands consistently achieve 2%+ conversion rates without increasing ad spend.</li>
-      </ul>
+      <div className="fn-optin-side">
+        <span className="fn-bullets-title">Inside the free training</span>
+        <ul className="fn-bullets">
+          <li><span className="tick">✅</span> Why founder-led Shopify brands aren&apos;t converting the traffic they&apos;re already paying for.</li>
+          <li><span className="tick">✅</span> The hidden conversion mistakes silently killing your ROAS and profits.</li>
+          <li><span className="tick">✅</span> The exact conversion optimization system that helps Shopify brands consistently achieve 2%+ conversion rates without increasing ad spend.</li>
+        </ul>
+      </div>
+      </div>
       </div>
     </>
   );
