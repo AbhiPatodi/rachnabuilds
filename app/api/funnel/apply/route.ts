@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
+import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     const {
       name, email, whatsapp, storeUrl, role,
       challenge, revenue, blocker, financial, readiness,
-      utmSource, utmMedium, utmCampaign, utmContent,
+      utmSource, utmMedium, utmCampaign, utmContent, metaEventId,
     } = await req.json();
 
     if (!name?.trim()) return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
@@ -82,6 +83,10 @@ export async function POST(req: NextRequest) {
     const isHot = readiness === 'right_now' && financial === 'ready_now';
     // See comment in booking/create/route.ts — after() keeps the function
     // alive for these instead of an unreliable fire-and-forget promise.
+    const fbp = req.cookies.get('_fbp')?.value;
+    const fbc = req.cookies.get('_fbc')?.value;
+    const clientIp = clientIpFromHeaders(req.headers);
+    const userAgent = req.headers.get('user-agent') || undefined;
     after(async () => {
       await sendPushToAll(
         isHot ? '🔥 HOT Funnel Application!' : 'New Funnel Application!',
@@ -104,6 +109,19 @@ export async function POST(req: NextRequest) {
         ],
         message: blocker.trim(),
       }).catch(() => {});
+
+      if (metaEventId) {
+        await sendMetaCapiEvent({
+          eventName: 'CompleteRegistration',
+          eventId: metaEventId,
+          eventSourceUrl: 'https://rachnabuilds.com/training/apply',
+          email: cleanEmail,
+          phone: whatsapp.trim(),
+          fbp, fbc,
+          clientIpAddress: clientIp,
+          clientUserAgent: userAgent,
+        }).catch(() => {});
+      }
     });
 
     return NextResponse.json({ ok: true, id: lead.id });

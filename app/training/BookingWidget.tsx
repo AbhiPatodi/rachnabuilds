@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { newEventId, trackMetaEvent } from '@/lib/metaPixel';
 
 interface Slot {
   start: string;
@@ -64,16 +65,19 @@ export default function BookingWidget() {
     try {
       let funnelLeadId = '';
       try { funnelLeadId = sessionStorage.getItem('fn_lead_id') || ''; } catch {}
+      const metaEventId = newEventId();
       const res = await fetch('/api/booking/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(), email: email.trim(), whatsapp: whatsapp.trim() || undefined,
           start: selected.start, end: selected.end, funnelLeadId: funnelLeadId || undefined,
+          metaEventId,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      trackMetaEvent('Schedule', metaEventId, { content_name: 'Strategy Call Booked' });
       setConfirmed({ startTime: data.startTime, meetLink: data.meetLink });
       setTimeout(() => router.push('/training/thank-you'), 1800);
     } catch (err) {

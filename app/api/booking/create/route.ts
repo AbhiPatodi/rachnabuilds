@@ -4,12 +4,13 @@ import { createCalendarEvent } from '@/lib/googleCalendar';
 import { isSlotStillAvailable, BOOKING_TIMEZONE } from '@/lib/availability';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyCallBooked, sendBookingConfirmationToLead } from '@/lib/email';
+import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, whatsapp, start, end, funnelLeadId } = await req.json();
+    const { name, email, whatsapp, start, end, funnelLeadId, metaEventId } = await req.json();
 
     if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -60,6 +61,10 @@ export async function POST(req: NextRequest) {
     // function can be frozen the instant the response below is sent, killing
     // any send still in flight. `after()` keeps the invocation alive until
     // these finish, without adding latency to the response itself.
+    const fbp = req.cookies.get('_fbp')?.value;
+    const fbc = req.cookies.get('_fbc')?.value;
+    const clientIp = clientIpFromHeaders(req.headers);
+    const userAgent = req.headers.get('user-agent') || undefined;
     after(async () => {
       await sendPushToAll('📅 Call booked!', `${name} booked a call`, '/admin/funnel-leads').catch(() => {});
       await notifyCallBooked({ name: name.trim(), email: cleanEmail, whatsapp, startTime, meetLink }).catch(() => {});
@@ -69,6 +74,18 @@ export async function POST(req: NextRequest) {
           await sendBookingConfirmationToLead({ name: name.trim(), email: cleanEmail, startTime, meetLink });
         }
       } catch {}
+      if (metaEventId) {
+        await sendMetaCapiEvent({
+          eventName: 'Schedule',
+          eventId: metaEventId,
+          eventSourceUrl: 'https://rachnabuilds.com/training/apply',
+          email: cleanEmail,
+          phone: whatsapp,
+          fbp, fbc,
+          clientIpAddress: clientIp,
+          clientUserAgent: userAgent,
+        }).catch(() => {});
+      }
     });
 
     return NextResponse.json({ ok: true, id: booking.id, meetLink, startTime: startTime.toISOString() });

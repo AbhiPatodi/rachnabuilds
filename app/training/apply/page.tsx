@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import BookingWidget from '../BookingWidget';
+import { newEventId, trackMetaEvent } from '@/lib/metaPixel';
 
 const CHALLENGES = [
   { value: 'traffic_no_sales', label: 'Getting traffic but not enough sales' },
@@ -126,10 +127,11 @@ function ApplyPage() {
     try {
       let utms = {};
       try { utms = JSON.parse(sessionStorage.getItem('fn_utms') || '{}'); } catch {}
+      const metaEventId = newEventId();
       const res = await fetch('/api/funnel/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, ...utms }),
+        body: JSON.stringify({ ...form, ...utms, metaEventId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
@@ -137,6 +139,7 @@ function ApplyPage() {
         sessionStorage.setItem('fn_lead', JSON.stringify({ name: form.name, email: form.email, phone: form.whatsapp }));
         sessionStorage.setItem('fn_lead_id', data.id || '');
       } catch {}
+      trackMetaEvent('CompleteRegistration', metaEventId, { content_name: 'VSL Training Application' });
       setApplied(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');

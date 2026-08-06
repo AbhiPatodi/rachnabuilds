@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { newEventId, trackMetaEvent } from '@/lib/metaPixel';
 
 function getUtms() {
   if (typeof window === 'undefined') return {};
@@ -39,16 +40,18 @@ export default function TrainingLanding() {
     setSubmitting(true);
     try {
       const utms = getUtms();
+      const metaEventId = newEventId();
       const res = await fetch('/api/funnel/optin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, ...utms }),
+        body: JSON.stringify({ ...form, ...utms, metaEventId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
       try {
         sessionStorage.setItem('fn_lead', JSON.stringify({ name: form.name, email: form.email, phone: form.phone }));
       } catch {}
+      trackMetaEvent('Lead', metaEventId, { content_name: 'VSL Training Opt-in' });
       router.push('/training/watch');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
@@ -63,15 +66,12 @@ export default function TrainingLanding() {
           <div className="fn-callout">DTC E-commerce Brands · $5K–$50K/month in revenue</div>
 
           <h1 className="fn-h1">
-            Increase Your Shopify Store&apos;s Conversion Rate to <em>2%+ Consistently</em> Every
-            Month in Just 90 Days
+            Increase Your Shopify Store&apos;s Conversion Rate<br className="fn-h1-break" />{' '}
+            to <em>2%+ Consistently</em> Every Month<br className="fn-h1-break" />{' '}
+            in Just 90 Days
           </h1>
 
-          <p className="fn-sub">
-            Free training for founder-led DTC brands already investing in paid traffic.
-          </p>
-
-          <a href="#optin" className="fn-btn fn-hero-cta">Get Free Access Now ↓</a>
+          <a href="#optin" className="fn-btn fn-hero-cta" style={{ marginTop: 30 }}>Get Free Access Now ↓</a>
         </div>
       </div>
 

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
+import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, phone, profession, utmSource, utmMedium, utmCampaign, utmContent } = await req.json();
+    const { name, email, phone, profession, utmSource, utmMedium, utmCampaign, utmContent, metaEventId } = await req.json();
 
     if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -38,6 +39,10 @@ export async function POST(req: NextRequest) {
 
     // See comment in booking/create/route.ts — after() keeps the function
     // alive for these instead of an unreliable fire-and-forget promise.
+    const fbp = req.cookies.get('_fbp')?.value;
+    const fbc = req.cookies.get('_fbc')?.value;
+    const clientIp = clientIpFromHeaders(req.headers);
+    const userAgent = req.headers.get('user-agent') || undefined;
     after(async () => {
       await sendPushToAll('VSL Opt-in!', `${name} (${cleanEmail}) unlocked the training`, '/admin/funnel-leads').catch(() => {});
       await notifyNewLead({
@@ -49,6 +54,18 @@ export async function POST(req: NextRequest) {
           ...(profession?.trim() ? [{ label: 'Profession', value: profession.trim() }] : []),
         ],
       }).catch(() => {});
+      if (metaEventId) {
+        await sendMetaCapiEvent({
+          eventName: 'Lead',
+          eventId: metaEventId,
+          eventSourceUrl: 'https://rachnabuilds.com/training',
+          email: cleanEmail,
+          phone: phone.trim(),
+          fbp, fbc,
+          clientIpAddress: clientIp,
+          clientUserAgent: userAgent,
+        }).catch(() => {});
+      }
     });
 
     return NextResponse.json({ ok: true, id: lead.id });

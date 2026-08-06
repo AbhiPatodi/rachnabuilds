@@ -116,4 +116,5 @@ html:has(.fn-root){scroll-behavior:smooth}
   .fn-body-raised{margin-top:-14px}
   .fn-card{padding:26px 20px}
   .fn-hero-cta{margin-top:22px;display:block;width:100%}
+  .fn-h1-break{display:none}
 }
