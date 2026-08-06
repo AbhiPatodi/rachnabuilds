@@ -62,7 +62,7 @@ export default function TrainingLanding() {
   return (
     <>
       <div className="fn-hero">
-        <div className="fn-hero-inner">
+        <div className="fn-hero-inner fn-hero-inner-wide">
           <div className="fn-callout">DTC E-commerce Brands · $5K–$50K/month in revenue</div>
 
           <h1 className="fn-h1">
