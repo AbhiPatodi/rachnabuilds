@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
@@ -80,27 +80,31 @@ export async function POST(req: NextRequest) {
     });
 
     const isHot = readiness === 'right_now' && financial === 'ready_now';
-    sendPushToAll(
-      isHot ? '🔥 HOT Funnel Application!' : 'New Funnel Application!',
-      `${name} — ${LABELS[revenue]} — ${LABELS[readiness]}`,
-      '/admin/funnel-leads',
-    ).catch(() => {});
+    // See comment in booking/create/route.ts — after() keeps the function
+    // alive for these instead of an unreliable fire-and-forget promise.
+    after(async () => {
+      await sendPushToAll(
+        isHot ? '🔥 HOT Funnel Application!' : 'New Funnel Application!',
+        `${name} — ${LABELS[revenue]} — ${LABELS[readiness]}`,
+        '/admin/funnel-leads',
+      ).catch(() => {});
 
-    notifyNewLead({
-      source: 'VSL Funnel Application',
-      fields: [
-        { label: 'Name', value: name.trim() },
-        { label: 'Email', value: cleanEmail },
-        { label: 'WhatsApp', value: whatsapp.trim() },
-        { label: 'Store URL', value: storeUrl.trim() },
-        ...(role?.trim() ? [{ label: 'Role', value: role.trim() }] : []),
-        { label: 'Challenge', value: LABELS[challenge] },
-        { label: 'Monthly Revenue', value: LABELS[revenue] },
-        { label: 'Financial Situation', value: LABELS[financial] },
-        { label: 'Ready to Start', value: LABELS[readiness] },
-      ],
-      message: blocker.trim(),
-    }).catch(() => {});
+      await notifyNewLead({
+        source: 'VSL Funnel Application',
+        fields: [
+          { label: 'Name', value: name.trim() },
+          { label: 'Email', value: cleanEmail },
+          { label: 'WhatsApp', value: whatsapp.trim() },
+          { label: 'Store URL', value: storeUrl.trim() },
+          ...(role?.trim() ? [{ label: 'Role', value: role.trim() }] : []),
+          { label: 'Challenge', value: LABELS[challenge] },
+          { label: 'Monthly Revenue', value: LABELS[revenue] },
+          { label: 'Financial Situation', value: LABELS[financial] },
+          { label: 'Ready to Start', value: LABELS[readiness] },
+        ],
+        message: blocker.trim(),
+      }).catch(() => {});
+    });
 
     return NextResponse.json({ ok: true, id: lead.id });
   } catch (err) {

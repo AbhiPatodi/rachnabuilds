@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createCalendarEvent } from '@/lib/googleCalendar';
 import { isSlotStillAvailable, BOOKING_TIMEZONE } from '@/lib/availability';
@@ -56,14 +56,20 @@ export async function POST(req: NextRequest) {
       }).catch(() => {});
     }
 
-    sendPushToAll('📅 Call booked!', `${name} booked a call`, '/admin/funnel-leads').catch(() => {});
-    notifyCallBooked({ name: name.trim(), email: cleanEmail, whatsapp, startTime, meetLink }).catch(() => {});
-    prisma.setting.findUnique({ where: { key: 'funnel_reminder_confirmation' } })
-      .then((s) => {
-        if (s?.value === 'off') return;
-        return sendBookingConfirmationToLead({ name: name.trim(), email: cleanEmail, startTime, meetLink });
-      })
-      .catch(() => {});
+    // Fire-and-forget promises are not reliable on Vercel serverless — the
+    // function can be frozen the instant the response below is sent, killing
+    // any send still in flight. `after()` keeps the invocation alive until
+    // these finish, without adding latency to the response itself.
+    after(async () => {
+      await sendPushToAll('📅 Call booked!', `${name} booked a call`, '/admin/funnel-leads').catch(() => {});
+      await notifyCallBooked({ name: name.trim(), email: cleanEmail, whatsapp, startTime, meetLink }).catch(() => {});
+      try {
+        const s = await prisma.setting.findUnique({ where: { key: 'funnel_reminder_confirmation' } });
+        if (s?.value !== 'off') {
+          await sendBookingConfirmationToLead({ name: name.trim(), email: cleanEmail, startTime, meetLink });
+        }
+      } catch {}
+    });
 
     return NextResponse.json({ ok: true, id: booking.id, meetLink, startTime: startTime.toISOString() });
   } catch (err) {
