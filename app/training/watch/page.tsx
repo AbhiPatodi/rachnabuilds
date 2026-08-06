@@ -118,17 +118,11 @@ function WatchVsl() {
 
   return (
     <>
-      <div className="fn-hero">
+      <div className="fn-hero fn-hero-compact">
         <div className="fn-hero-inner">
-          <div className="fn-callout">Free Training · Watch Now</div>
-
-          <h1 className="fn-h1">
+          <h1 className="fn-h1 fn-h1-sm">
             How To Build A <em>2%+ Converting</em> Shopify Store In 14 Days
           </h1>
-
-          <p className="fn-sub">
-            Without increasing your ad budget, or constantly tweaking your ads.
-          </p>
         </div>
       </div>
 
@@ -170,11 +164,6 @@ function WatchVsl() {
       <Link href="/training/apply" className="fn-btn" style={{ maxWidth: 420, margin: '0 auto' }}>
         Apply Now for a 1:1 Consultation →
       </Link>
-
-      <p className="fn-disclaimer" style={{ maxWidth: 480, margin: '20px auto 0' }}>
-        Apply for your <strong>Free Shopify Conversion Audit</strong> — we&apos;ll identify the
-        conversion bottlenecks reducing your sales, whether you decide to work with us or not.
-      </p>
       </div>
 
       <div className="fn-sticky-cta">
