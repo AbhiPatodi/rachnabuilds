@@ -16,7 +16,7 @@ html:has(.fn-root){scroll-behavior:smooth}
 .fn-hero .fn-h1{color:#fff}
 .fn-hero .fn-h1 em{color:#34D399}
 .fn-hero .fn-sub{color:rgba(255,255,255,.65);margin-bottom:0}
-.fn-hero-cta{display:inline-block;width:auto;max-width:none;margin:30px auto 0;padding:15px 32px;box-shadow:0 10px 32px rgba(16,185,129,.3)}
+.fn-btn.fn-hero-cta{display:inline-block;width:auto;max-width:360px;margin:30px auto 0;padding:14px 30px;font-size:15px;box-shadow:0 10px 32px rgba(16,185,129,.3)}
 .fn-hero .fn-callout{color:#34D399;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35)}
 .fn-hero-compact{padding:32px 24px 40px}
 .fn-h1-sm{font-size:clamp(20px,3vw,28px);margin:0}
@@ -118,6 +118,6 @@ html:has(.fn-root){scroll-behavior:smooth}
   .fn-body{padding:36px 18px 60px}
   .fn-body-raised{margin-top:-14px}
   .fn-card{padding:26px 20px}
-  .fn-hero-cta{margin-top:22px;display:block;width:100%}
+  .fn-btn.fn-hero-cta{margin-top:22px;display:block;width:100%;max-width:none;font-size:16px}
   .fn-h1-break{display:none}
 }
