@@ -37,6 +37,11 @@ export default function BookingWidget() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState<{ startTime: string; meetLink: string | null } | null>(null);
+  // If we already have verified name+email from the earlier funnel steps,
+  // skip re-showing the form — just confirm who's booking, with an edit
+  // escape hatch in case something's wrong.
+  const [hasPrefill, setHasPrefill] = useState(false);
+  const [editingDetails, setEditingDetails] = useState(false);
 
   useEffect(() => {
     try {
@@ -44,6 +49,7 @@ export default function BookingWidget() {
       setName(saved.name || '');
       setEmail(saved.email || '');
       setWhatsapp(saved.phone || '');
+      setHasPrefill(!!(saved.name && saved.email));
     } catch {}
 
     fetch('/api/booking/availability')
@@ -168,6 +174,9 @@ export default function BookingWidget() {
   return (
     <div className="fn-card fn-card-wide">
       <h3 className="fn-card-title">Pick a time for your strategy call</h3>
+      <p style={{ textAlign: 'center', fontSize: 12.5, color: 'rgba(10,31,19,0.5)', marginTop: -12, marginBottom: 18 }}>
+        All times shown below are in <strong>India Standard Time (IST)</strong>
+      </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'center', marginBottom: 18, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(10,31,19,0.55)' }}>
@@ -220,7 +229,31 @@ export default function BookingWidget() {
         })}
       </div>
 
-      {selected && (
+      {selected && hasPrefill && !editingDetails && (
+        <>
+          <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 13.5, color: '#0A1F13', lineHeight: 1.6 }}>
+              Booking as <strong>{name}</strong> · {email}
+              {whatsapp && <> · {whatsapp}</>}
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditingDetails(true)}
+              style={{ background: 'none', border: 'none', padding: 0, fontSize: 12.5, fontWeight: 700, color: '#0E8A6E', cursor: 'pointer', textDecoration: 'underline', flexShrink: 0 }}
+            >
+              Not you? Edit
+            </button>
+          </div>
+
+          {error && <div className="fn-error">{error}</div>}
+
+          <button className="fn-btn" type="button" disabled={submitting} onClick={book}>
+            {submitting ? 'Booking…' : 'Confirm Call →'}
+          </button>
+        </>
+      )}
+
+      {selected && (!hasPrefill || editingDetails) && (
         <>
           <div className="fn-field">
             <label className="fn-label" htmlFor="bk-name">Name</label>
