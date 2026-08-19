@@ -36,55 +36,23 @@ const testimonials = [
   },
 ];
 
-const portfolioProjects = [
-  {
-    num: '01',
-    name: 'Welevate Club',
-    url: 'welevateclub.com',
-    desc: 'Custom Shopify store for a premium wellness brand. Full Liquid theme build with subscription integration.',
-    tags: ['Shopify', 'Custom Liquid', 'ReCharge'],
-    img: 'https://images.pexels.com/photos/5717978/pexels-photo-5717978.jpeg?auto=compress&cs=tinysrgb&h=400&w=700',
-  },
-  {
-    num: '02',
-    name: 'Oh Little Wren',
-    url: 'ohlittlewren.com',
-    desc: "Boutique children's brand. Bespoke theme with gift messaging, wishlists, and Instagram feed.",
-    tags: ['Shopify', 'Custom Theme', 'Klaviyo'],
-    img: 'https://images.pexels.com/photos/5717973/pexels-photo-5717973.jpeg?auto=compress&cs=tinysrgb&h=400&w=700',
-  },
-  {
-    num: '03',
-    name: 'Galatea',
-    url: 'shop.galatea.com',
-    desc: 'Fashion brand on Shopify Plus. Advanced filtering, lookbook pages, and multi-currency.',
-    tags: ['Shopify Plus', 'Multi-Currency', 'Luxury'],
-    img: 'https://images.pexels.com/photos/9218544/pexels-photo-9218544.jpeg?auto=compress&cs=tinysrgb&h=400&w=700',
-  },
-  {
-    num: '04',
-    name: 'MyWaveX',
-    url: 'us.mywavex.com',
-    desc: 'WooCommerce to Shopify Plus migration with full data preservation and zero SEO loss.',
-    tags: ['Migration', 'Shopify Plus', 'SEO'],
-    img: 'https://images.pexels.com/photos/5625045/pexels-photo-5625045.jpeg?auto=compress&cs=tinysrgb&h=400&w=700',
-  },
-  {
-    num: '05',
-    name: 'Halo Coffee',
-    url: 'halo.coffee',
-    desc: 'Speed optimisation from 42→94 PageSpeed + full Klaviyo email flows setup.',
-    tags: ['Speed Optimisation', 'Klaviyo', 'CRO'],
-    img: 'https://images.pexels.com/photos/5717981/pexels-photo-5717981.jpeg?auto=compress&cs=tinysrgb&h=400&w=700',
-  },
-  {
-    num: '06',
-    name: 'Revoo Concept',
-    url: 'revooconcept.com',
-    desc: 'D2C fashion store. Conversion-focused design with bundles, upsells, and custom cart.',
-    tags: ['Shopify', 'D2C', 'CRO'],
-    img: 'https://images.pexels.com/photos/7667453/pexels-photo-7667453.jpeg?auto=compress&cs=tinysrgb&h=400&w=700',
-  },
+// Success-stories marquee cards. `img` is a real screenshot of the live
+// client site (public/portfolio/). Set `video` to a hosted brand clip
+// (mp4, muted-loop-friendly) and it automatically replaces the image.
+interface PortfolioProject {
+  name: string;
+  url: string;
+  img: string;
+  video?: string;
+}
+
+const portfolioProjects: PortfolioProject[] = [
+  { name: 'Welevate Club', url: 'welevateclub.com', img: '/portfolio/welevateclub.jpg' },
+  { name: 'Oh Little Wren', url: 'ohlittlewren.com', img: '/portfolio/ohlittlewren.jpg' },
+  { name: 'Galatea', url: 'shop.galatea.com', img: '/portfolio/galatea.jpg' },
+  { name: 'MyWaveX', url: 'us.mywavex.com', img: '/portfolio/mywavex.jpg' },
+  { name: 'Halo Coffee', url: 'halo.coffee', img: '/portfolio/halocoffee.jpg' },
+  { name: 'Revoo Concept', url: 'revooconcept.com', img: '/portfolio/revooconcept.jpg' },
 ];
 
 const marqueeItems = [
@@ -709,34 +677,32 @@ export default function HomeV2Client() {
           </div>
 
           <div className="portfolio-watermark">Portfolio</div>
+        </div>
 
-          <div className="portfolio-grid">
-            {portfolioProjects.map((p, i) => (
-              <div
-                className="portfolio-card reveal"
-                style={{ transitionDelay: `${(i % 3) * 0.08}s` }}
+        {/* Tilted auto-scrolling strip of live client sites. Track content is
+            duplicated so the -50% translate loops seamlessly; duplicate cards
+            are aria-hidden so screen readers hear each site once. */}
+        <div className="ss-band">
+          <div className="ss-track">
+            {[...portfolioProjects, ...portfolioProjects].map((p, i) => (
+              <a
                 key={i}
+                className="ss-card"
+                href={`https://${p.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-hidden={i >= portfolioProjects.length || undefined}
+                tabIndex={i >= portfolioProjects.length ? -1 : undefined}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="portfolio-card-thumb" src={p.img} alt={p.name} loading="lazy" />
-                <p className="portfolio-card-num">{p.num}</p>
-                <h3 className="portfolio-card-logo">{p.name}</h3>
-                <p className="portfolio-card-url">{p.url}</p>
-                <p className="portfolio-card-desc">{p.desc}</p>
-                <div className="portfolio-tags">
-                  {p.tags.map((tag, j) => (
-                    <span className="portfolio-tag" key={j}>{tag}</span>
-                  ))}
-                </div>
-                <a
-                  href={`https://${p.url}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="portfolio-card-link"
-                >
-                  Visit site →
-                </a>
-              </div>
+                {p.video ? (
+                  <video src={p.video} poster={p.img} muted loop playsInline autoPlay preload="metadata" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.img} alt={`${p.name} — live store built by Rachna Builds`} loading="lazy" />
+                )}
+                <span className="ss-card-name">{p.name}</span>
+                <span className="ss-card-url">{p.url} →</span>
+              </a>
             ))}
           </div>
         </div>

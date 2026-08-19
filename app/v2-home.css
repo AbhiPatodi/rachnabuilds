@@ -270,23 +270,27 @@
 /* ============================================================
    PORTFOLIO / SUCCESS STORIES
    ============================================================ */
-.v2home .portfolio-section{padding:100px 0;background:var(--bg);border-top:1px solid var(--border)}
+.v2home .portfolio-section{padding:100px 0 120px;background:#0A1F13;border-top:1px solid var(--border);overflow:hidden}
 .v2home .portfolio-inner{max-width:1280px;margin:0 auto;padding:0 48px}
-.v2home .portfolio-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:60px;gap:40px}
-.v2home .portfolio-watermark{font-family:var(--heading-font);font-weight:900;font-size:clamp(80px,14vw,200px);color:rgba(var(--ink-rgb),0.03);text-transform:uppercase;letter-spacing:-0.04em;line-height:1;user-select:none;position:relative;margin-bottom:-40px;z-index:0}
-.v2home .portfolio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);position:relative;z-index:1}
-.v2home .portfolio-card{background:var(--bg);padding:36px 32px;display:flex;flex-direction:column;gap:12px;transition:background 0.2s;border:none}
-.v2home .portfolio-card:hover{background:var(--bg-card)}
-.v2home .portfolio-card-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:block;margin-bottom:4px;opacity:0.85;transition:opacity 0.3s}
-.v2home .portfolio-card:hover .portfolio-card-thumb{opacity:1}
-.v2home .portfolio-card-num{font-size:10px;font-weight:700;letter-spacing:0.2em;color:var(--text-muted);text-transform:uppercase}
-.v2home .portfolio-card-logo{font-family:var(--heading-font);font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.02em;line-height:1.1}
-.v2home .portfolio-card-url{font-size:11px;color:var(--text-muted);letter-spacing:0.02em}
-.v2home .portfolio-card-desc{font-size:13px;color:var(--text-dim);line-height:1.6;flex:1}
-.v2home .portfolio-tags{display:flex;flex-wrap:wrap;gap:6px}
-.v2home .portfolio-tag{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);background:rgba(var(--ink-rgb),0.04);border:1px solid var(--border);padding:4px 10px;border-radius:4px}
-.v2home .portfolio-card-link{font-size:11px;font-weight:700;color:rgba(var(--ink-rgb),0.35);letter-spacing:0.06em;text-transform:uppercase;padding-top:12px;border-top:1px solid var(--border);display:inline-flex;align-items:center;gap:6px;transition:color 0.2s,gap 0.2s}
-.v2home .portfolio-card-link:hover{color:var(--text);gap:10px}
+.v2home .portfolio-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:12px;gap:40px}
+.v2home .portfolio-section .section-label{color:#34D399}
+.v2home .portfolio-section .section-title{color:#fff}
+.v2home .portfolio-section .btn-ghost{color:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.25)}
+.v2home .portfolio-section .btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.6)}
+.v2home .portfolio-watermark{font-family:var(--heading-font);font-weight:900;font-size:clamp(80px,14vw,200px);color:rgba(255,255,255,0.04);text-transform:uppercase;letter-spacing:-0.04em;line-height:1;user-select:none;position:relative;margin-bottom:-40px;z-index:0}
+
+/* ── Success-stories marquee: tilted, auto-scrolling strip of client sites ── */
+.v2home .ss-band{position:relative;z-index:1;margin:-30px -4% 0;width:108%;transform:rotate(-3deg)}
+.v2home .ss-track{display:flex;gap:22px;width:max-content;padding:14px 0;animation:ss-scroll 55s linear infinite;will-change:transform}
+.v2home .ss-band:hover .ss-track{animation-play-state:paused}
+@keyframes ss-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.v2home .ss-card{position:relative;flex:0 0 auto;width:460px;aspect-ratio:16/9;border-radius:14px;overflow:hidden;display:block;background:#06130C;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 48px rgba(0,0,0,0.4)}
+.v2home .ss-card img,.v2home .ss-card video{width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform 0.5s ease}
+.v2home .ss-card:hover img,.v2home .ss-card:hover video{transform:scale(1.04)}
+.v2home .ss-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0) 28%,rgba(0,0,0,0) 55%,rgba(0,0,0,0.6) 100%);pointer-events:none}
+.v2home .ss-card-name{position:absolute;top:12px;left:14px;z-index:2;color:#fff;font-family:var(--heading-font);font-weight:700;font-size:15px;letter-spacing:-0.01em;background:rgba(6,19,12,0.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);padding:5px 12px;border-radius:100px;border:1px solid rgba(255,255,255,0.14)}
+.v2home .ss-card-url{position:absolute;bottom:12px;left:14px;z-index:2;color:rgba(255,255,255,0.95);font-size:12px;font-weight:600;letter-spacing:0.02em;background:rgba(6,19,12,0.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);padding:4px 11px;border-radius:100px}
+@media(prefers-reduced-motion:reduce){.v2home .ss-track{animation:none}}
 
 /* ============================================================
    AWARDS
@@ -364,7 +368,6 @@
   .v2home .stat-item:nth-child(odd) .stat-item-inner,.v2home .stat-item:nth-child(even) .stat-item-inner{padding-left:24px}
   .v2home .stat-item:first-child .stat-item-inner{padding-left:0}
   .v2home .stat-item:nth-child(n+3){border-bottom:none}
-  .v2home .portfolio-grid{grid-template-columns:repeat(2,1fr)}
   .v2home .portfolio-header{flex-direction:column;align-items:flex-start;gap:16px}
   .v2home .awards-grid{grid-template-columns:1fr}
   .v2home .cta-inner{grid-template-columns:1fr;gap:40px}
@@ -375,7 +378,8 @@
   .v2home .hero-cta-row{flex-direction:column;align-items:flex-start}
   .v2home .service-card{width:86vw}
   .v2home .service-card-list{grid-template-columns:1fr}
-  .v2home .portfolio-grid{grid-template-columns:1fr}
+  .v2home .ss-card{width:300px}
+  .v2home .ss-track{gap:14px;animation-duration:40s}
   .v2home .footer-inner{grid-template-columns:1fr}
   .v2home .footer-bottom{flex-direction:column;text-align:center}
   .v2home .cta-actions{flex-direction:column}
