@@ -517,6 +517,28 @@ export async function hasSentKind(email: string, kind: string): Promise<boolean>
   return !!existing;
 }
 
+/** Sent immediately when a Meta Instant Form lead is auto-synced — gives
+ *  them the training via magic link so they enter the funnel properly. */
+export async function sendInstantFormWelcome(opts: {
+  id: string; name: string; email: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const firstName = opts.name.split(' ')[0];
+  const watchUrl = `${SITE_URL}/training/watch?lead=${opts.id}`;
+  const subject = `${firstName}, here's your free Shopify training 🎉`;
+  const html = base(
+    subject,
+    `
+    ${heading(`Welcome, ${firstName}!`)}
+    ${bodyText('Thanks for requesting the free training. It\'s a ~12 minute walkthrough of the exact audit → optimize → convert → grow system we use to get Shopify stores to a 2%+ conversion rate — without increasing ad spend.')}
+    ${ctaButton('Watch the Training Now', watchUrl)}
+    ${bodyText('After watching, you\'ll be able to apply for a free 1:1 Shopify Conversion Audit with Rachna. Questions? Just reply to this email.')}
+    `,
+  );
+  const result = await sendEmail(opts.email, subject, html);
+  await logFunnelEmail(opts.email, 'instant_welcome', subject, result);
+  return result;
+}
+
 export async function sendColdOptinNudge(opts: {
   id: string; name: string; email: string;
 }): Promise<{ ok: boolean; reason?: string }> {

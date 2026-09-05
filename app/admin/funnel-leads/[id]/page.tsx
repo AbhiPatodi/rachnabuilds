@@ -64,6 +64,7 @@ const EMAIL_KIND_LABELS: Record<string, string> = {
   nudge_cold: 'Cold nudge',
   nudge_watched: 'Watched nudge',
   nudge_book: 'Book-call nudge',
+  instant_welcome: 'IG/FB welcome',
 };
 
 function fmtMins(sec: number): string {
