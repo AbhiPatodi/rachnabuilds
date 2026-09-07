@@ -113,12 +113,14 @@ export async function POST(req: NextRequest) {
 
         await sendInstantFormWelcome({ id: dbLead.id, name, email }).catch(() => {});
         await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, '/admin/funnel-leads').catch(() => {});
+        const waDigits = phone.replace(/[^0-9]/g, '');
         await notifyNewLead({
           source: 'Meta Instant Form (auto-synced)',
           fields: [
             { label: 'Name', value: name },
             { label: 'Email', value: email },
             ...(phone ? [{ label: 'Phone', value: phone }] : []),
+            ...(waDigits ? [{ label: 'Reply now', value: `https://wa.me/${waDigits}?text=${encodeURIComponent(`Hi ${name.split(' ')[0]}! Rachna here — got your request for a free Shopify store audit. When's a good time for a quick chat?`)}` }] : []),
             ...(lead.campaign_name ? [{ label: 'Campaign', value: lead.campaign_name }] : []),
             ...(lead.ad_name ? [{ label: 'Ad', value: lead.ad_name }] : []),
           ],

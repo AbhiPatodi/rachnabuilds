@@ -125,7 +125,11 @@ function infoBox(rows: Array<{ label: string; value: string }>): string {
         <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94A3B8;">${r.label}</span>
       </td>
       <td style="padding:10px 16px;border-bottom:1px solid #F1F5F9;vertical-align:top;">
-        <span style="font-size:14px;color:#1E293B;font-weight:500;">${r.value}</span>
+        <span style="font-size:14px;color:#1E293B;font-weight:500;">${
+          r.value.startsWith('https://')
+            ? `<a href="${r.value}" style="color:#06D6A0;font-weight:700;">${r.value.replace('https://', '')} ↗</a>`
+            : r.value
+        }</span>
       </td>
     </tr>`).join('');
 
@@ -517,21 +521,23 @@ export async function hasSentKind(email: string, kind: string): Promise<boolean>
   return !!existing;
 }
 
-/** Sent immediately when a Meta Instant Form lead is auto-synced — gives
- *  them the training via magic link so they enter the funnel properly. */
+/** Sent immediately when a Meta Instant Form lead is auto-synced.
+ *  Connect-first model: Rachna reaches out personally on WhatsApp; the email
+ *  confirms the request and offers a direct booking link for the impatient. */
 export async function sendInstantFormWelcome(opts: {
   id: string; name: string; email: string;
 }): Promise<{ ok: boolean; reason?: string }> {
   const firstName = opts.name.split(' ')[0];
-  const watchUrl = `${SITE_URL}/training/watch?lead=${opts.id}`;
-  const subject = `${firstName}, here's your free Shopify training 🎉`;
+  const bookUrl = `${SITE_URL}/training/apply?lead=${opts.id}`;
+  const subject = `${firstName}, your free store audit request is in ✅`;
   const html = base(
     subject,
     `
-    ${heading(`Welcome, ${firstName}!`)}
-    ${bodyText('Thanks for requesting the free training. It\'s a ~12 minute walkthrough of the exact audit → optimize → convert → grow system we use to get Shopify stores to a 2%+ conversion rate — without increasing ad spend.')}
-    ${ctaButton('Watch the Training Now', watchUrl)}
-    ${bodyText('After watching, you\'ll be able to apply for a free 1:1 Shopify Conversion Audit with Rachna. Questions? Just reply to this email.')}
+    ${heading(`Got it, ${firstName}!`)}
+    ${bodyText('Thanks for requesting your <strong>free Shopify conversion audit</strong>. Rachna will personally message you on WhatsApp shortly to understand your store and set up your audit — no sales team, no gatekeepers.')}
+    ${bodyText('Don\'t want to wait? Pick a time for your call right now:')}
+    ${ctaButton('Book My Audit Call', bookUrl)}
+    ${bodyText('Questions in the meantime? Just reply to this email.')}
     `,
   );
   const result = await sendEmail(opts.email, subject, html);
