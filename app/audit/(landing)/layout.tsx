@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '../training/funnel.css';
+import '../../training/funnel.css';
 import './audit.css';
 
 export const metadata: Metadata = {

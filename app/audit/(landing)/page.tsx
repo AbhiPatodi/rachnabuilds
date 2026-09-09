@@ -33,6 +33,9 @@ function Cta({ id, children = 'Get My Free Store Audit →' }: { id: string; chi
   );
 }
 
+// Same file the /training/watch page plays — replace the blob to update both.
+const VSL_URL = 'https://qkuazelkfqffcp2x.public.blob.vercel-storage.com/vsl/rachna-builds-vsl.mp4';
+
 const CALL_BULLETS = [
   ['Total clarity', 'The 3 biggest conversion leaks in your store — found live, on the call, with you watching.'],
   ['A real gameplan', 'A sustainable plan to fix them — design, trust and UX. No hacks, no gimmicks.'],
@@ -102,20 +105,27 @@ export default function AuditLanding() {
         </div>
       </div>
 
-      {/* ── What you get on the call ── */}
-      <section className="daf-section">
+      {/* ── VSL + claim bullets (the playbook's [Image/B2B VSL] hero row) ── */}
+      <section className="daf-section daf-vsl-section">
         <div className="daf-inner">
-          <h2 className="daf-h2">What You Walk Away With</h2>
-          <p className="daf-lead">This isn&apos;t a sales call with an audit sprinkled on top. You leave with:</p>
-          <div className="daf-grid">
-            {CALL_BULLETS.map(([title, body]) => (
-              <div key={title} className="daf-tile">
-                <h3>{title}</h3>
-                <p>{body}</p>
-              </div>
-            ))}
+          <div className="daf-vslrow">
+            <div className="daf-vsl">
+              <video src={VSL_URL} controls playsInline preload="metadata" />
+            </div>
+            <div className="daf-claim">
+              <h2 className="daf-h2 daf-claim-h">Claim Your Free 1:1 Store Audit</h2>
+              <p className="daf-claim-sub">This isn&apos;t a sales call with an audit sprinkled on top. You leave with:</p>
+              <ul className="daf-ticks">
+                {CALL_BULLETS.map(([title, body]) => (
+                  <li key={title}>
+                    <span className="tick">✓</span>
+                    <span><strong>{title}.</strong> {body}</span>
+                  </li>
+                ))}
+              </ul>
+              <Cta id="benefits" />
+            </div>
           </div>
-          <Cta id="benefits" />
         </div>
       </section>
 
