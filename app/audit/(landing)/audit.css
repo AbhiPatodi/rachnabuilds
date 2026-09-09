@@ -2,6 +2,8 @@
 
 .daf-hero{padding:64px 24px 72px}
 .daf-hero-sub{font-size:17px;line-height:1.6;color:rgba(255,255,255,.68);max-width:640px;margin:0 auto}
+/* trim the sub to one thought on phones — cold ad traffic decides fast */
+@media(max-width:640px){.daf-sub-more{display:none}}
 .daf-cta{display:inline-block;width:auto;max-width:420px;padding:16px 34px;font-size:16px;box-shadow:0 10px 32px rgba(16,185,129,.3)}
 .daf-hero .daf-cta{margin:32px auto 0}
 .daf-micro{font-size:13px;color:rgba(255,255,255,.5);margin-top:16px}
@@ -44,7 +46,7 @@
 
 /* Case studies */
 .daf-case{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;text-align:left;padding:36px 0}
-.daf-case + .daf-case,.daf-midcta + div .daf-case{border-top:1px solid rgba(10,31,19,.08)}
+.daf-case-block + .daf-case-block .daf-case{border-top:1px solid rgba(10,31,19,.08)}
 .daf-case-flip .daf-case-media{order:2}
 .daf-case-flip .daf-case-copy{order:1}
 .daf-case-media{border-radius:14px;overflow:hidden;border:1px solid rgba(10,31,19,.1);box-shadow:0 12px 36px rgba(10,31,19,.1);aspect-ratio:16/11;background:#0A1F13}

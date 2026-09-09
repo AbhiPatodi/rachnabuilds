@@ -104,15 +104,15 @@ export default function AuditLanding() {
       {/* ── Hero ── */}
       <div className="fn-hero daf-hero">
         <div className="fn-hero-inner fn-hero-inner-wide">
-          <div className="fn-callout">For DTC &amp; Shopify Brand Founders</div>
+          <div className="fn-callout">For Shopify Brand Founders</div>
           <h1 className="fn-h1">
             Get Your Store to a <em>2%+ Conversion Rate</em>{' '}
             <br className="fn-h1-break" />
-            in 90 Days — Without Spending More on Ads
+            — Without Spending More on Ads
           </h1>
           <p className="daf-hero-sub">
-            Claim a free 1:1 store audit. We go through your store live, show you exactly where
-            sales are leaking, and hand you the fix-list — whether we ever work together or not.
+            Free 1:1 audit: we find exactly where your store leaks sales — and hand you the
+            fix-list<span className="daf-sub-more">, whether we ever work together or not</span>.
           </p>
           <Cta id="hero" />
           <div className="daf-micro">30 minutes · 1-on-1 with Rachna · No obligation</div>
@@ -169,7 +169,7 @@ export default function AuditLanding() {
       <section className="daf-section">
         <div className="daf-inner">
           {CASE_STUDIES.map((cs, i) => (
-            <div key={cs.tag}>
+            <div key={cs.tag} className="daf-case-block">
               <article className={`daf-case${i % 2 ? ' daf-case-flip' : ''}`}>
                 <div className="daf-case-media">
                   <img src={cs.img} alt={cs.brand} loading="lazy" />
