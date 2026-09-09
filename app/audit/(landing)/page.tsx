@@ -53,32 +53,46 @@ const WHY_US = [
 const CASE_STUDIES = [
   {
     tag: 'CASE STUDY #1',
-    title: 'A UK skincare brand whose store finally matched the product',
-    brand: 'Nuwa · hellonuwa.com',
-    img: '/audit/nuwa.jpg',
-    body: 'Kim came to us with a beautiful clean-skincare line living inside a storefront that didn’t sell it. We redesigned the site end-to-end and built her a merchant-controlled design system — so her team changes colors, sections and campaigns without ever calling a developer. The store is live and running on it today.',
-    chips: ['Site-wide redesign', 'Merchant design system', 'Live in the UK'],
+    title: 'A performance brand serving 40,000+ customers in 75+ countries',
+    brand: 'Welevate · welevateclub.com',
+    img: '/audit/welevate.jpg',
+    body: 'Welevate sells breathing-performance products worldwide — rated 4.9★ by 40,000+ customers and featured in GQ, Men’s Health and Healthline. A store at that volume can’t afford friction: every section is built to move visitors from claim → proof → purchase without a wasted scroll.',
+    chips: ['4.9★ · 40,000+ customers', 'Ships to 75+ countries', 'Featured in GQ & Men’s Health'],
   },
   {
     tag: 'CASE STUDY #2',
-    title: 'A fashion label launched from zero to selling',
-    brand: 'Labelina · labelina.in',
-    img: '/audit/labelina.jpg',
-    body: 'First-time D2C founders with no store at all. We built everything a brand needs to start taking orders: the storefront, Razorpay + COD checkout flows, partial-advance payments, and Shiprocket logistics wired in — launched and selling.',
-    chips: ['Full store launch', 'Payments + COD flows', 'Logistics connected'],
+    title: 'A vegan beauty brand with 37,500+ happy customers',
+    brand: 'LOVAYA · lovayacosmetics.com',
+    img: '/audit/lovaya.jpg',
+    body: 'LOVAYA competes in one of the hardest niches online — cosmetics. The storefront stacks the conversion levers that matter: a no-questions money-back guarantee front and center, bundles that raise order value, and press credibility from Vogue, Elle and Harper’s Bazaar.',
+    chips: ['37,500+ customers', 'Vogue · Elle · Harper’s Bazaar', 'Guarantee-led selling'],
   },
   {
     tag: 'CASE STUDY #3',
-    title: 'A product page engineered to answer every objection',
-    brand: 'Sage & Veda · Ayurvedic wellness',
-    img: null,
-    monogram: 'S&V',
-    body: 'For a premium ayurvedic wellness brand, we built a 10-section product page where every scroll answers the shopper’s next doubt — story, ritual, ingredients, trust, reviews. This is what conversion-first design looks like on the page where buying decisions actually happen.',
-    chips: ['10-section PDP', 'Conversion-first layout', 'Premium positioning'],
+    title: 'A UK skincare brand whose store finally matched the product',
+    brand: 'Nuwa · hellonuwa.com',
+    img: '/audit/nuwa.jpg',
+    body: 'Kim came to us with a beautiful clean-skincare line living inside a storefront that didn’t sell it. We redesigned the site end-to-end and built her a merchant-controlled design system — so her team changes colors, sections and campaigns without ever calling a developer. Today: 4.9★ across 103 reviews, featured in Tatler and Marie Claire.',
+    chips: ['Site-wide redesign', '4.9★ · 103 reviews', 'Tatler & Marie Claire'],
+  },
+  {
+    tag: 'CASE STUDY #4',
+    title: 'A wellness brand built to sell by mood, not category',
+    brand: 'Sage & Veda · sageandveda.com',
+    img: '/audit/sageandveda.jpg',
+    body: 'Founded by three sisters, Sage & Veda sells ayurvedic oils organised around how you want to feel — Calm, Confident, Lifted. We built the store conversion-first: a 10-section product page where every scroll answers the shopper’s next doubt, backed by a 4.8★ rating and certification trust badges.',
+    chips: ['4.8★ rated', '10-section PDP', 'Live in the US'],
   },
 ] as const;
 
-const PORTFOLIO = ['galatea', 'halocoffee', 'mywavex', 'ohlittlewren', 'revooconcept', 'welevateclub'];
+const PORTFOLIO = [
+  { img: '/audit/ohlittlewren.jpg', name: 'Oh, Little Wren', meta: 'Kids & family · US · 1,173 reviews' },
+  { img: '/audit/vovia.jpg', name: 'VOVIA', meta: 'Luxury bags · Europe' },
+  { img: '/audit/sinhali.jpg', name: 'Sinhali', meta: 'Handwoven couture · India' },
+  { img: '/audit/motherlove.jpg', name: 'MotherLove Kitchen', meta: 'Clean baking mixes · US' },
+  { img: '/audit/slfinest.jpg', name: 'SL Finest Food', meta: 'Wellness drinks · Malaysia' },
+  { img: '/audit/labelina.jpg', name: 'Labelina', meta: 'Fashion label · India' },
+];
 
 export default function AuditLanding() {
   useEffect(() => {
@@ -133,12 +147,19 @@ export default function AuditLanding() {
       <section className="daf-section daf-section-alt">
         <div className="daf-inner">
           <h2 className="daf-h2">Stores We&apos;ve Designed &amp; Built</h2>
-          <p className="daf-lead">Brands across India, the UK and Australia trust us with the page their revenue depends on.</p>
+          <p className="daf-lead">
+            Brands across India, the US, UK, Europe and Southeast Asia trust us with the page their
+            revenue depends on — including stores serving 40,000+ customers.
+          </p>
           <div className="daf-proof">
             {PORTFOLIO.map((p) => (
-              <div key={p} className="daf-proof-shot">
-                <img src={`/portfolio/${p}.jpg`} alt="Shopify store designed by Rachna Builds" loading="lazy" />
-              </div>
+              <figure key={p.name} className="daf-proof-shot">
+                <img src={p.img} alt={`${p.name} — Shopify store designed by Rachna Builds`} loading="lazy" />
+                <figcaption>
+                  <strong>{p.name}</strong>
+                  <span>{p.meta}</span>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
@@ -151,11 +172,7 @@ export default function AuditLanding() {
             <div key={cs.tag}>
               <article className={`daf-case${i % 2 ? ' daf-case-flip' : ''}`}>
                 <div className="daf-case-media">
-                  {'img' in cs && cs.img ? (
-                    <img src={cs.img} alt={cs.brand} loading="lazy" />
-                  ) : (
-                    <div className="daf-case-mono"><span>{'monogram' in cs ? cs.monogram : ''}</span></div>
-                  )}
+                  <img src={cs.img} alt={cs.brand} loading="lazy" />
                 </div>
                 <div className="daf-case-copy">
                   <div className="daf-case-tag">{cs.tag}</div>
