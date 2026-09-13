@@ -30,7 +30,10 @@ export async function savePropertyId(id: string): Promise<void> {
 /** Try to find the GA4 property via the Analytics Admin API (may fail if
  *  that API isn't enabled on the GCP project — that's fine, we fall back to
  *  the manually entered id). */
+let lastDiscoveryError: string | null = null;
+
 async function discoverPropertyId(auth: InstanceType<typeof google.auth.OAuth2>): Promise<string | null> {
+  lastDiscoveryError = null;
   try {
     const admin = google.analyticsadmin({ version: 'v1beta', auth });
     const { data } = await admin.accountSummaries.list({ pageSize: 50 });
@@ -44,10 +47,58 @@ async function discoverPropertyId(auth: InstanceType<typeof google.auth.OAuth2>)
         }
       }
     }
-  } catch {
-    // Admin API not enabled or no access — caller falls back to stored id
+    lastDiscoveryError = 'Admin API returned no properties for this account';
+  } catch (err) {
+    // Keep the reason — swallowing it made "property_missing" impossible to
+    // tell apart from "the token has no analytics scope".
+    lastDiscoveryError = err instanceof Error ? err.message : String(err);
   }
   return null;
+}
+
+/** Why is Analytics not working? Distinguishes a missing scope (needs a
+ *  Reconnect) from a missing property id or a disabled GCP API. */
+export async function getGaDiagnostics(): Promise<{
+  connected: boolean;
+  grantedScopes: string[] | null;
+  hasAnalyticsScope: boolean | null;
+  storedPropertyId: string | null;
+  discoveryError: string | null;
+}> {
+  const auth = await getAuthedClient();
+  if (!auth) {
+    return {
+      connected: false,
+      grantedScopes: null,
+      hasAnalyticsScope: null,
+      storedPropertyId: await getStoredPropertyId(),
+      discoveryError: null,
+    };
+  }
+
+  let grantedScopes: string[] | null = null;
+  try {
+    const { token } = await auth.getAccessToken();
+    if (token) {
+      const info = await auth.getTokenInfo(token);
+      grantedScopes = info.scopes ?? [];
+    }
+  } catch (err) {
+    lastDiscoveryError = err instanceof Error ? err.message : String(err);
+  }
+
+  const stored = await getStoredPropertyId();
+  if (!stored) await discoverPropertyId(auth);
+
+  return {
+    connected: true,
+    grantedScopes,
+    hasAnalyticsScope: grantedScopes
+      ? grantedScopes.some((s) => s.includes('analytics'))
+      : null,
+    storedPropertyId: stored,
+    discoveryError: lastDiscoveryError,
+  };
 }
 
 export interface GaSnapshot {

@@ -1,11 +1,16 @@
 // GET /api/admin/analytics/traffic — GA4 website traffic snapshot for the
 // admin Analytics page. POST saves the GA4 numeric property id manually.
 import { NextRequest, NextResponse } from 'next/server';
-import { getTrafficSnapshot, savePropertyId } from '@/lib/googleAnalytics';
+import { getTrafficSnapshot, savePropertyId, getGaDiagnostics } from '@/lib/googleAnalytics';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // ?diag=1 explains *why* Analytics isn't returning data — a missing scope
+  // (needs Reconnect) looks identical to a missing property id otherwise.
+  if (req.nextUrl.searchParams.get('diag') === '1') {
+    return NextResponse.json(await getGaDiagnostics());
+  }
   const result = await getTrafficSnapshot(28);
   return NextResponse.json(result);
 }
