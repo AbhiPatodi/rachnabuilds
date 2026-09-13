@@ -36,6 +36,12 @@ export async function GET(req: NextRequest) {
     ).then((r) => r.json()),
   ]);
 
+  // Every Page this system user can act on — useful when leads turn out to
+  // live on a Page other than the one we defaulted to.
+  const accounts = await fetch(
+    `${GRAPH}/me/accounts?fields=id,name,tasks&access_token=${process.env.META_PAGE_ACCESS_TOKEN}`,
+  ).then((r) => r.json()).catch(() => null);
+
   return NextResponse.json({
     pageId: page.pageId,
     pageTokenDerived: page.derived,
@@ -43,6 +49,7 @@ export async function GET(req: NextRequest) {
     tokenType: debug?.data?.type ?? null,
     tokenScopes: debug?.data?.scopes ?? null,
     tokenExpires: debug?.data?.expires_at ?? null,
+    visiblePages: accounts?.data ?? accounts?.error ?? null,
   });
 }
 
