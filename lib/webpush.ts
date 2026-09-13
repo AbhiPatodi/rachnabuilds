@@ -31,5 +31,27 @@ export async function sendPushToAll(title: string, body: string, url = '/admin/d
     )
   )
 
+  // Keep a record so a notification missed on the phone is still findable,
+  // and so delivery failures are visible instead of silent.
+  const failures = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[]
+  await prisma.notificationLog
+    .create({
+      data: {
+        title,
+        body,
+        url,
+        devices: subs.length,
+        delivered: results.length - failures.length,
+        failed: failures.length,
+        error: failures.length
+          ? failures
+              .map(f => (f.reason instanceof Error ? f.reason.message : String(f.reason)))
+              .join(' | ')
+              .slice(0, 500)
+          : null,
+      },
+    })
+    .catch(() => {}) // never let logging break the send
+
   return results
 }

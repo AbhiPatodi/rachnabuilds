@@ -209,6 +209,22 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
+// Every push we attempt, so a missed notification can still be found later.
+model NotificationLog {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  url       String
+  devices   Int      @default(0) // devices targeted
+  delivered Int      @default(0) // how many accepted the push
+  failed    Int      @default(0)
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
 // ─── New Client Portal Schema (v2) ───────────────────────────────────────────
 // Old models (Report, ReportSection, ClientDocument, PortalComment,
 // PortalEvent, PortalSession) are kept intact as backup above.
