@@ -18,6 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/tools',              priority: 0.9, freq: 'monthly' },
     { route: '/tools/cro-checklist',priority: 0.8, freq: 'monthly' },
     { route: '/tools/pagespeed',    priority: 0.8, freq: 'monthly' },
+    { route: '/privacy',            priority: 0.3, freq: 'monthly' },
+    { route: '/terms',              priority: 0.3, freq: 'monthly' },
   ].map(({ route, priority, freq }) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),

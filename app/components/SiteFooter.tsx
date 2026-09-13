@@ -31,7 +31,10 @@ export default function SiteFooter() {
         </div>
         <div className="foot-bottom">
           <span>© 2026 Rachna Jain · rachnabuilds.com</span>
-          <span>Made with care &amp; intention</span>
+          <span className="foot-legal">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+          </span>
         </div>
       </div>
     </footer>
