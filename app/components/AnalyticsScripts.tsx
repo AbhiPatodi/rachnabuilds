@@ -1,15 +1,28 @@
 'use client'
 import Script from 'next/script'
+import { usePathname } from 'next/navigation'
 import { Analytics } from '@vercel/analytics/react'
 
+// Our own admin/portal browsing is not marketing traffic. Loading the
+// trackers there inflated every GA number with our own sessions, and — worse —
+// fed the Meta Pixel our team's behaviour, which teaches the ad algorithm to
+// find more people like us instead of like our prospects.
+const INTERNAL_PREFIXES = ['/admin', '/admin-login', '/portal', '/reports']
+
 export function AnalyticsScripts() {
-  const ga4Id = process.env.NEXT_PUBLIC_GA4_ID
-  const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID
-  const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID
+  const pathname = usePathname()
+  const isInternal = INTERNAL_PREFIXES.some(
+    (p) => pathname === p || pathname?.startsWith(p + '/') || pathname?.startsWith(p),
+  )
+
+  const ga4Id = isInternal ? undefined : process.env.NEXT_PUBLIC_GA4_ID
+  const clarityId = isInternal ? undefined : process.env.NEXT_PUBLIC_CLARITY_ID
+  const metaPixelId = isInternal ? undefined : process.env.NEXT_PUBLIC_META_PIXEL_ID
 
   return (
     <>
-      {/* Vercel Analytics — always on */}
+      {/* Vercel Analytics — kept on everywhere; its dashboard is ours alone
+          and never feeds an ad platform. */}
       <Analytics />
 
       {/* Google Analytics 4 */}

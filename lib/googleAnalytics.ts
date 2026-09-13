@@ -181,10 +181,15 @@ export async function getTrafficSnapshot(days = 28): Promise<GaResult> {
           activeUsers: Number(r.metricValues?.[0]?.value || 0),
           sessions: Number(r.metricValues?.[1]?.value || 0),
         })),
-        topPages: (pagesRes.data.rows || []).map((r) => ({
-          path: r.dimensionValues?.[0]?.value || '',
-          views: Number(r.metricValues?.[0]?.value || 0),
-        })),
+        // Drop our own admin/portal pages. Tracking is no longer sent from
+        // them, but historical rows are still in GA4 and would crowd out the
+        // marketing pages we actually want to read.
+        topPages: (pagesRes.data.rows || [])
+          .map((r) => ({
+            path: r.dimensionValues?.[0]?.value || '',
+            views: Number(r.metricValues?.[0]?.value || 0),
+          }))
+          .filter((p) => !/^\/(admin|portal|reports)/.test(p.path)),
         topSources: (sourcesRes.data.rows || []).map((r) => ({
           source: r.dimensionValues?.[0]?.value || '',
           sessions: Number(r.metricValues?.[0]?.value || 0),
