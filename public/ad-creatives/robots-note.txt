@@ -1,0 +1,2 @@
+Ad creative source images, hosted so Meta's ad library can fetch them by URL.
+Not linked from the site.
