@@ -63,13 +63,30 @@ export function PushSubscribeButton() {
     setLoading(false)
   }
 
-  if (status === 'unsupported') return null
-  if (status === 'denied') return <span style={{fontSize:12,color:'#ef4444'}}>Notifications blocked in browser settings</span>
+  // Never render nothing — silent absence is impossible to debug on a phone.
+  const note = (text: string, color: string) => (
+    <span style={{ fontSize: 11.5, lineHeight: 1.4, color, display: 'block' }}>{text}</span>
+  )
+  if (status === 'unsupported') {
+    return note(
+      'Push unavailable in this browser. On iPhone: Safari → Share → Add to Home Screen, then open from the icon.',
+      '#FBBF24',
+    )
+  }
+  if (status === 'denied') {
+    return note(
+      'Notifications blocked. Tap the lock icon in the address bar → Permissions → Notifications → Allow, then reload.',
+      '#ef4444',
+    )
+  }
+  if (status === 'unknown') {
+    return note('Checking notification support…', '#94a3b8')
+  }
 
   return (
     <button
       onClick={status === 'subscribed' ? unsubscribe : subscribe}
-      disabled={loading || status === 'unknown'}
+      disabled={loading}
       style={{
         background: status === 'subscribed' ? '#1e293b' : '#06D6A0',
         color: status === 'subscribed' ? '#94a3b8' : '#0B0F1A',
