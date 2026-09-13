@@ -902,21 +902,29 @@
 }
 
 @media (max-width: 767px) {
+  /* One compact row — stacking these pushed the push-button off-screen */
   .admin-mobile-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 16px 0;
-    flex-wrap: wrap;
+    padding: 12px 14px 0;
   }
-  .admin-mobile-actions > * {
+  /* Push control takes the free space; theme + logout stay icon-sized */
+  .admin-mobile-actions .ama-push {
     flex: 1 1 auto;
     min-width: 0;
   }
-  .admin-mobile-actions button,
-  .admin-mobile-actions a {
+  .admin-mobile-actions .ama-push button {
     width: 100%;
-    justify-content: center;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .admin-mobile-actions > .admin-theme-toggle,
+  .admin-mobile-actions > button,
+  .admin-mobile-actions > a,
+  .admin-mobile-actions > form {
+    flex: 0 0 auto;
+    width: auto;
     font-size: 12.5px;
     white-space: nowrap;
   }
@@ -931,6 +939,10 @@
   .admin-nav-mobile {
     display: flex;
     position: fixed;
+    /* globals.css has a bare `nav{position:fixed;top:0}` for the marketing
+       navbar; without top:auto that wins the over-constrained case and pins
+       this bar to the TOP of the screen, covering the page heading. */
+    top: auto;
     bottom: 0;
     left: 0;
     right: 0;
