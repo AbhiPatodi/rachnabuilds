@@ -87,19 +87,31 @@ export default function FunnelLeadsPage() {
     <div className="admin-content">
       <style>{`
         @media (max-width: 767px) {
-          .fl-col-source, .fl-col-revenue, .fl-col-readiness, .fl-col-applied { display: none; }
+          /* admin.css sets ".admin-card table td{display:table-cell}" inside this
+             same breakpoint — match that specificity or the columns never hide. */
+          .admin-card table th.fl-col-assets, .admin-card table td.fl-col-assets,
+          .admin-card table th.fl-col-revenue, .admin-card table td.fl-col-revenue,
+          .admin-card table th.fl-col-readiness, .admin-card table td.fl-col-readiness,
+          .admin-card table th.fl-col-applied, .admin-card table td.fl-col-applied {
+            display: none;
+          }
+          /* three stats fit across a phone; the global 2-col rule orphans the third */
+          .fl-stats { grid-template-columns: repeat(3, 1fr) !important; gap: 8px }
+          .fl-stats .admin-stat-card { padding: 12px 10px }
+          .fl-stats .admin-stat-label { font-size: 9.5px; letter-spacing: .04em; line-height: 1.3 }
+          .fl-stats .admin-stat-value { font-size: 24px }
         }
       `}</style>
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Funnel Leads</h1>
-          <p className="admin-page-subtitle">VSL training funnel — opt-ins &amp; applications (/training)</p>
+          <p className="admin-page-subtitle">Website opt-ins &amp; applications (/training) + Meta Instant Form leads</p>
         </div>
       </div>
 
       {error && <div className="admin-alert admin-alert-error" style={{ marginBottom: 20 }}>{error}</div>}
 
-      <div className="admin-stats">
+      <div className="admin-stats fl-stats">
         <div className="admin-stat-card">
           <div className="admin-stat-label">Total Leads</div>
           <div className="admin-stat-value">{leads.length}</div>
@@ -162,7 +174,7 @@ export default function FunnelLeadsPage() {
                   <th className="fl-col-source">Source</th>
                   <th className="fl-col-revenue">Revenue</th>
                   <th className="fl-col-readiness">Readiness</th>
-                  <th>Assets</th>
+                  <th className="fl-col-assets">Assets</th>
                   <th>Status</th>
                   <th className="fl-col-applied">Applied</th>
                 </tr>
@@ -201,7 +213,7 @@ export default function FunnelLeadsPage() {
                       </td>
                       <td className="fl-col-revenue" style={{ fontSize: 13 }}>{l.revenue ? LABELS[l.revenue] : '—'}</td>
                       <td className="fl-col-readiness" style={{ fontSize: 13 }}>{l.readiness ? LABELS[l.readiness] : '—'}</td>
-                      <td style={{ fontSize: 12 }}>
+                      <td className="fl-col-assets" style={{ fontSize: 12 }}>
                         {(() => {
                           const pct = watchPct(l);
                           return pct !== null && (

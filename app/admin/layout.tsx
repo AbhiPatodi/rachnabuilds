@@ -47,6 +47,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <main className="admin-main">
+        {/* Mobile-only controls — the sidebar (which holds these on desktop) is
+            display:none under 768px, so lead alerts were unreachable on phones. */}
+        <div className="admin-mobile-actions">
+          <PushSubscribeButton />
+          <ThemeToggle className="admin-theme-toggle" />
+          <LogoutButton />
+        </div>
         {children}
       </main>
 
