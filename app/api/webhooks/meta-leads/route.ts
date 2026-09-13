@@ -14,6 +14,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead, sendInstantFormWelcome } from '@/lib/email';
+import { getPageAuth } from '@/lib/metaPage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -55,7 +56,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Bad payload' }, { status: 400 });
   }
 
-  const pageToken = process.env.META_PAGE_ACCESS_TOKEN;
+  // Lead retrieval needs a Page-scoped token; META_PAGE_ACCESS_TOKEN holds a
+  // system-user token, so exchange it (cached in lib/metaPage).
+  const pageAuth = await getPageAuth(null);
+  const pageToken = pageAuth?.token;
   const results: Array<{ leadgenId: string; ok: boolean; reason?: string }> = [];
 
   for (const entry of body.entry || []) {
