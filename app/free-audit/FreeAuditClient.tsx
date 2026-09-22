@@ -4,15 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import '../tools/tools.css';
 
-const CHALLENGES = [
-  'Low conversion rate',
-  'Slow site speed',
-  'Poor mobile experience',
-  'High cart abandonment',
-  'Low organic traffic',
-  'Poor product page performance',
-  'Other',
-];
 
 const REVENUE_OPTIONS = [
   'Just starting out (< $1K/mo)',
@@ -130,32 +121,6 @@ export default function FreeAuditClient() {
                 <option value="">Select range (optional)</option>
                 {REVENUE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
-            </div>
-
-            <div className="tool-field">
-              <label>Biggest Challenge Right Now</label>
-              <div className="tool-chip-grid">
-                {CHALLENGES.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`tool-chip${form.challenge === c ? ' selected' : ''}`}
-                    onClick={() => set('challenge', c)}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="tool-field">
-              <label>Anything else you'd like me to focus on? <span style={{ opacity: 0.5 }}>(optional)</span></label>
-              <textarea
-                placeholder="e.g. My checkout page has a lot of drop-offs, or I just launched a new collection..."
-                rows={3}
-                value={form.details}
-                onChange={e => set('details', e.target.value)}
-              />
             </div>
 
             {error && <p className="tool-error">{error}</p>}

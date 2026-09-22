@@ -72,16 +72,16 @@ export async function POST(req: NextRequest) {
   }
 
   const publicToken = report.publicToken || crypto.randomBytes(18).toString('base64url');
-  await prisma.$transaction([
-    prisma.storeProofReport.update({
-      where: { id: report.id },
-      data: { publicToken, ...(job.funnelLeadId ? { funnelLeadId: job.funnelLeadId } : {}) },
-    }),
-    prisma.storeProofJob.update({
-      where: { id: jobId },
-      data: { status: 'done', reportId: report.id, finishedAt: new Date() },
-    }),
-  ]);
+  // Sequential on purpose: the report row is large (inline screenshots) and
+  // batch transactions hit Prisma's 5s interactive timeout over remote pg.
+  await prisma.storeProofReport.update({
+    where: { id: report.id },
+    data: { publicToken, ...(job.funnelLeadId ? { funnelLeadId: job.funnelLeadId } : {}) },
+  });
+  await prisma.storeProofJob.update({
+    where: { id: jobId },
+    data: { status: 'done', reportId: report.id, finishedAt: new Date() },
+  });
 
   await sendAuditReportReady({
     name: job.name,

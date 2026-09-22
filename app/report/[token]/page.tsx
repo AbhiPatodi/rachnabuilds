@@ -1,10 +1,11 @@
 // PUBLIC blurred Store Health Report — the scorecard funnel page.
 //
-// Reached only via the unguessable token emailed after a free-audit run.
-// Shows 2 real findings in full (proof of substance) and locks the top 3
-// (title + effort visible, the substance replaced SERVER-SIDE with dummy
-// blurred lines — the locked text never leaves the server, so DevTools
-// reveals nothing). CTA: book the free walkthrough call.
+// Reached only via the unguessable token emailed after a free-audit run (or
+// shared in cold-email follow-ups). Branded with the STORE's own logo. Shows
+// two real findings in full plus speed scores and crawl screenshots as proof
+// of substance; the top three findings stay locked — their text is replaced
+// SERVER-SIDE with dummy blurred lines, so DevTools reveals nothing.
+// CTA: WhatsApp Rachna, or book the free walkthrough call.
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -16,12 +17,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const WHATSAPP = '919404643510';
+
 interface Finding {
   title?: string;
   merchant_copy?: string;
   effort?: string;
-  category?: string;
 }
+interface SpeedPage { label: string; score: number; lcpMs: number }
+interface SpeedWin { title: string; savingsMs: number }
+interface Shot { label: string; dataUri: string }
 
 const EFFORT_LABEL: Record<string, string> = {
   quick: 'Quick fix · days',
@@ -37,6 +42,12 @@ function effortMeta(f: Finding): { label: string; cls: 'quick' | 'small' } {
   return { label: EFFORT_LABEL.small, cls: 'small' };
 }
 
+function scoreMeta(score: number): { word: string; bg: string; color: string } {
+  if (score >= 90) return { word: 'Good', bg: '#D1FADF', color: '#067647' };
+  if (score >= 50) return { word: 'Needs work', bg: '#FEF0C7', color: '#B54708' };
+  return { word: 'Slow', bg: '#FEE4E2', color: '#B42318' };
+}
+
 export default async function PublicReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const report = await prisma.storeProofReport.findUnique({
@@ -47,42 +58,52 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
 
   let findings: Finding[] = [];
   let opener = '';
+  let brand: { logoUrl?: string; themeColor?: string } = {};
+  let speed: { pages: SpeedPage[]; wins: SpeedWin[] } | null = null;
+  let screenshots: Shot[] = [];
   try {
     const parsed = JSON.parse(report.findingsJson);
     findings = parsed.findings || [];
     opener = parsed.opener || '';
+    brand = parsed.brand || {};
+    speed = parsed.speed?.pages?.length ? parsed.speed : null;
+    screenshots = parsed.screenshots || [];
   } catch { /* malformed findings — render the shell */ }
 
-  // Top 3 locked; next 2 fully visible as proof. (StoreProof orders findings
-  // by impact, so the locked ones are genuinely the most valuable.)
+  // Top 3 locked with blur; next 2 fully visible as proof; the rest are
+  // locked title-only rows so the count on the page matches "N issues found".
   const locked = findings.slice(0, 3);
   const visible = findings.slice(3, 5);
+  const rest = findings.slice(5);
   const total = findings.length;
 
-  // Log the open as a view (public views count toward engagement too)
-  await prisma.$transaction([
-    prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'public' } }),
-    prisma.storeProofReport.update({
-      where: { id: report.id },
-      data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
-    }),
-  ]).catch(() => {});
+  await prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'public' } }).catch(() => {});
+  await prisma.storeProofReport.update({
+    where: { id: report.id },
+    data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
+  }).catch(() => {});
 
   const bookUrl = report.funnelLeadId
     ? `/training/apply?lead=${report.funnelLeadId}`
     : '/training/apply';
+  const waText = encodeURIComponent(
+    `Hi Rachna! I just got my store report for ${report.host} — I'd like to go through the locked findings.`,
+  );
+  const waUrl = `https://wa.me/${WHATSAPP}?text=${waText}`;
 
   return (
     <div style={{ minHeight: '100vh', background: '#F6F8F7', color: '#1D2939', fontFamily: "'Helvetica Neue', Arial, sans-serif", fontSize: 15, lineHeight: 1.65 }}>
       <style>{`
         html, body { background: #F6F8F7 !important; }
         .rpt-wrap { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
-        .rpt-masthead { display:flex; align-items:center; gap:14px; padding-bottom:20px; border-bottom:3px solid #171717; }
-        .rpt-brand { font-size:20px; font-weight:800; color:#0B3D2E; letter-spacing:-0.5px; }
-        .rpt-brand span { color:#06D6A0; }
+        .rpt-masthead { display:flex; align-items:center; gap:16px; padding-bottom:20px; border-bottom:3px solid #171717; }
+        .rpt-logo { max-height:48px; max-width:180px; object-fit:contain; }
+        .rpt-storename { font-size:22px; font-weight:800; color:#171717; }
         .rpt-meta { margin-left:auto; text-align:right; font-size:12px; color:#667085; }
+        .rpt-meta b { color:#0B3D2E; }
         .rpt-h1 { font-size:26px; color:#0B3D2E; letter-spacing:-0.02em; margin:26px 0 6px; font-weight:800; }
         .rpt-intro { color:#475467; font-size:14.5px; max-width:640px; }
+        .rpt-summary { background:#fff; border:1px solid #E4E7EC; border-left:4px solid #06D6A0; border-radius:12px; padding:16px 20px; margin:20px 0 0; font-size:14px; color:#344054; }
         .rpt-finding { display:flex; gap:14px; border:1px solid #E4E7EC; background:#fff; border-radius:14px; padding:16px 18px; margin-bottom:12px; }
         .rpt-num { background:#06D6A0; color:#0B3D2E; font-weight:800; min-width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .rpt-num.locked { background:#171717; color:#fff; }
@@ -92,11 +113,10 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         .rpt-effort.quick { background:#D1FADF; color:#067647; }
         .rpt-effort.small { background:#FEF0C7; color:#B54708; }
         .rpt-body { font-size:13.5px; color:#344054; margin:0; }
-        .rpt-blur { position:relative; overflow:hidden; border-radius:6px; }
         .rpt-blur-line { height:11px; border-radius:6px; background:#CBD5E1; margin:7px 0; filter:blur(4px); }
-        .rpt-blur-line:nth-child(2) { width:92%; background:#D6DCE5; }
+        .rpt-blur-line:nth-child(2) { width:92%; }
         .rpt-blur-line:nth-child(3) { width:78%; }
-        .rpt-locknote { font-size:12px; font-weight:700; color:#0B3D2E; margin-top:9px; display:flex; align-items:center; gap:6px; }
+        .rpt-locknote { font-size:12px; font-weight:700; margin-top:9px; display:flex; align-items:center; gap:6px; }
         .rpt-lockedwrap { background:#0B3D2E; border-radius:18px; padding:24px 26px; margin:26px 0; }
         .rpt-lockedwrap h2 { color:#fff; font-size:18px; margin:0 0 4px; }
         .rpt-lockedwrap .sub { color:#9AE6C6; font-size:13px; margin-bottom:14px; }
@@ -104,32 +124,59 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         .rpt-lockedwrap .rpt-fhead h4 { color:#fff; }
         .rpt-lockedwrap .rpt-locknote { color:#9AE6C6; }
         .rpt-lockedwrap .rpt-blur-line { background:rgba(255,255,255,0.25); }
+        .rpt-restrow { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 14px; margin-bottom:8px; font-size:13.5px; color:#D1FADF; font-weight:600; }
+        .rpt-h2 { font-size:19px; color:#0B3D2E; margin:32px 0 4px; font-weight:800; }
+        .rpt-h2sub { color:#667085; font-size:13px; margin:0 0 14px; }
+        .rpt-speedcard { background:#fff; border:1px solid #E4E7EC; border-radius:14px; padding:18px 20px; }
+        .rpt-chips { display:flex; gap:8px; flex-wrap:wrap; }
+        .rpt-chip { font-size:11.5px; font-weight:800; padding:5px 13px; border-radius:99px; }
+        .rpt-wins { margin:12px 0 0; font-size:13.5px; color:#344054; }
+        .rpt-shots { display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; }
+        .rpt-shot { flex:1; min-width:180px; max-width:230px; }
+        .rpt-shot img { width:100%; border-radius:14px; border:1px solid #E4E7EC; box-shadow:0 4px 18px rgba(16,24,40,0.08); }
+        .rpt-shot figcaption { font-size:12px; color:#667085; margin-top:6px; text-align:center; }
         .rpt-cta { background:#fff; border:2px solid #171717; border-radius:16px; padding:26px 28px; margin-top:34px; text-align:center; }
         .rpt-cta h2 { color:#0B3D2E; font-size:19px; margin:0 0 8px; }
         .rpt-cta p { font-size:14px; color:#344054; margin:0 0 18px; }
-        .rpt-btn { display:inline-block; background:#06D6A0; color:#0B3D2E; font-weight:800; font-size:15px; padding:14px 34px; border-radius:10px; text-decoration:none; letter-spacing:-0.01em; }
+        .rpt-btnrow { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+        .rpt-btn { display:inline-block; background:#06D6A0; color:#0B3D2E; font-weight:800; font-size:15px; padding:14px 30px; border-radius:10px; text-decoration:none; letter-spacing:-0.01em; }
+        .rpt-btn.secondary { background:#fff; color:#0B3D2E; border:2px solid #0B3D2E; padding:12px 28px; }
         .rpt-btn:hover { filter:brightness(1.05); }
         .rpt-count { display:flex; gap:10px; margin:24px 0; flex-wrap:wrap; }
         .rpt-count .chip { background:#fff; border:1px solid #E4E7EC; border-radius:12px; padding:12px 18px; font-size:13px; color:#475467; }
         .rpt-count .chip b { display:block; font-size:22px; color:#0B3D2E; }
         footer { margin-top:36px; color:#667085; font-size:12px; border-top:1px solid #E4E7EC; padding-top:14px; }
+        .rpt-sticky { display:none; }
+        @media (max-width: 640px) {
+          .rpt-wrap { padding-bottom: 110px; }
+          .rpt-sticky { display:flex; position:fixed; bottom:0; left:0; right:0; gap:10px;
+            padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:rgba(255,255,255,0.96);
+            border-top:1px solid #E4E7EC; backdrop-filter:blur(8px); z-index:50; }
+          .rpt-sticky .rpt-btn { flex:1; text-align:center; padding:13px 10px; font-size:14px; }
+        }
       `}</style>
       <div className="rpt-wrap">
         <div className="rpt-masthead">
-          <div className="rpt-brand">Rachna Builds<span>.</span></div>
-          <div className="rpt-meta"><b>Store Health Report</b><br />{report.storeName}</div>
+          {brand.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="rpt-logo" src={brand.logoUrl} alt={report.storeName} />
+          ) : (
+            <div className="rpt-storename">{report.storeName}</div>
+          )}
+          <div className="rpt-meta"><b>Store Health Report</b><br />Prepared by Rachna Builds</div>
         </div>
 
         <h1 className="rpt-h1">What&apos;s quietly costing {report.storeName} sales</h1>
         <p className="rpt-intro">
           We went through {report.host} the way a real shopper does — on a phone, from first visit
-          to checkout — and the way Google and your ad platforms see it. {opener ? '' : 'Here is what we found.'}
+          to checkout — and the way Google and your ad platforms see it.
         </p>
+        {opener && <div className="rpt-summary">{opener}</div>}
 
         <div className="rpt-count">
           <div className="chip"><b>{total}</b> issues found</div>
           <div className="chip"><b>{visible.length}</b> open below</div>
-          <div className="chip"><b>{locked.length}</b> unlocked on your call</div>
+          <div className="chip"><b>{locked.length + rest.length}</b> unlocked on your call</div>
         </div>
 
         {visible.map((f, i) => {
@@ -161,7 +208,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
                     <h4>{f.title}</h4>
                     <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
                   </div>
-                  <div className="rpt-blur" aria-hidden="true">
+                  <div aria-hidden="true">
                     <div className="rpt-blur-line" />
                     <div className="rpt-blur-line" />
                     <div className="rpt-blur-line" />
@@ -171,22 +218,82 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
               </div>
             );
           })}
+          {rest.length > 0 && (
+            <>
+              <div className="sub" style={{ margin: '16px 0 10px' }}>Also in your full report:</div>
+              {rest.map((f, i) => (
+                <div className="rpt-restrow" key={i}>
+                  <span>🔒</span>
+                  <span>{f.title}</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
+
+        {speed && (
+          <>
+            <h2 className="rpt-h2">Is your store fast enough?</h2>
+            <p className="rpt-h2sub">Measured with Google&apos;s own engine on a typical phone — the same test Google ranks you by.</p>
+            <div className="rpt-speedcard">
+              <div className="rpt-chips">
+                {speed.pages.map((p, i) => {
+                  const m = scoreMeta(p.score);
+                  return (
+                    <span className="rpt-chip" key={i} style={{ background: m.bg, color: m.color }}>
+                      {p.label}: {m.word} ({p.score}/100)
+                    </span>
+                  );
+                })}
+              </div>
+              {speed.wins.length > 0 && (
+                <p className="rpt-wins">
+                  <b>Biggest speed wins we found:</b>{' '}
+                  {speed.wins.map((w) => `${w.title} (saves ~${(w.savingsMs / 1000).toFixed(1)}s)`).join(' · ')}
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {screenshots.length > 0 && (
+          <>
+            <h2 className="rpt-h2">What we saw on your store</h2>
+            <p className="rpt-h2sub">Captured during the audit — exactly what a mobile shopper gets.</p>
+            <div className="rpt-shots">
+              {screenshots.map((s, i) => (
+                <figure className="rpt-shot" key={i} style={{ margin: 0 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.dataUri} alt={s.label} />
+                  <figcaption>{s.label}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="rpt-cta">
           <h2>See all {total} findings — on your store, live</h2>
           <p>
-            A free 20-minute call: we share the full report, walk through the top three
+            A free 20-minute walkthrough: we share the full report, go through the top three
             issues on your actual store, and you leave knowing exactly what to fix first.
             No pitch decks. No obligation.
           </p>
-          <a className="rpt-btn" href={bookUrl}>Book My Free Walkthrough →</a>
+          <div className="rpt-btnrow">
+            <a className="rpt-btn" href={waUrl} target="_blank" rel="noopener noreferrer">💬 WhatsApp Rachna</a>
+            <a className="rpt-btn secondary" href={bookUrl}>Book a Call →</a>
+          </div>
         </div>
 
         <footer>
           Prepared by Rachna Builds using an automated public review of {report.host} — no store
           access was used. Full technical detail is shared on the call and in your client portal.
         </footer>
+      </div>
+
+      <div className="rpt-sticky">
+        <a className="rpt-btn" href={waUrl} target="_blank" rel="noopener noreferrer">💬 WhatsApp Rachna</a>
+        <a className="rpt-btn secondary" href={bookUrl}>Book a Call</a>
       </div>
     </div>
   );

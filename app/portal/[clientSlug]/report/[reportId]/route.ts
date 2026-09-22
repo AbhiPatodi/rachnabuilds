@@ -49,17 +49,15 @@ export async function GET(
   if (cookieValue === expected) {
     const device = req.headers.get('user-agent')?.slice(0, 120) || null;
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
-    await prisma.$transaction([
-      prisma.storeProofReportView.create({ data: { reportId: report.id, device, ip } }),
-      prisma.storeProofReport.update({
-        where: { id: report.id },
-        data: {
-          viewCount: { increment: 1 },
-          lastViewedAt: new Date(),
-          ...(report.firstViewedAt ? {} : { firstViewedAt: new Date() }),
-        },
-      }),
-    ]).catch(() => {});
+    await prisma.storeProofReportView.create({ data: { reportId: report.id, device, ip } }).catch(() => {});
+    await prisma.storeProofReport.update({
+      where: { id: report.id },
+      data: {
+        viewCount: { increment: 1 },
+        lastViewedAt: new Date(),
+        ...(report.firstViewedAt ? {} : { firstViewedAt: new Date() }),
+      },
+    }).catch(() => {});
   }
 
   return new NextResponse(report.html, {
