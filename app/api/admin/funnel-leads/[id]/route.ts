@@ -16,9 +16,19 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     include: {
       auditReports: { orderBy: { createdAt: 'desc' } },
       bookings: { orderBy: { startTime: 'desc' } },
+      activities: { orderBy: { createdAt: 'desc' }, take: 100 },
     },
   });
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+
+  // StoreProof report engagement for the timeline
+  const spReports = await prisma.storeProofReport.findMany({
+    where: { funnelLeadId: id },
+    select: {
+      id: true, storeName: true, publicToken: true, viewCount: true, createdAt: true,
+      views: { orderBy: { viewedAt: 'desc' }, take: 10, select: { viewedAt: true } },
+    },
+  });
 
   const emailLogs = await prisma.funnelEmailLog.findMany({
     where: { email: lead.email.toLowerCase() },
@@ -38,7 +48,18 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       )
     : null;
 
-  return NextResponse.json({ ...lead, videoWatch, emailLogs });
+  return NextResponse.json({ ...lead, videoWatch, emailLogs, spReports });
+}
+
+/** Add a manual note to the lead's timeline (PWA quick action). */
+export async function POST(req: NextRequest, { params }: RouteContext) {
+  const { id } = await params;
+  const { text, actor } = await req.json();
+  if (!text?.trim()) return NextResponse.json({ error: 'text required' }, { status: 400 });
+  const activity = await prisma.leadActivity.create({
+    data: { leadId: id, type: 'note', text: String(text).trim().slice(0, 2000), actor: actor || null },
+  });
+  return NextResponse.json({ ok: true, activity });
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
@@ -62,7 +83,15 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   try {
+    const before = data.status !== undefined
+      ? await prisma.funnelLead.findUnique({ where: { id }, select: { status: true } })
+      : null;
     const lead = await prisma.funnelLead.update({ where: { id }, data });
+    if (data.status !== undefined && before && before.status !== data.status) {
+      await prisma.leadActivity.create({
+        data: { leadId: id, type: 'status', text: `Status: ${before.status} → ${data.status}` },
+      }).catch(() => {});
+    }
     return NextResponse.json(lead);
   } catch (err: unknown) {
     const error = err as { code?: string };

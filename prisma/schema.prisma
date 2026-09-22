@@ -518,6 +518,7 @@ model FunnelLead {
 
   bookings      Booking[]
   auditReports  AuditReport[]
+  activities    LeadActivity[]
 
   @@index([stage])
   @@index([status])
@@ -693,4 +694,19 @@ model Prospect {
   @@index([verifyStatus])
   @@index([scanStatus])
   @@map("prospects")
+}
+
+// Unified per-lead activity: status changes auto-logged, manual notes added
+// from admin/PWA. Rendered merged with email logs, bookings, report views.
+model LeadActivity {
+  id        String     @id @default(cuid())
+  leadId    String
+  lead      FunnelLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String     // status | note | system
+  text      String
+  actor     String?    // who did it (free text: "Rachna", "auto")
+  createdAt DateTime   @default(now())
+
+  @@index([leadId])
+  @@map("lead_activities")
 }

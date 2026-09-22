@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import LeadsSubNav from '../LeadsSubNav';
 
 interface Lead {
   id: string;
@@ -109,6 +110,7 @@ export default function LeadsPage() {
 
   return (
     <div className="admin-content">
+      <LeadsSubNav />
       <style>{`
         @media (max-width: 767px) {
           .leads-col-service, .leads-col-budget, .leads-col-message { display: none; }

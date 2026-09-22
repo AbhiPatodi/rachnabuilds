@@ -95,7 +95,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await prisma.blogPost.findUnique({
-    where: { slug, isPublished: true },
+    where: { slug, isPublished: true, publishedAt: { lte: new Date() } },
     select: { title: true, excerpt: true, coverImage: true, publishedAt: true, slug: true },
   });
   if (!post) return {};
@@ -130,7 +130,7 @@ export default async function BlogPostPage({
   const { slug } = await params;
 
   const post = await prisma.blogPost.findUnique({
-    where: { slug, isPublished: true },
+    where: { slug, isPublished: true, publishedAt: { lte: new Date() } },
   });
 
   if (!post) notFound();

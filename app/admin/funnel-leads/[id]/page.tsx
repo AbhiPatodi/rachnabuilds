@@ -19,6 +19,7 @@ interface AuditReport {
 
 interface Booking {
   id: string;
+  createdAt?: string;
   startTime: string;
   endTime: string;
   status: string;
@@ -54,6 +55,37 @@ interface FunnelLead {
   bookings: Booking[];
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
   emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
+  activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
+  spReports: { id: string; storeName: string; publicToken: string | null; viewCount: number; createdAt: string; views: { viewedAt: string }[] }[];
+}
+
+interface TimelineEvent { at: string; icon: string; text: string; sub?: string }
+
+function buildTimeline(lead: FunnelLead): TimelineEvent[] {
+  const ev: TimelineEvent[] = [];
+  const srcLabel = lead.utmMedium === 'instant-form' ? 'Meta Instant Form'
+    : lead.utmSource === 'cold-email' ? 'Cold email reply'
+    : lead.utmMedium === 'free-audit' ? 'Free audit form'
+    : lead.utmSource ? `${lead.utmSource} / ${lead.utmMedium || ''}` : 'Website (organic)';
+  const answers = lead.formAnswers && Object.keys(lead.formAnswers).length
+    ? Object.entries(lead.formAnswers).map(([q, a]) => `${q}: ${a.replace(/_/g, ' ')}`).join(' · ')
+    : undefined;
+  ev.push({ at: lead.createdAt, icon: '📥', text: `Came in via ${srcLabel}`, sub: answers });
+  if (lead.appliedAt) ev.push({ at: lead.appliedAt, icon: '📋', text: 'Submitted the full application' });
+  for (const e of lead.emailLogs || []) {
+    ev.push({ at: e.createdAt, icon: e.ok ? '✉️' : '⚠️', text: `${e.ok ? 'Email sent' : 'Email FAILED'} — ${e.subject}`, sub: e.error || undefined });
+  }
+  for (const b of lead.bookings || []) {
+    ev.push({ at: b.createdAt || b.startTime, icon: '📅', text: `Call booked for ${new Date(b.startTime).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}`, sub: b.status });
+  }
+  for (const a of lead.activities || []) {
+    ev.push({ at: a.createdAt, icon: a.type === 'note' ? '📝' : a.type === 'status' ? '🔀' : 'ℹ️', text: a.text, sub: a.actor || undefined });
+  }
+  for (const r of lead.spReports || []) {
+    ev.push({ at: r.createdAt, icon: '🔍', text: `Store report generated — ${r.storeName}` });
+    for (const v of r.views) ev.push({ at: v.viewedAt, icon: '👁', text: `Opened their store report` });
+  }
+  return ev.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 }
 
 const EMAIL_KIND_LABELS: Record<string, string> = {
@@ -103,7 +135,7 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   disqualified: { label: 'Disqualified', color: '#6B7280' },
 };
 
-type TabId = 'overview' | 'application' | 'audit' | 'script' | 'bookings';
+type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings';
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -123,6 +155,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
   const [tab, setTab] = useState<TabId>('overview');
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState('');
+  const [noteText, setNoteText] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
 
   const fetchLead = useCallback(async () => {
@@ -136,6 +169,22 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
   }, [id]);
 
   useEffect(() => { fetchLead(); }, [fetchLead]);
+
+  const addNote = async () => {
+    if (!noteText.trim()) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/admin/funnel-leads/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: noteText.trim() }),
+      });
+      setNoteText('');
+      await fetchLead();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const updateStatus = async (status: string) => {
     setBusy(true);
@@ -229,6 +278,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
 
   const TABS: { id: TabId; label: string }[] = [
     { id: 'overview', label: 'Overview' },
+    { id: 'timeline', label: `Timeline (${buildTimeline(lead).length})` },
     { id: 'application', label: 'Application' },
     { id: 'audit', label: 'Audit Report' },
     { id: 'script', label: 'Call Script' },
@@ -371,6 +421,40 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       )}
 
       {/* ─── APPLICATION ─── */}
+      {/* ─── TIMELINE ─── */}
+      {tab === 'timeline' && (
+        <div className="admin-card">
+          <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
+            <input
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addNote(); }}
+              placeholder="Add a note — call outcome, WhatsApp update, next step…"
+              style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '11px 14px', color: 'var(--text)', fontSize: 13.5 }}
+            />
+            <button type="button" className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} disabled={busy || !noteText.trim()} onClick={addNote}>
+              Add Note
+            </button>
+          </div>
+          <div style={{ position: 'relative', paddingLeft: 6 }}>
+            {buildTimeline(lead).map((e, i) => (
+              <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: 18, position: 'relative' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0, zIndex: 1 }}>
+                  {e.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                  <div style={{ fontSize: 13.5, color: 'var(--text)', lineHeight: 1.5 }}>{e.text}</div>
+                  {e.sub && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{e.sub}</div>}
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+                    {new Date(e.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {tab === 'application' && (
         lead.stage !== 'applied' ? (
           <div className="admin-card admin-empty" style={{ marginTop: 20 }}>

@@ -4,6 +4,7 @@
 // here is emailed by the site; sending happens only via Instantly from the
 // burner domains. A prospect graduates to Funnel Leads when they reply.
 import { useState, useEffect, useCallback } from 'react';
+import LeadsSubNav from '../LeadsSubNav';
 
 interface ProspectRow {
   id: string;
@@ -66,6 +67,7 @@ export default function ProspectsPage() {
 
   return (
     <div className="admin-content">
+      <LeadsSubNav />
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Prospects</h1>

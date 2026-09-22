@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import LeadsSubNav from '../LeadsSubNav';
 
 interface FunnelLead {
   id: string;
@@ -117,6 +118,7 @@ export default function FunnelLeadsPage() {
 
   return (
     <div className="admin-content">
+      <LeadsSubNav />
       <style>{`
         @media (max-width: 767px) {
           /* admin.css sets ".admin-card table td{display:table-cell}" inside this
