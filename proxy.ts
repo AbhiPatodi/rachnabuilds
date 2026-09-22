@@ -29,6 +29,18 @@ export async function proxy(req: NextRequest) {
     const cookie = req.cookies.get('admin_session')?.value;
     const expected = await sha256Hex(process.env.ADMIN_PASSWORD || '');
     if (cookie !== expected) return NextResponse.redirect(new URL('/admin-login', req.url));
+
+    // Rolling session: re-issue the cookie on every authenticated page visit
+    // so an actively-used admin PWA never hits the expiry cliff.
+    const res = NextResponse.next();
+    res.cookies.set('admin_session', cookie, {
+      httpOnly: true,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 90,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return res;
   }
 
   return NextResponse.next();

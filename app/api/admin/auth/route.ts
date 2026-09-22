@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   cookieStore.set('admin_session', hash, {
     httpOnly: true,
     path: '/',
-    maxAge: 60 * 60 * 24, // 24h
+    maxAge: 60 * 60 * 24 * 90, // 90 days — PWA on personal phone; proxy.ts also refreshes it on every visit
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
   });

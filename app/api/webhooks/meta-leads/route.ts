@@ -103,6 +103,17 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        // Custom qualifying questions (e.g. conversion rate, ad spend) arrive
+        // with form-specific keys — keep every non-contact answer in notes so
+        // call prep sees exactly what the lead selected.
+        const CONTACT_KEYS = ['full_name', 'name', 'email', 'phone_number', 'phone'];
+        const customAnswers = Object.entries(fields)
+          .filter(([k, v]) => v && !CONTACT_KEYS.some((c) => k === c || k.includes(c)))
+          .map(([k, v]) => `${k.replace(/_/g, ' ').replace(/\?$/, '')}: ${v}`);
+        const answersNote = customAnswers.length
+          ? `Instant Form answers — ${customAnswers.join(' · ')}`
+          : null;
+
         const dbLead = await prisma.funnelLead.upsert({
           where: { email },
           create: {
@@ -111,9 +122,18 @@ export async function POST(req: NextRequest) {
             utmMedium: 'instant-form',
             utmCampaign: lead.campaign_name || null,
             utmContent: lead.ad_name || null,
+            ...(answersNote ? { notes: answersNote } : {}),
           },
           update: { name, ...(phone ? { phone } : {}) },
         });
+
+        // Existing lead: append the answers instead of overwriting notes.
+        if (answersNote && dbLead.notes !== answersNote && !dbLead.notes?.includes(answersNote)) {
+          await prisma.funnelLead.update({
+            where: { id: dbLead.id },
+            data: { notes: dbLead.notes ? `${dbLead.notes}\n${answersNote}` : answersNote },
+          }).catch(() => {});
+        }
 
         await sendInstantFormWelcome({ id: dbLead.id, name, email }).catch(() => {});
         await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, '/admin/funnel-leads').catch(() => {});
@@ -125,6 +145,10 @@ export async function POST(req: NextRequest) {
             { label: 'Email', value: email },
             ...(phone ? [{ label: 'Phone', value: phone }] : []),
             ...(waDigits ? [{ label: 'Reply now', value: `https://wa.me/${waDigits}?text=${encodeURIComponent(`Hi ${name.split(' ')[0]}! Rachna here — got your request for a free Shopify store audit. When's a good time for a quick chat?`)}` }] : []),
+            ...(customAnswers.length ? customAnswers.map((a) => {
+              const idx = a.indexOf(':');
+              return { label: a.slice(0, idx), value: a.slice(idx + 1).trim() };
+            }) : []),
             ...(lead.campaign_name ? [{ label: 'Campaign', value: lead.campaign_name }] : []),
             ...(lead.ad_name ? [{ label: 'Ad', value: lead.ad_name }] : []),
           ],
