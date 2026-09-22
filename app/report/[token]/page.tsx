@@ -195,42 +195,6 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           );
         })}
 
-        <div className="rpt-lockedwrap">
-          <h2>The three things costing you the most</h2>
-          <div className="sub">Ranked by revenue impact — we walk you through all three, live, on your free call.</div>
-          {locked.map((f, i) => {
-            const e = effortMeta(f);
-            return (
-              <div className="rpt-finding" key={i}>
-                <span className="rpt-num locked">🔒</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="rpt-fhead">
-                    <h4>{f.title}</h4>
-                    <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
-                  </div>
-                  <div aria-hidden="true">
-                    <div className="rpt-blur-line" />
-                    <div className="rpt-blur-line" />
-                    <div className="rpt-blur-line" />
-                  </div>
-                  <div className="rpt-locknote">🔓 Unlocked on your free walkthrough call</div>
-                </div>
-              </div>
-            );
-          })}
-          {rest.length > 0 && (
-            <>
-              <div className="sub" style={{ margin: '16px 0 10px' }}>Also in your full report:</div>
-              {rest.map((f, i) => (
-                <div className="rpt-restrow" key={i}>
-                  <span>🔒</span>
-                  <span>{f.title}</span>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
         {speed && (
           <>
             <h2 className="rpt-h2">Is your store fast enough?</h2>
@@ -271,6 +235,42 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
             </div>
           </>
         )}
+
+        <div className="rpt-lockedwrap">
+          <h2>The three things costing you the most</h2>
+          <div className="sub">Ranked by revenue impact — we walk you through all three, live, on your free call.</div>
+          {locked.map((f, i) => {
+            const e = effortMeta(f);
+            return (
+              <div className="rpt-finding" key={i}>
+                <span className="rpt-num locked">🔒</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="rpt-fhead">
+                    <h4>{f.title}</h4>
+                    <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
+                  </div>
+                  <div aria-hidden="true">
+                    <div className="rpt-blur-line" />
+                    <div className="rpt-blur-line" />
+                    <div className="rpt-blur-line" />
+                  </div>
+                  <div className="rpt-locknote">🔓 Unlocked on your free walkthrough call</div>
+                </div>
+              </div>
+            );
+          })}
+          {rest.length > 0 && (
+            <>
+              <div className="sub" style={{ margin: '16px 0 10px' }}>Also in your full report:</div>
+              {rest.map((f, i) => (
+                <div className="rpt-restrow" key={i}>
+                  <span>🔒</span>
+                  <span>{f.title}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
 
         <div className="rpt-cta">
           <h2>See all {total} findings — on your store, live</h2>

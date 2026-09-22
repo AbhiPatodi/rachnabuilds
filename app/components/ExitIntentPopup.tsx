@@ -12,15 +12,26 @@ export function ExitIntentPopup() {
   const pathname = usePathname()
 
   useEffect(() => {
-    // Only on public non-admin pages (funnel pages excluded — no distractions)
-    if (pathname?.startsWith('/admin') || pathname?.startsWith('/reports') || pathname?.startsWith('/portal') || pathname?.startsWith('/training')) return
-    // Only once per session
+    // ALLOWLIST: browse-mode marketing pages only. Never on conversion or
+    // deliverable pages (/free-audit, /audit, /report, /training, /start,
+    // /contact...) — a popup there competes with the page's own single job.
+    const BROWSE_PAGES = ['/', '/work', '/services', '/pricing', '/blog', '/tools']
+    const allowed = BROWSE_PAGES.some((p) =>
+      p === '/' ? pathname === '/' : pathname === p || pathname?.startsWith(`${p}/`),
+    )
+    if (!allowed) return
+    // At most once a week per browser (was once per session — too pushy)
+    try {
+      const last = Number(localStorage.getItem('exit_popup_at') || 0)
+      if (Date.now() - last < 7 * 24 * 60 * 60 * 1000) return
+    } catch { /* storage blocked — fall through, session cap below still applies */ }
     if (sessionStorage.getItem('exit_popup_shown')) return
 
     const fire = () => {
       if (triggered.current) return
       triggered.current = true
       sessionStorage.setItem('exit_popup_shown', '1')
+      try { localStorage.setItem('exit_popup_at', String(Date.now())) } catch { /* ignore */ }
       // Delay 300ms to feel less jarring
       setTimeout(() => setVisible(true), 300)
     }
