@@ -21,20 +21,10 @@ export async function POST(req: NextRequest) {
       details?.trim() ? `\nDetails: ${details.trim()}` : '',
     ].filter(Boolean).join('\n');
 
-    await prisma.contactLead.create({
-      data: {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: null,
-        service: 'Free Shopify Audit',
-        budget: revenue || null,
-        message,
-        status: 'new',
-      },
-    });
-
-    // Blurred-report funnel: lead into the CRM + a StoreProof job for the
-    // audit worker. The report link goes out by email when the run finishes.
+    // Single source of truth: funnel_leads (was also mirrored into
+    // contact_leads — removed, it duplicated every submission across two
+    // admin tabs). Blurred-report funnel: lead into the CRM + a StoreProof
+    // job for the audit worker; report link goes out by email when done.
     const cleanEmail = email.trim().toLowerCase();
     const rawUrl = storeUrl.trim();
     const normalizedUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;

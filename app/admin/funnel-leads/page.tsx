@@ -65,12 +65,27 @@ function sourceLabel(l: FunnelLead) {
   return l.utmSource || 'Organic / direct';
 }
 
+// Segments: where the lead actually came from, as tabs with counts.
+type Segment = 'all' | 'meta' | 'website' | 'cold';
+function segmentOf(l: FunnelLead): Exclude<Segment, 'all'> {
+  if (l.utmMedium === 'instant-form') return 'meta';
+  if (l.utmSource === 'cold-email' || l.utmMedium === 'cold-email') return 'cold';
+  return 'website'; // site funnels (/training, /free-audit) + organic
+}
+const SEGMENTS: { key: Segment; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'meta', label: 'Meta Ads' },
+  { key: 'website', label: 'Website' },
+  { key: 'cold', label: 'Cold Email' },
+];
+
 export default function FunnelLeadsPage() {
   const [leads, setLeads] = useState<FunnelLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stageTab, setStageTab] = useState<StageTab>('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [segment, setSegment] = useState<Segment>('all');
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -86,7 +101,8 @@ export default function FunnelLeadsPage() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
-  const stageFiltered = stageTab === 'all' ? leads : leads.filter((l) => l.stage === stageTab);
+  const segmented = segment === 'all' ? leads : leads.filter((l) => segmentOf(l) === segment);
+  const stageFiltered = stageTab === 'all' ? segmented : segmented.filter((l) => l.stage === stageTab);
   const filtered = sourceFilter === 'all' ? stageFiltered : stageFiltered.filter((l) => sourceLabel(l) === sourceFilter);
   const applied = leads.filter((l) => l.stage === 'applied');
   const sources = ['all', ...Array.from(new Set(leads.map(sourceLabel))).sort()];
@@ -140,6 +156,28 @@ export default function FunnelLeadsPage() {
           <div className="admin-stat-label">Opt-in Only (follow up!)</div>
           <div className="admin-stat-value" style={{ color: '#FBBF24' }}>{leads.length - applied.length}</div>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+        {SEGMENTS.map((s) => {
+          const count = s.key === 'all' ? leads.length : leads.filter((l) => segmentOf(l) === s.key).length;
+          const active = segment === s.key;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => setSegment(s.key)}
+              style={{
+                padding: '7px 14px', borderRadius: 100, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
+                border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                background: active ? 'rgba(6,214,160,0.12)' : 'var(--bg-elevated)',
+                color: active ? 'var(--accent)' : 'var(--text-secondary)',
+              }}
+            >
+              {s.label} <span style={{ opacity: 0.7 }}>({count})</span>
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 20, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>

@@ -651,3 +651,46 @@ model StoreProofJob {
   @@index([status])
   @@map("storeproof_jobs")
 }
+
+// ─── Cold-email prospects (imported from Vela) — QUARANTINED from funnel_leads:
+// no automation may email these from the main domain. They cross into
+// funnel_leads only when they reply to cold outreach (stage: promoted).
+
+model Prospect {
+  id            String    @id @default(cuid())
+  velaId        String?   @unique
+  email         String    @unique
+  name          String?
+  company       String?
+  country       String?
+  storeName     String?
+  domain        String?   // store domain (from Vela or derived from email)
+  websiteUrl    String?
+  firstSeenApp  String?   // which app's review page they were scraped from — intent signal
+  productCount  Int?
+  reviewCount   Int?
+  score         Int?      // Vela's original lead score
+  hook          String?   // Vela's original hook line (reference only)
+  // Tier ingredients (computed at import)
+  geoTier1      Boolean   @default(false) // US / UK / AU / CA
+  ownDomain     Boolean   @default(false) // email domain is not freemail
+  personalInbox Boolean   @default(false) // localpart isn't info@/support@/...
+  croIntent     Boolean   @default(false) // scraped from a CRO-intent app
+  tier          String    @default("C")   // A+ | A | B | C
+  // Pipeline state
+  verifyStatus  String    @default("unverified") // unverified | valid | risky | invalid
+  scanStatus    String    @default("pending")    // pending | scanned | failed | skipped
+  finding       String?   // the email-1 opener from the tier-1 scan
+  issueCount    Int?
+  reportId      String?   // StoreProofReport for their pre-built blurred report
+  stage         String    @default("new") // new | queued | contacted | replied | promoted | suppressed
+  promotedLeadId String?  // funnel_leads id once they reply
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tier])
+  @@index([stage])
+  @@index([verifyStatus])
+  @@index([scanStatus])
+  @@map("prospects")
+}
