@@ -20,7 +20,27 @@ interface FunnelLead {
   utmMedium: string | null;
   utmCampaign: string | null;
   utmContent: string | null;
+  notes: string | null;
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
+}
+
+/** Instant Form qualifying answers live in notes as
+ *  "Instant Form answers — <question>: <value> · <question>: <value>".
+ *  Compress them for the table: "CVR <1% · Spend <$5k". */
+function instantFormAnswers(l: FunnelLead): string | null {
+  const line = l.notes?.split('\n').find((s) => s.startsWith('Instant Form answers'));
+  if (!line) return null;
+  const parts = line.replace(/^Instant Form answers\s*—\s*/, '').split(' · ');
+  const short = parts.map((p) => {
+    const idx = p.indexOf(':');
+    if (idx === -1) return p.trim();
+    const q = p.slice(0, idx).toLowerCase();
+    let v = p.slice(idx + 1).trim().replace(/_/g, ' ');
+    v = v.replace(/less than\s*/i, '<').replace(/more than\s*/i, '>').replace(/\s*conversion rate\s*/i, '');
+    const label = q.includes('conversion') ? 'CVR' : q.includes('spend') ? 'Spend' : q.split(' ').slice(-2).join(' ');
+    return `${label} ${v}`.trim();
+  });
+  return short.join(' · ');
 }
 
 function watchPct(l: FunnelLead): number | null {
@@ -210,6 +230,14 @@ export default function FunnelLeadsPage() {
                         ) : (
                           <span style={{ color: 'var(--text-muted)' }}>Organic / direct</span>
                         )}
+                        {(() => {
+                          const a = instantFormAnswers(l);
+                          return a && (
+                            <div title="Answers from the Meta Instant Form" style={{ marginTop: 3, fontSize: 11.5, fontWeight: 600, color: '#06D6A0', whiteSpace: 'nowrap' }}>
+                              {a}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="fl-col-revenue" style={{ fontSize: 13 }}>{l.revenue ? LABELS[l.revenue] : '—'}</td>
                       <td className="fl-col-readiness" style={{ fontSize: 13 }}>{l.readiness ? LABELS[l.readiness] : '—'}</td>
