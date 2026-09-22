@@ -21,23 +21,19 @@ interface FunnelLead {
   utmCampaign: string | null;
   utmContent: string | null;
   notes: string | null;
+  formAnswers: Record<string, string> | null;
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
 }
 
-/** Instant Form qualifying answers live in notes as
- *  "Instant Form answers — <question>: <value> · <question>: <value>".
- *  Compress them for the table: "CVR <1% · Spend <$5k". */
+/** Compress the Instant Form qualifying answers for the table:
+ *  "CVR <1% · Spend <$5k". */
 function instantFormAnswers(l: FunnelLead): string | null {
-  const line = l.notes?.split('\n').find((s) => s.startsWith('Instant Form answers'));
-  if (!line) return null;
-  const parts = line.replace(/^Instant Form answers\s*—\s*/, '').split(' · ');
-  const short = parts.map((p) => {
-    const idx = p.indexOf(':');
-    if (idx === -1) return p.trim();
-    const q = p.slice(0, idx).toLowerCase();
-    let v = p.slice(idx + 1).trim().replace(/_/g, ' ');
+  if (!l.formAnswers || !Object.keys(l.formAnswers).length) return null;
+  const short = Object.entries(l.formAnswers).map(([q, raw]) => {
+    const ql = q.toLowerCase();
+    let v = raw.replace(/_/g, ' ');
     v = v.replace(/less than\s*/i, '<').replace(/more than\s*/i, '>').replace(/\s*conversion rate\s*/i, '');
-    const label = q.includes('conversion') ? 'CVR' : q.includes('spend') ? 'Spend' : q.split(' ').slice(-2).join(' ');
+    const label = ql.includes('conversion') ? 'CVR' : ql.includes('spend') ? 'Spend' : ql.split(' ').slice(-2).join(' ');
     return `${label} ${v}`.trim();
   });
   return short.join(' · ');

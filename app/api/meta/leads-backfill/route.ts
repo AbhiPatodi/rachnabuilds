@@ -36,18 +36,21 @@ function parseLead(raw: RawLead) {
     return fuzzy ? fields[fuzzy] : '';
   };
   // Custom qualifying answers (anything that isn't a contact field) — same
-  // treatment as the live webhook: preserved into notes for call prep.
+  // treatment as the live webhook: structured formAnswers, not a notes blob.
   const CONTACT_KEYS = ['full_name', 'name', 'email', 'phone_number', 'phone'];
-  const customAnswers = Object.entries(fields)
-    .filter(([k, v]) => v && !CONTACT_KEYS.some((c) => k === c || k.includes(c)))
-    .map(([k, v]) => `${k.replace(/_/g, ' ').replace(/\?$/, '')}: ${v}`);
+  const formAnswers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v && !CONTACT_KEYS.some((c) => k === c || k.includes(c))) {
+      formAnswers[k.replace(/_/g, ' ').replace(/\?$/, '')] = v;
+    }
+  }
 
   return {
     metaId: raw.id,
     name: pick('full_name', 'name') || 'Instant Form Lead',
     email: pick('email').trim().toLowerCase(),
     phone: pick('phone_number', 'phone'),
-    answersNote: customAnswers.length ? `Instant Form answers — ${customAnswers.join(' · ')}` : null,
+    formAnswers: Object.keys(formAnswers).length ? formAnswers : null,
     createdTime: raw.created_time,
     adName: raw.ad_name,
     campaignName: raw.campaign_name,
@@ -131,11 +134,17 @@ export async function POST(req: NextRequest) {
       if (!lead.email) continue;
       const exists = await prisma.funnelLead.findUnique({ where: { email: lead.email } });
       if (exists) {
-        // Patch in the form answers if an earlier import missed them
-        if (lead.answersNote && !exists.notes?.includes('Instant Form answers')) {
+        // Patch in structured answers if an earlier import missed them, and
+        // clean up the legacy notes-blob format while we're here.
+        if (lead.formAnswers && !exists.formAnswers) {
+          const cleanedNotes = exists.notes
+            ?.split('\n')
+            .filter((s) => !s.startsWith('Instant Form answers'))
+            .join('\n')
+            .trim() || null;
           await prisma.funnelLead.update({
             where: { id: exists.id },
-            data: { notes: exists.notes ? `${exists.notes}\n${lead.answersNote}` : lead.answersNote },
+            data: { formAnswers: lead.formAnswers, notes: cleanedNotes },
           }).catch(() => {});
         }
         skipped.push(lead.email);
@@ -150,7 +159,7 @@ export async function POST(req: NextRequest) {
           utmMedium: 'instant-form',
           utmCampaign: lead.campaignName || null,
           utmContent: lead.adName || form.formName || null,
-          ...(lead.answersNote ? { notes: lead.answersNote } : {}),
+          ...(lead.formAnswers ? { formAnswers: lead.formAnswers } : {}),
           ...(lead.createdTime ? { createdAt: new Date(lead.createdTime) } : {}),
         },
       });

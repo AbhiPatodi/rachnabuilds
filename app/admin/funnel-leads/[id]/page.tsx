@@ -46,6 +46,7 @@ interface FunnelLead {
   utmCampaign: string | null;
   utmContent: string | null;
   notes: string | null;
+  formAnswers: Record<string, string> | null;
   callScript: string | null;
   appliedAt: string | null;
   createdAt: string;
@@ -312,6 +313,21 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               }
             />
           </div>
+
+          {lead.formAnswers && Object.keys(lead.formAnswers).length > 0 && (
+            <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Instant Form answers</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
+                {Object.entries(lead.formAnswers).map(([q, a]) => (
+                  <Field
+                    key={q}
+                    label={q.charAt(0).toUpperCase() + q.slice(1)}
+                    value={<strong style={{ color: '#06D6A0' }}>{a.replace(/_/g, ' ')}</strong>}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Email history</h3>

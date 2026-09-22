@@ -509,6 +509,7 @@ model FunnelLead {
   utmCampaign   String?
   utmContent    String?
   notes         String?
+  formAnswers   Json?     // Instant Form qualifying answers: { "question text": "answer" }
   callScript    String?   // generated SLOSHED call-prep JSON
   appliedAt     DateTime?
   createdAt     DateTime  @default(now())

@@ -104,15 +104,17 @@ export async function POST(req: NextRequest) {
         }
 
         // Custom qualifying questions (e.g. conversion rate, ad spend) arrive
-        // with form-specific keys — keep every non-contact answer in notes so
-        // call prep sees exactly what the lead selected.
+        // with form-specific keys — store every non-contact answer as
+        // structured data so admin can render real fields, not a notes blob.
         const CONTACT_KEYS = ['full_name', 'name', 'email', 'phone_number', 'phone'];
-        const customAnswers = Object.entries(fields)
-          .filter(([k, v]) => v && !CONTACT_KEYS.some((c) => k === c || k.includes(c)))
-          .map(([k, v]) => `${k.replace(/_/g, ' ').replace(/\?$/, '')}: ${v}`);
-        const answersNote = customAnswers.length
-          ? `Instant Form answers — ${customAnswers.join(' · ')}`
-          : null;
+        const formAnswers: Record<string, string> = {};
+        for (const [k, v] of Object.entries(fields)) {
+          if (v && !CONTACT_KEYS.some((c) => k === c || k.includes(c))) {
+            formAnswers[k.replace(/_/g, ' ').replace(/\?$/, '')] = v;
+          }
+        }
+        const hasAnswers = Object.keys(formAnswers).length > 0;
+        const customAnswers = Object.entries(formAnswers).map(([q, a]) => `${q}: ${a}`);
 
         const dbLead = await prisma.funnelLead.upsert({
           where: { email },
@@ -122,18 +124,10 @@ export async function POST(req: NextRequest) {
             utmMedium: 'instant-form',
             utmCampaign: lead.campaign_name || null,
             utmContent: lead.ad_name || null,
-            ...(answersNote ? { notes: answersNote } : {}),
+            ...(hasAnswers ? { formAnswers } : {}),
           },
-          update: { name, ...(phone ? { phone } : {}) },
+          update: { name, ...(phone ? { phone } : {}), ...(hasAnswers ? { formAnswers } : {}) },
         });
-
-        // Existing lead: append the answers instead of overwriting notes.
-        if (answersNote && dbLead.notes !== answersNote && !dbLead.notes?.includes(answersNote)) {
-          await prisma.funnelLead.update({
-            where: { id: dbLead.id },
-            data: { notes: dbLead.notes ? `${dbLead.notes}\n${answersNote}` : answersNote },
-          }).catch(() => {});
-        }
 
         await sendInstantFormWelcome({ id: dbLead.id, name, email }).catch(() => {});
         await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, '/admin/funnel-leads').catch(() => {});
