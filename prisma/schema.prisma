@@ -241,6 +241,7 @@ model Client {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   projects        ClientProject[]
+  storeproofReports StoreProofReport[]
 
   @@map("clients")
 }
@@ -588,4 +589,42 @@ model VideoWatch {
 
   @@index([email])
   @@map("video_watches")
+}
+
+// ─── StoreProof: published Store Health Reports, gated behind the client portal ───
+
+model StoreProofReport {
+  id           String    @id @default(cuid())
+  host         String    // store hostname, e.g. "thehonestroots.in"
+  runStamp     String    // StoreProof run dir timestamp, e.g. "2026-09-12034546"
+  storeName    String
+  html         String    // sanitized store-health.html (appnav stripped at publish)
+  findingsJson String    @default("{}") // { findings: [...], opener: "..." } — teaser email source
+  pdfData      Bytes?    // agency-grade report.pdf when published
+  clientId     String?   // assignment gates portal access
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  funnelLeadId String?   // CRM link when the store belongs to a funnel lead
+  status       String    @default("published") // published | assigned
+  viewCount    Int       @default(0)
+  firstViewedAt DateTime?
+  lastViewedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  views        StoreProofReportView[]
+
+  @@unique([host, runStamp])
+  @@index([clientId])
+  @@map("storeproof_reports")
+}
+
+model StoreProofReportView {
+  id       String           @id @default(cuid())
+  reportId String
+  report   StoreProofReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  viewedAt DateTime         @default(now())
+  device   String?
+  ip       String?
+
+  @@index([reportId])
+  @@map("storeproof_report_views")
 }

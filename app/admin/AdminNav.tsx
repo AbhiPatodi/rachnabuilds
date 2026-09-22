@@ -110,6 +110,17 @@ export default function AdminNav() {
       </Link>
 
       <Link
+        href="/admin/storeproof"
+        className={pathname.startsWith('/admin/storeproof') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M9 12l2 2 4-4"/>
+          <path d="M12 3l7 4v5c0 4.5-3 8.5-7 9-4-.5-7-4.5-7-9V7l7-4z"/>
+        </svg>
+        StoreProof
+      </Link>
+
+      <Link
         href="/admin/bookings"
         className={pathname.startsWith('/admin/bookings') ? 'active' : ''}
       >
