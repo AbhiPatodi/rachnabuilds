@@ -10,7 +10,7 @@
 // Auth: Bearer CRON_SECRET. (Must live outside /api/admin — proxy.ts guards
 // those paths with the admin_session cookie.)
 import { NextRequest, NextResponse } from 'next/server';
-import { getPageAuth } from '@/lib/metaPage';
+import { getPageAuth, lastExchangeError } from '@/lib/metaPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,12 @@ export async function GET(req: NextRequest) {
 
   const page = await getPageAuth(req.nextUrl.searchParams.get('page_id'));
   if (!page) {
-    return NextResponse.json({ error: 'META_PAGE_ACCESS_TOKEN not set or no Page found' }, { status: 400 });
+    return NextResponse.json({
+      error: 'META_PAGE_ACCESS_TOKEN not set or no Page found',
+      tokenPresent: !!process.env.META_PAGE_ACCESS_TOKEN,
+      tokenLength: process.env.META_PAGE_ACCESS_TOKEN?.length ?? 0,
+      graphError: lastExchangeError,
+    }, { status: 400 });
   }
 
   const [subs, debug] = await Promise.all([

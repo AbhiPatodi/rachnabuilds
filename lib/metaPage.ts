@@ -11,6 +11,10 @@ const GRAPH = 'https://graph.facebook.com/v21.0';
 let cached: { pageId: string; token: string; at: number } | null = null;
 const TTL_MS = 60 * 60 * 1000;
 
+/** Last raw Graph error from the exchange attempts — surfaced by the
+ *  page-subscribe diagnostics endpoint so failures aren't a guessing game. */
+export let lastExchangeError: string | null = null;
+
 export interface PageAuth {
   pageId: string;
   token: string;
@@ -29,7 +33,15 @@ export async function getPageAuth(pageIdOverride?: string | null): Promise<PageA
   // /me/accounts on a system-user token returns each Page *with* its own token
   const accounts = await fetch(
     `${GRAPH}/me/accounts?fields=id,name,access_token&access_token=${envToken}`,
-  ).then((r) => r.json()).catch(() => null);
+  ).then((r) => r.json()).catch((e) => ({ error: { message: `fetch failed: ${e}` } }));
+
+  if (accounts?.error) {
+    lastExchangeError = `me/accounts: ${accounts.error.message || JSON.stringify(accounts.error)}`;
+  } else if (!accounts?.data?.length) {
+    lastExchangeError = 'me/accounts returned an empty page list (token valid but no Pages visible — usually missing pages_show_list or the Page is not assigned to this token’s system user)';
+  } else {
+    lastExchangeError = null;
+  }
 
   const pages: Array<{ id: string; name?: string; access_token?: string }> = accounts?.data ?? [];
   const match = pageIdOverride ? pages.find((p) => p.id === pageIdOverride) : pages[0];
@@ -45,6 +57,9 @@ export async function getPageAuth(pageIdOverride?: string | null): Promise<PageA
     const direct = await fetch(
       `${GRAPH}/${pageId}?fields=access_token&access_token=${envToken}`,
     ).then((r) => r.json()).catch(() => null);
+    if (direct?.error) {
+      lastExchangeError = `${lastExchangeError ? lastExchangeError + ' | ' : ''}page-direct: ${direct.error.message || JSON.stringify(direct.error)}`;
+    }
     if (direct?.access_token) {
       cached = { pageId, token: direct.access_token, at: Date.now() };
       return { pageId, token: direct.access_token, derived: true };
