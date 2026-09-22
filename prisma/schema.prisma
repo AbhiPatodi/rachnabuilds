@@ -604,6 +604,7 @@ model StoreProofReport {
   clientId     String?   // assignment gates portal access
   client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   funnelLeadId String?   // CRM link when the store belongs to a funnel lead
+  publicToken  String?   @unique // unlocks the PUBLIC blurred teaser at /report/<token>
   status       String    @default("published") // published | assigned
   viewCount    Int       @default(0)
   firstViewedAt DateTime?
@@ -627,4 +628,26 @@ model StoreProofReportView {
 
   @@index([reportId])
   @@map("storeproof_report_views")
+}
+
+// Queue for the free-audit funnel: form submit -> job -> Mac worker runs
+// StoreProof -> publishes -> lead gets the blurred-report link by email.
+model StoreProofJob {
+  id           String    @id @default(cuid())
+  storeUrl     String
+  host         String
+  name         String
+  email        String
+  funnelLeadId String?
+  status       String    @default("queued") // queued | running | done | failed
+  error        String?
+  attempts     Int       @default(0)
+  reportId     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  @@index([status])
+  @@map("storeproof_jobs")
 }

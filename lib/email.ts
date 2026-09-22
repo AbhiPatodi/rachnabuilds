@@ -545,6 +545,29 @@ export async function sendInstantFormWelcome(opts: {
   return result;
 }
 
+/** Sent by the StoreProof worker pipeline when a free-audit report is ready.
+ *  Links to the PUBLIC blurred report page /report/<token>. */
+export async function sendAuditReportReady(opts: {
+  name: string; email: string; storeName: string; token: string; leadId?: string | null;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const firstName = opts.name.split(' ')[0];
+  const reportUrl = `${SITE_URL}/report/${opts.token}`;
+  const subject = `${firstName}, your store audit is ready 🔍`;
+  const html = base(
+    subject,
+    `
+    ${heading(`Your store report is ready, ${firstName}`)}
+    ${bodyText(`We went through <strong>${opts.storeName}</strong> the way a real shopper does — on a phone, from first visit to checkout — and the way Google and your ad platforms see it. Your report is ready:`)}
+    ${ctaButton('Open My Store Report', reportUrl)}
+    ${bodyText('Two findings are open for you right now. The three costing you the most are unlocked on a free 20-minute walkthrough call — we go through every issue on your store, live, and you leave knowing exactly what to fix first.')}
+    ${bodyText('No pitch decks, no obligations — just your store, on screen, with someone who does this every day.')}
+    `,
+  );
+  const result = await sendEmail(opts.email, subject, html);
+  await logFunnelEmail(opts.email, 'audit_ready', subject, result);
+  return result;
+}
+
 export async function sendColdOptinNudge(opts: {
   id: string; name: string; email: string;
 }): Promise<{ ok: boolean; reason?: string }> {

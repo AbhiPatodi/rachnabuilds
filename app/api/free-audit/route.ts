@@ -33,6 +33,38 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Blurred-report funnel: lead into the CRM + a StoreProof job for the
+    // audit worker. The report link goes out by email when the run finishes.
+    const cleanEmail = email.trim().toLowerCase();
+    const rawUrl = storeUrl.trim();
+    const normalizedUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+    let host = rawUrl;
+    try { host = new URL(normalizedUrl).hostname.replace(/^www\./, ''); } catch { /* keep raw */ }
+
+    const lead = await prisma.funnelLead.upsert({
+      where: { email: cleanEmail },
+      create: {
+        name: name.trim(),
+        email: cleanEmail,
+        storeUrl: normalizedUrl,
+        challenge: challenge || null,
+        utmSource: 'website',
+        utmMedium: 'free-audit',
+      },
+      update: { storeUrl: normalizedUrl },
+    });
+
+    // One queued/running job per store at a time — a double submit shouldn't
+    // burn two 10-minute audit runs.
+    const pending = await prisma.storeProofJob.findFirst({
+      where: { host, status: { in: ['queued', 'running'] } },
+    });
+    if (!pending) {
+      await prisma.storeProofJob.create({
+        data: { storeUrl: normalizedUrl, host, name: name.trim(), email: cleanEmail, funnelLeadId: lead.id },
+      });
+    }
+
     sendPushToAll(
       '🔍 New Free Audit Request!',
       `${name.trim()} · ${storeUrl.trim()} · ${revenue || 'revenue n/a'}`,

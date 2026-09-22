@@ -59,19 +59,19 @@ export default function FreeAuditClient() {
         <div className="tool-tag">Free · No Obligation</div>
         <h1 className="tool-h1">Free Shopify<br />Conversion Audit</h1>
         <p className="tool-sub">
-          Getting traffic but not enough sales? I&apos;ll personally record a 15-minute Loom video
-          showing exactly what&apos;s stopping visitors from buying — and how to fix it.
-          Works for Shopify and WordPress stores.<br />
-          No pitch. No sales call. Just real recommendations.
+          Getting traffic but not enough sales? We run a full conversion audit of your store —
+          the way a real shopper experiences it, on a phone, from first visit to checkout —
+          and send you a report naming your actual products and pages, in about 15 minutes.<br />
+          No pitch. No obligation. Just what&apos;s costing you sales.
         </p>
       </div>
 
       {/* Benefits */}
       <div className="audit-benefits">
         <div className="audit-benefit">
-          <div className="audit-benefit-icon">🎥</div>
-          <div className="audit-benefit-title">Personal Loom Review</div>
-          <div className="audit-benefit-desc">A recorded walkthrough of your actual store — not a generic report.</div>
+          <div className="audit-benefit-icon">🔍</div>
+          <div className="audit-benefit-title">Your Store, Not a Template</div>
+          <div className="audit-benefit-desc">Every finding names your real products and pages — never a generic checklist.</div>
         </div>
         <div className="audit-benefit">
           <div className="audit-benefit-icon">📋</div>
@@ -89,11 +89,12 @@ export default function FreeAuditClient() {
       <div className="tool-form-wrap">
         {done ? (
           <div className="audit-thankyou">
-            <div className="audit-thankyou-icon">🎉</div>
-            <h2>You're on the list!</h2>
+            <div className="audit-thankyou-icon">🔍</div>
+            <h2>Your audit is running!</h2>
             <p>
-              I'll review your store and send your personal Loom audit within <strong>24–48 hours</strong>.
-              Check your inbox at <strong>{form.email}</strong>.
+              We're going through your store right now — the way a real shopper does, on a phone,
+              from first visit to checkout. Your report link lands in{' '}
+              <strong>{form.email}</strong> in about <strong>15–20 minutes</strong>.
             </p>
             <p style={{ marginTop: 12, fontSize: 14, opacity: 0.7 }}>
               While you wait — check your store's speed score:
