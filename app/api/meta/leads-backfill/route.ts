@@ -35,11 +35,19 @@ function parseLead(raw: RawLead) {
     const fuzzy = Object.keys(fields).find((k) => keys.some((key) => k.includes(key)));
     return fuzzy ? fields[fuzzy] : '';
   };
+  // Custom qualifying answers (anything that isn't a contact field) — same
+  // treatment as the live webhook: preserved into notes for call prep.
+  const CONTACT_KEYS = ['full_name', 'name', 'email', 'phone_number', 'phone'];
+  const customAnswers = Object.entries(fields)
+    .filter(([k, v]) => v && !CONTACT_KEYS.some((c) => k === c || k.includes(c)))
+    .map(([k, v]) => `${k.replace(/_/g, ' ').replace(/\?$/, '')}: ${v}`);
+
   return {
     metaId: raw.id,
     name: pick('full_name', 'name') || 'Instant Form Lead',
     email: pick('email').trim().toLowerCase(),
     phone: pick('phone_number', 'phone'),
+    answersNote: customAnswers.length ? `Instant Form answers — ${customAnswers.join(' · ')}` : null,
     createdTime: raw.created_time,
     adName: raw.ad_name,
     campaignName: raw.campaign_name,
@@ -123,6 +131,13 @@ export async function POST(req: NextRequest) {
       if (!lead.email) continue;
       const exists = await prisma.funnelLead.findUnique({ where: { email: lead.email } });
       if (exists) {
+        // Patch in the form answers if an earlier import missed them
+        if (lead.answersNote && !exists.notes?.includes('Instant Form answers')) {
+          await prisma.funnelLead.update({
+            where: { id: exists.id },
+            data: { notes: exists.notes ? `${exists.notes}\n${lead.answersNote}` : lead.answersNote },
+          }).catch(() => {});
+        }
         skipped.push(lead.email);
         continue;
       }
@@ -135,6 +150,7 @@ export async function POST(req: NextRequest) {
           utmMedium: 'instant-form',
           utmCampaign: lead.campaignName || null,
           utmContent: lead.adName || form.formName || null,
+          ...(lead.answersNote ? { notes: lead.answersNote } : {}),
           ...(lead.createdTime ? { createdAt: new Date(lead.createdTime) } : {}),
         },
       });
