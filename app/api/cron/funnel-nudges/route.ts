@@ -30,6 +30,9 @@ export async function GET(req: NextRequest) {
       where: {
         stage: 'optin',
         createdAt: { lte: new Date(now - 2 * HOUR), gte: maxAge },
+        // Meta Instant Form leads are followed up personally on WhatsApp —
+        // no automated nudges for them (welcome email only).
+        NOT: { utmMedium: 'instant-form' },
       },
     });
 
@@ -63,6 +66,7 @@ export async function GET(req: NextRequest) {
     const applied = await prisma.funnelLead.findMany({
       where: {
         stage: 'applied',
+        NOT: { utmMedium: 'instant-form' },
         appliedAt: { lte: new Date(now - 3 * HOUR), gte: maxAge },
         status: { notIn: RESOLVED_STATUSES },
       },
