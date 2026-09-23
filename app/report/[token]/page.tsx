@@ -9,6 +9,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { sendPushToAll } from '@/lib/webpush';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +53,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const { token } = await params;
   const report = await prisma.storeProofReport.findUnique({
     where: { publicToken: token },
-    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true },
+    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, firstViewedAt: true },
   });
   if (!report) notFound();
 
@@ -78,10 +79,19 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const total = findings.length;
 
   await prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'public' } }).catch(() => {});
+  const wasFirstView = !report.firstViewedAt;
   await prisma.storeProofReport.update({
     where: { id: report.id },
-    data: { viewCount: { increment: 1 }, lastViewedAt: new Date() },
+    data: {
+      viewCount: { increment: 1 },
+      lastViewedAt: new Date(),
+      ...(report.firstViewedAt ? {} : { firstViewedAt: new Date() }),
+    },
   }).catch(() => {});
+  if (wasFirstView) {
+    // The lead is looking at their report RIGHT NOW — best follow-up moment.
+    sendPushToAll('👁 Report opened!', `${report.storeName} — they're reading it now`, report.funnelLeadId ? `/admin/funnel-leads/${report.funnelLeadId}` : '/admin/storeproof').catch(() => {});
+  }
 
   const bookUrl = report.funnelLeadId
     ? `/training/apply?lead=${report.funnelLeadId}`

@@ -640,6 +640,7 @@ model StoreProofJob {
   name         String
   email        String
   funnelLeadId String?
+  emailLead    Boolean   @default(true) // false = admin-triggered, WhatsApp is the channel
   status       String    @default("queued") // queued | running | done | failed
   error        String?
   attempts     Int       @default(0)

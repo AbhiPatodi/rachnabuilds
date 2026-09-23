@@ -83,14 +83,25 @@ export async function POST(req: NextRequest) {
     data: { status: 'done', reportId: report.id, finishedAt: new Date() },
   });
 
-  await sendAuditReportReady({
-    name: job.name,
-    email: job.email,
-    storeName: report.storeName,
-    token: publicToken,
-    leadId: job.funnelLeadId,
-  }).catch(() => {});
-  await sendPushToAll('⚡ Audit report delivered', `${report.storeName} → ${job.email}`, '/admin/storeproof').catch(() => {});
+  if (job.emailLead) {
+    await sendAuditReportReady({
+      name: job.name,
+      email: job.email,
+      storeName: report.storeName,
+      token: publicToken,
+      leadId: job.funnelLeadId,
+    }).catch(() => {});
+    await sendPushToAll('⚡ Audit report delivered', `${report.storeName} → ${job.email}`, '/admin/storeproof').catch(() => {});
+  } else {
+    // Admin-triggered (WhatsApp flow): stay silent to the lead, alert admin
+    // that the report is ready to share.
+    await sendPushToAll('⚡ Report ready to share', `${report.storeName} — open the lead to WhatsApp it`, job.funnelLeadId ? `/admin/funnel-leads/${job.funnelLeadId}` : '/admin/storeproof').catch(() => {});
+  }
+  if (job.funnelLeadId) {
+    await prisma.leadActivity.create({
+      data: { leadId: job.funnelLeadId, type: 'system', text: `Store audit completed — report ready (${report.storeName})` },
+    }).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true, status: 'done', publicToken });
 }

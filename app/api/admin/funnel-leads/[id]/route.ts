@@ -24,10 +24,19 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   // StoreProof report engagement for the timeline
   const spReports = await prisma.storeProofReport.findMany({
     where: { funnelLeadId: id },
+    orderBy: { createdAt: 'desc' },
     select: {
-      id: true, storeName: true, publicToken: true, viewCount: true, createdAt: true,
+      id: true, storeName: true, host: true, publicToken: true, viewCount: true,
+      lastViewedAt: true, createdAt: true,
       views: { orderBy: { viewedAt: 'desc' }, take: 10, select: { viewedAt: true } },
     },
+  });
+
+  // Latest audit job for this lead (drives the Store Audit card status)
+  const auditJob = await prisma.storeProofJob.findFirst({
+    where: { funnelLeadId: id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true, host: true, error: true, createdAt: true, startedAt: true },
   });
 
   const emailLogs = await prisma.funnelEmailLog.findMany({
@@ -48,7 +57,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       )
     : null;
 
-  return NextResponse.json({ ...lead, videoWatch, emailLogs, spReports });
+  return NextResponse.json({ ...lead, videoWatch, emailLogs, spReports, auditJob });
 }
 
 /** Add a manual note to the lead's timeline (PWA quick action). */

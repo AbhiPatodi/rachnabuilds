@@ -122,7 +122,7 @@ export default function StoreProofAdminPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
                 <a
-                  href={`/api/admin/storeproof/${r.id}`}
+                  href={`/admin/storeproof/${r.id}`}
                   target="_blank" rel="noopener noreferrer"
                   className="admin-btn admin-btn-primary"
                   style={{ fontSize: 12 }}

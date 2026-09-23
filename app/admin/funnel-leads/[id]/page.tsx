@@ -56,7 +56,8 @@ interface FunnelLead {
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
   emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
   activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
-  spReports: { id: string; storeName: string; publicToken: string | null; viewCount: number; createdAt: string; views: { viewedAt: string }[] }[];
+  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string }[] }[];
+  auditJob: { id: string; status: string; host: string; error: string | null; createdAt: string } | null;
 }
 
 interface TimelineEvent { at: string; icon: string; text: string; sub?: string }
@@ -181,6 +182,24 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       });
       setNoteText('');
       await fetchLead();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const [auditUrl, setAuditUrl] = useState('');
+  const runAudit = async () => {
+    const url = auditUrl.trim() || lead?.storeUrl || '';
+    if (!url) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/funnel-leads/${id}/audit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeUrl: url }),
+      });
+      if (res.ok) { setAuditUrl(''); await fetchLead(); }
+      else alert((await res.json()).error || 'Failed to queue audit');
     } finally {
       setBusy(false);
     }
@@ -378,6 +397,73 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           )}
+
+
+          {/* ─── STORE AUDIT (StoreProof) ─── */}
+          <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Store Audit</h3>
+            {(() => {
+              const report = lead.spReports?.[0];
+              const job = lead.auditJob;
+              if (report?.publicToken) {
+                const link = `https://rachnabuilds.com/report/${report.publicToken}`;
+                const waDigits = (lead.whatsapp || lead.phone || '').replace(/[^0-9]/g, '');
+                const waMsg = encodeURIComponent(
+                  `Here's your store report, ${lead.name.split(' ')[0]} \u{1F50D} ${link}\n\nTwo findings are open right away \u2014 I'll walk you through the top three (the ones costing you the most) on a quick call. When works for you?`
+                );
+                return (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13.5 }}>✅ Report ready — <b>{report.storeName}</b></span>
+                      <span style={{ fontSize: 12.5, color: report.viewCount > 0 ? '#06D6A0' : 'var(--text-muted)', fontWeight: report.viewCount > 0 ? 700 : 400 }}>
+                        {report.viewCount > 0 ? `\u{1F441} Viewed ${report.viewCount}\u00d7` : 'Not opened yet'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+                      {waDigits && (
+                        <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }}
+                          href={`https://wa.me/${waDigits}?text=${waMsg}`} target="_blank" rel="noopener noreferrer">
+                          💬 Share on WhatsApp
+                        </a>
+                      )}
+                      <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={link} target="_blank" rel="noopener noreferrer">Teaser ↗</a>
+                      <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${report.id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
+                    </div>
+                  </div>
+                );
+              }
+              if (job && (job.status === 'queued' || job.status === 'running')) {
+                return (
+                  <p style={{ fontSize: 13.5, margin: 0, color: 'var(--text-secondary)' }}>
+                    {job.status === 'running' ? '⚙️ Audit running' : '⏳ Audit queued'} for <b>{job.host}</b> — takes ~10-15 min.
+                    You'll get a push when the report is ready to share.
+                    <button type="button" onClick={fetchLead} className="admin-btn admin-btn-secondary" style={{ fontSize: 11.5, marginLeft: 10 }}>Refresh</button>
+                  </p>
+                );
+              }
+              return (
+                <div>
+                  {job?.status === 'failed' && (
+                    <p style={{ fontSize: 12.5, color: '#FF6B6B', margin: '0 0 10px' }}>Last audit failed: {job.error?.slice(0, 120)} — fix and re-run.</p>
+                  )}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      value={auditUrl || lead.storeUrl || ''}
+                      onChange={(e) => setAuditUrl(e.target.value)}
+                      placeholder="Store URL from WhatsApp — e.g. minimaljewel.com"
+                      style={{ flex: 1, minWidth: 220, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', color: 'var(--text)', fontSize: 13.5 }}
+                    />
+                    <button type="button" className="admin-btn admin-btn-primary" style={{ fontSize: 13 }} disabled={busy || !(auditUrl.trim() || lead.storeUrl)} onClick={runAudit}>
+                      🔍 Run Store Audit
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '8px 0 0' }}>
+                    Runs the full StoreProof audit (~10-15 min). No email goes to the lead — you share the report on WhatsApp when it's ready.
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
 
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Email history</h3>
