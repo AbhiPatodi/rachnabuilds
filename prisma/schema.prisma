@@ -606,6 +606,7 @@ model StoreProofReport {
   client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   funnelLeadId String?   // CRM link when the store belongs to a funnel lead
   publicToken  String?   @unique // unlocks the PUBLIC blurred teaser at /report/<token>
+  competitorsRequested String? // comma-separated domains the lead asked to be compared against
   status       String    @default("published") // published | assigned
   viewCount    Int       @default(0)
   firstViewedAt DateTime?

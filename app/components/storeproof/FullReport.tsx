@@ -5,7 +5,7 @@
 // section's data wasn't gathered for that run.
 import React from 'react';
 
-interface Finding { title?: string; merchant_copy?: string; effort?: string }
+interface Finding { title?: string; merchant_copy?: string; effort?: string; severity?: string; fix_tier?: string; impact?: string | { assumption_note?: string; basis?: string } }
 interface SpeedPage { label: string; score: number; lcpMs: number }
 interface SpeedWin { title: string; savingsMs: number }
 interface Shot { label: string; dataUri: string }
@@ -21,7 +21,20 @@ export interface FullReportPayload {
   speed?: { pages: SpeedPage[]; wins: SpeedWin[] } | null;
   screenshots?: Shot[];
   benchmark?: BenchRow[];
+  checkStats?: { run: number; failures: number; warnings: number; passing: number };
+  healthByArea?: { area: string; fail: number; warn: number; total: number; verdict: string }[];
 }
+
+const SEVERITY_STYLE: Record<string, { bg: string; color: string }> = {
+  blocker: { bg: '#B42318', color: '#fff' },
+  high: { bg: '#DC6803', color: '#fff' },
+  medium: { bg: '#B54708', color: '#fff' },
+  low: { bg: '#475467', color: '#fff' },
+};
+
+const FIX_TIER: Record<string, string> = {
+  a: 'API fix — fast, reversible', b: 'Theme code fix', c: 'Settings/app change',
+};
 
 const EFFORT: Record<string, { label: string; cls: string }> = {
   s: { label: 'Quick fix · days', cls: 'quick' },
@@ -57,6 +70,8 @@ export default function FullReport({
   const screenshots = payload.screenshots || [];
   const benchmark = (payload.benchmark || []).filter((b) => b.isClient || !b.error);
   const clientBench = payload.benchmark?.find((b) => b.isClient);
+  const stats = payload.checkStats;
+  const areas = payload.healthByArea || [];
 
   return (
     <div style={{ minHeight: '100vh', background: '#F6F8F7', color: '#1D2939', fontFamily: "'Helvetica Neue', Arial, sans-serif", fontSize: 15, lineHeight: 1.65 }}>
@@ -95,6 +110,30 @@ export default function FullReport({
         .fr-pdf { display:inline-block; background:#0B3D2E; color:#fff; font-weight:800; font-size:13.5px; padding:12px 24px; border-radius:10px; text-decoration:none; }
         footer { margin-top:36px; color:#667085; font-size:12px; border-top:1px solid #E4E7EC; padding-top:14px; }
         @media print { .fr-pdf { display:none; } }
+        .fr-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin:24px 0 0; }
+        .fr-stat { background:#fff; border:1px solid #E4E7EC; border-radius:12px; padding:14px 16px; }
+        .fr-stat b { display:block; font-size:26px; color:#0B3D2E; }
+        .fr-stat.bad b { color:#B42318; }
+        .fr-stat.warn b { color:#B54708; }
+        .fr-stat.good b { color:#067647; }
+        .fr-stat span { font-size:12px; color:#667085; }
+        .fr-sev { font-size:10px; font-weight:800; padding:3px 9px; border-radius:99px; text-transform:uppercase; letter-spacing:0.05em; }
+        .fr-tag { font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px; background:#F2F4F7; color:#475467; }
+        .fr-impact { font-size:12.5px; color:#667085; font-style:italic; margin:8px 0 0; }
+        .fr-closer { background:#fff; border:2px solid #171717; border-radius:16px; padding:22px 24px; margin-top:34px; }
+        .fr-closer h2 { color:#0B3D2E; font-size:17px; margin:0 0 6px; }
+        .fr-closer p { font-size:14px; color:#344054; margin:0; }
+        @media (max-width: 640px) {
+          .fr-wrap { padding: 24px 14px 60px; }
+          .fr-h1 { font-size: 21px; }
+          .fr-masthead { gap: 10px; }
+          .fr-logo { max-height: 38px; max-width: 130px; }
+          .fr-meta { font-size: 10.5px; }
+          .fr-finding { padding: 13px 13px; gap: 10px; }
+          .fr-table th, .fr-table td { padding: 8px 6px; font-size: 12px; }
+          .fr-shots { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .fr-stats { grid-template-columns: repeat(2, 1fr); }
+        }
       `}</style>
       <div className="fr-wrap">
         <div className="fr-masthead">
@@ -115,6 +154,15 @@ export default function FullReport({
         </p>
         {payload.opener && <div className="fr-summary">{payload.opener}</div>}
 
+        {stats && (
+          <div className="fr-stats">
+            <div className="fr-stat"><b>{stats.run}</b><span>automated checks run</span></div>
+            <div className="fr-stat bad"><b>{stats.failures}</b><span>failures found</span></div>
+            <div className="fr-stat warn"><b>{stats.warnings}</b><span>warnings</span></div>
+            <div className="fr-stat good"><b>{stats.passing}</b><span>passing</span></div>
+          </div>
+        )}
+
         <h2 className="fr-h2">All {findings.length} findings, ranked by impact</h2>
         <p className="fr-h2sub">Top of the list = costing you the most, fix first.</p>
         {findings.map((f, i) => {
@@ -125,13 +173,45 @@ export default function FullReport({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="fr-fhead">
                   <h4>{f.title}</h4>
+                  {f.severity && (() => {
+                    const sv = SEVERITY_STYLE[f.severity.toLowerCase()] || SEVERITY_STYLE.low;
+                    return <span className="fr-sev" style={{ background: sv.bg, color: sv.color }}>{f.severity}</span>;
+                  })()}
+                  {f.fix_tier && <span className="fr-tag">{FIX_TIER[f.fix_tier.toLowerCase()] || f.fix_tier}</span>}
                   <span className={`fr-effort ${e.cls}`}>{e.label}</span>
                 </div>
                 <p className="fr-body">{f.merchant_copy}</p>
+                {(() => {
+                  const impactText = typeof f.impact === 'string' ? f.impact : f.impact?.assumption_note;
+                  return impactText ? <p className="fr-impact">{impactText}</p> : null;
+                })()}
               </div>
             </div>
           );
         })}
+
+        {areas.length > 0 && (
+          <>
+            <h2 className="fr-h2">Health by area</h2>
+            <p className="fr-h2sub">Every corner of the store we checked, at a glance.</p>
+            <div className="fr-card" style={{ overflowX: 'auto', padding: 0 }}>
+              <table className="fr-table">
+                <thead><tr><th>Area</th><th>Verdict</th><th>Failures</th><th>Warnings</th><th>Checks</th></tr></thead>
+                <tbody>
+                  {areas.map((a, i) => (
+                    <tr key={i}>
+                      <td>{a.area}</td>
+                      <td style={{ fontWeight: 800, color: a.verdict === 'Good' ? '#067647' : a.verdict === 'Fair' ? '#B54708' : '#B42318' }}>{a.verdict}</td>
+                      <td>{a.fail}</td>
+                      <td>{a.warn}</td>
+                      <td>{a.total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
         {speed && (
           <>
@@ -223,6 +303,16 @@ export default function FullReport({
             <a className="fr-pdf" href={pdfUrl}>Download Technical Report (PDF) ↓</a>
           </>
         )}
+
+        <div className="fr-closer">
+          <h2>The honest bottom line</h2>
+          <p>
+            None of this is unusual — most stores accumulate these issues as they grow. What matters
+            is that every item above has a known fix, most are days not months, and each one is
+            measurable: we re-test after every change so you see the before and after on your own
+            store, not promises.
+          </p>
+        </div>
 
         <footer>
           Prepared by Rachna Builds using an automated public review of {host} — no store access
