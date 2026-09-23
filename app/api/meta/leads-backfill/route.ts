@@ -47,6 +47,8 @@ function parseLead(raw: RawLead) {
 
   return {
     metaId: raw.id,
+    // Meta's Lead Ads Testing Tool submits dummy rows — never import them
+    isMetaTest: pick('email').includes('@meta.com') || (pick('full_name', 'name') || '').startsWith('<test lead'),
     name: pick('full_name', 'name') || 'Instant Form Lead',
     email: pick('email').trim().toLowerCase(),
     phone: pick('phone_number', 'phone'),
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
 
   for (const form of perForm) {
     for (const lead of form.leads) {
-      if (!lead.email) continue;
+      if (!lead.email || lead.isMetaTest) continue;
       const exists = await prisma.funnelLead.findUnique({ where: { email: lead.email } });
       if (exists) {
         // Patch in structured answers if an earlier import missed them, and
