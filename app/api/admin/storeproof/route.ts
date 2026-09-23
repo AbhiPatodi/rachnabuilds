@@ -14,7 +14,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true, host: true, runStamp: true, storeName: true, status: true,
-        clientId: true, funnelLeadId: true, viewCount: true,
+        publicToken: true, clientId: true, funnelLeadId: true, viewCount: true,
         firstViewedAt: true, lastViewedAt: true, createdAt: true, findingsJson: true,
         client: { select: { id: true, name: true, slug: true } },
         views: { orderBy: { viewedAt: 'desc' }, take: 5, select: { viewedAt: true, device: true } },

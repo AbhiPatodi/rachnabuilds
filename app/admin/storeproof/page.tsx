@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface ReportRow {
   id: string;
+  publicToken: string | null;
   host: string;
   runStamp: string;
   storeName: string;
@@ -82,7 +83,9 @@ export default function StoreProofAdminPage() {
         <div>
           <h1 className="admin-page-title">StoreProof Reports</h1>
           <p className="admin-page-subtitle">
-            Store Health Reports published from the audit engine — assign to a portal client to unlock their gated copy
+            Every audited store. "Full report" opens the complete Store Health Report; the teaser link
+            is what leads receive (blurred top-3). Assigning to a client is only for AFTER they close —
+            it unlocks the full report inside their client portal.
           </p>
         </div>
       </div>
@@ -118,13 +121,34 @@ export default function StoreProofAdminPage() {
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+                <a
+                  href={`/api/admin/storeproof/${r.id}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="admin-btn admin-btn-primary"
+                  style={{ fontSize: 12 }}
+                >
+                  Full report ↗
+                </a>
+
+                {r.publicToken && (
+                  <a
+                    href={`/report/${r.publicToken}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="admin-btn admin-btn-secondary"
+                    style={{ fontSize: 12 }}
+                  >
+                    Teaser (what the lead sees) ↗
+                  </a>
+                )}
+
                 <select
                   value={r.clientId || ''}
                   disabled={busy === r.id}
                   onChange={(e) => assign(r.id, e.target.value)}
+                  title="Only after they become a paying client — unlocks the full report in their portal"
                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 13 }}
                 >
-                  <option value="">— assign to client —</option>
+                  <option value="">— portal unlock (after close) —</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
 
@@ -135,7 +159,7 @@ export default function StoreProofAdminPage() {
                     className="admin-btn admin-btn-secondary"
                     style={{ fontSize: 12 }}
                   >
-                    Preview ↗
+                    Portal copy ↗
                   </a>
                 )}
 
