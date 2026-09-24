@@ -557,6 +557,9 @@ model Booking {
   meetLink      String?
   status        String      @default("confirmed") // confirmed | cancelled | completed | no_show
   remindersSent String      @default("[]")        // JSON array of sent reminder keys: 12h | 1h | 30m | live
+  callSummary   String?     // Fathom: AI summary + action items
+  callTranscript String?    // Fathom: full transcript (capped)
+  recordingUrl  String?     // Fathom share link
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

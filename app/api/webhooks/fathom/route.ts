@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
   const summary = pickString(body, ['summary', 'ai_summary', 'default_summary', 'notes']);
   const actionItems = pickString(body, ['action_items', 'actionItems', 'next_steps']);
   const recordingUrl = pickString(body, ['share_url', 'recording_url', 'url', 'fathom_url']);
+  const transcript = pickString(body, ['transcript', 'transcript_plaintext', 'full_transcript']);
 
   const emails = new Set<string>();
   collectEmails(body, emails);
@@ -71,6 +72,27 @@ export async function POST(req: NextRequest) {
     await prisma.leadActivity.create({
       data: { leadId: lead.id, type: 'note', text, actor: 'Fathom' },
     }).catch(() => {});
+    // Attach full call record to the lead's nearest booking (±36h) so the
+    // transcript is queryable later for follow-up drafting.
+    const booking = await prisma.booking.findFirst({
+      where: {
+        funnelLeadId: lead.id,
+        startTime: { gte: new Date(Date.now() - 36 * 3600_000), lte: new Date(Date.now() + 36 * 3600_000) },
+      },
+      orderBy: { startTime: 'desc' },
+      select: { id: true },
+    }).catch(() => null);
+    if (booking) {
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          status: 'completed',
+          ...(summary || actionItems ? { callSummary: [summary, actionItems && `ACTION ITEMS:\n${actionItems}`].filter(Boolean).join('\n\n').slice(0, 20_000) } : {}),
+          ...(transcript ? { callTranscript: transcript.slice(0, 150_000) } : {}),
+          ...(recordingUrl ? { recordingUrl } : {}),
+        },
+      }).catch(() => {});
+    }
   }
 
   // Receipt log — lets us confirm delivery even when no lead matched.
