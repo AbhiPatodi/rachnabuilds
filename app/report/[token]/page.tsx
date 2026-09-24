@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import CompetitorAsk from './CompetitorAsk';
+import EngagementPing from './EngagementPing';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const rest = findings.slice(5);
   const total = findings.length;
 
-  await prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'public' } }).catch(() => {});
+  const view = await prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'public' } }).catch(() => null);
   const wasFirstView = !report.firstViewedAt;
   await prisma.storeProofReport.update({
     where: { id: report.id },
@@ -104,6 +105,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
 
   return (
     <div style={{ minHeight: '100vh', background: '#F6F8F7', color: '#1D2939', fontFamily: "'Helvetica Neue', Arial, sans-serif", fontSize: 15, lineHeight: 1.65 }}>
+      {view && <EngagementPing token={token} viewId={view.id} />}
       <style>{`
         html, body { background: #F6F8F7 !important; }
         .rpt-wrap { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }

@@ -56,7 +56,7 @@ interface FunnelLead {
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
   emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
   activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
-  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string }[] }[];
+  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null }[] }[];
   auditJob: { id: string; status: string; host: string; error: string | null; createdAt: string } | null;
 }
 
@@ -418,6 +418,13 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <span style={{ fontSize: 12.5, color: report.viewCount > 0 ? '#06D6A0' : 'var(--text-muted)', fontWeight: report.viewCount > 0 ? 700 : 400 }}>
                         {report.viewCount > 0 ? `\u{1F441} Viewed ${report.viewCount}\u00d7` : 'Not opened yet'}
                       </span>
+                      {(() => {
+                        const best = Math.max(0, ...(report.views || []).map((v) => v.durationSec || 0));
+                        const scroll = Math.max(0, ...(report.views || []).map((v) => v.scrollPct || 0));
+                        if (!best) return null;
+                        const t = best >= 60 ? `${Math.floor(best / 60)}m ${best % 60}s` : `${best}s`;
+                        return <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>\u23f1 longest read {t}{scroll > 0 ? ` \u00b7 scrolled ${scroll}%` : ''}</span>;
+                      })()}
                     </div>
                     <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                       {waDigits && (

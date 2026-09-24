@@ -621,12 +621,14 @@ model StoreProofReport {
 }
 
 model StoreProofReportView {
-  id       String           @id @default(cuid())
-  reportId String
-  report   StoreProofReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  viewedAt DateTime         @default(now())
-  device   String?
-  ip       String?
+  id          String           @id @default(cuid())
+  reportId    String
+  report      StoreProofReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  viewedAt    DateTime         @default(now())
+  device      String?
+  ip          String?
+  durationSec Int?
+  scrollPct   Int?
 
   @@index([reportId])
   @@map("storeproof_report_views")
