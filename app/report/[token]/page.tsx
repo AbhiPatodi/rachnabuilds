@@ -7,6 +7,7 @@
 // SERVER-SIDE with dummy blurred lines, so DevTools reveals nothing.
 // CTA: WhatsApp Rachna, or book the free walkthrough call.
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
@@ -80,7 +81,29 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const rest = findings.slice(5);
   const total = findings.length;
 
-  const view = await prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'public' } }).catch(() => null);
+  // Visit context: geo from Vercel's edge headers, device from the UA string —
+  // free per-open behaviour data for the lead's activity card.
+  const h = await headers();
+  const ua = h.get('user-agent') || '';
+  const os =
+    /iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android'
+    : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : null;
+  const browser =
+    /Instagram/.test(ua) ? 'Instagram in-app' : /FBAN|FBAV/.test(ua) ? 'Facebook in-app'
+    : /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet'
+    : /Chrome|CriOS/.test(ua) ? 'Chrome' : /Firefox|FxiOS/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : null;
+  const view = await prisma.storeProofReportView.create({
+    data: {
+      reportId: report.id,
+      device: 'public',
+      ip: (h.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+      country: h.get('x-vercel-ip-country') || null,
+      city: h.get('x-vercel-ip-city') ? decodeURIComponent(h.get('x-vercel-ip-city')!) : null,
+      timezone: h.get('x-vercel-ip-timezone') || null,
+      os, browser,
+      referrer: h.get('referer')?.slice(0, 200) || null,
+    },
+  }).catch(() => null);
   const wasFirstView = !report.firstViewedAt;
   await prisma.storeProofReport.update({
     where: { id: report.id },
@@ -92,7 +115,13 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   }).catch(() => {});
   if (wasFirstView) {
     // The lead is looking at their report RIGHT NOW — best follow-up moment.
-    sendPushToAll('👁 Report opened!', `${report.storeName} — they're reading it now`, report.funnelLeadId ? `/admin/funnel-leads/${report.funnelLeadId}` : '/admin/storeproof').catch(() => {});
+    const where = [view?.city, view?.country].filter(Boolean).join(', ');
+    const on = [view?.os, view?.browser].filter(Boolean).join(' · ');
+    sendPushToAll(
+      '👁 Report opened!',
+      `${report.storeName} — reading it now${where ? ` from ${where}` : ''}${on ? ` (${on})` : ''}`,
+      report.funnelLeadId ? `/admin/funnel-leads/${report.funnelLeadId}` : '/admin/storeproof',
+    ).catch(() => {});
   }
 
   const bookUrl = report.funnelLeadId

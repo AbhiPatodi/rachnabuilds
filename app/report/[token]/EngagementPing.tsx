@@ -12,6 +12,16 @@ export default function EngagementPing({ token, viewId }: { token: string; viewI
     let maxScroll = 0;
     let hiddenMs = 0;
     let hiddenSince: number | null = null;
+    const clicks = new Set<string>();
+
+    // High-intent moments: which CTAs they actually tapped.
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.('a');
+      const href = a?.getAttribute('href') || '';
+      if (href.includes('wa.me')) clicks.add('whatsapp');
+      else if (href.includes('/training/apply')) clicks.add('book');
+      if (clicks.size) send();
+    };
 
     const onScroll = () => {
       const doc = document.documentElement;
@@ -28,6 +38,8 @@ export default function EngagementPing({ token, viewId }: { token: string; viewI
       viewId,
       seconds: Math.round((Date.now() - started - hiddenMs - (hiddenSince ? Date.now() - hiddenSince : 0)) / 1000),
       scrollPct: maxScroll,
+      screen: `${window.screen.width}x${window.screen.height}`,
+      clicks: [...clicks],
     });
     const url = `/api/report/${token}/engagement`;
     const send = () => { navigator.sendBeacon?.(url, new Blob([payload()], { type: 'application/json' })) || fetch(url, { method: 'POST', body: payload(), keepalive: true }).catch(() => {}); };
@@ -36,11 +48,13 @@ export default function EngagementPing({ token, viewId }: { token: string; viewI
     const timer = setInterval(() => { if (!document.hidden) send(); }, 10_000);
     window.addEventListener('scroll', onScroll, { passive: true });
     document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener('click', onClick, true);
     window.addEventListener('pagehide', send);
     return () => {
       clearInterval(timer);
       window.removeEventListener('scroll', onScroll);
       document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('click', onClick, true);
       window.removeEventListener('pagehide', send);
     };
   }, [token, viewId]);

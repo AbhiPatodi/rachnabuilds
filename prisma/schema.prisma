@@ -629,6 +629,14 @@ model StoreProofReportView {
   ip          String?
   durationSec Int?
   scrollPct   Int?
+  country     String?
+  city        String?
+  timezone    String?
+  os          String?
+  browser     String?
+  screen      String?
+  referrer    String?
+  clicks      String?
 
   @@index([reportId])
   @@map("storeproof_report_views")

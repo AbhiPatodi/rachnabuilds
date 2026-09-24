@@ -56,7 +56,7 @@ interface FunnelLead {
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
   emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
   activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
-  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null }[] }[];
+  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null; country?: string | null; city?: string | null; os?: string | null; browser?: string | null; screen?: string | null; clicks?: string | null; ip?: string | null }[] }[];
   auditJob: { id: string; status: string; host: string; error: string | null; createdAt: string } | null;
 }
 
@@ -436,6 +436,30 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={link} target="_blank" rel="noopener noreferrer">Teaser ↗</a>
                       <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${report.id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
                     </div>
+                    {(report.views || []).length > 0 && (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Report activity</div>
+                        {(report.views || []).map((v, i) => {
+                          const flag = v.country && /^[A-Z]{2}$/.test(v.country)
+                            ? String.fromCodePoint(...[...v.country].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
+                            : '';
+                          const where = [v.city, v.country].filter(Boolean).join(', ');
+                          const dev = [v.os, v.browser].filter(Boolean).join(' · ');
+                          const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
+                          const clicked = (v.clicks || '').split(',').filter(Boolean);
+                          return (
+                            <div key={i} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)', padding: '5px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                              <span style={{ color: 'var(--text-muted)', minWidth: 118 }}>{new Date(v.viewedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                              {where && <span>{flag} {where}</span>}
+                              {dev && <span>{dev}</span>}
+                              {dur && <span>⏱ {dur}{v.scrollPct ? ` · ${v.scrollPct}%` : ''}</span>}
+                              {clicked.includes('whatsapp') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>💬 tapped WhatsApp</span>}
+                              {clicked.includes('book') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>📅 tapped Book</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               }
