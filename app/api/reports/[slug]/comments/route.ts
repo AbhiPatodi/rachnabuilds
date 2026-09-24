@@ -3,18 +3,17 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPushToAll } from '@/lib/webpush';
+import { isReportSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ slug: string }> }
 
-function verifyPortalCookie(req: NextRequest, slug: string) {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  return req.cookies.get(`rp_${slug}`)?.value === expected;
+async function verifyPortalCookie(_req: NextRequest, slug: string): Promise<boolean> {
+  return isReportSession(slug);
 }
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { slug } = await params;
-  if (!verifyPortalCookie(req, slug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await verifyPortalCookie(req, slug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const context = searchParams.get('context') || 'general';
@@ -31,7 +30,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { slug } = await params;
-  if (!verifyPortalCookie(req, slug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await verifyPortalCookie(req, slug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { context = 'general', author, text } = await req.json();
   if (!author?.trim() || !text?.trim()) return NextResponse.json({ error: 'author and text required' }, { status: 400 });

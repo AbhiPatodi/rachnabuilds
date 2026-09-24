@@ -426,7 +426,9 @@ export default function ClientDetailPage() {
                   <span style={{ fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.5px', flex: 1 }}>
                     {(client.clientProfile?.portalPassword as string)
                       ? (pwVisible ? (client.clientProfile!.portalPassword as string) : '••••••••')
-                      : '—'}
+                      : client.clientProfile?.passwordSetByClient
+                        ? 'Set by client (private) — reset below to issue a new one'
+                        : '—'}
                   </span>
                   {!!(client.clientProfile?.portalPassword as string) && (
                     <>

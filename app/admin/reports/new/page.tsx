@@ -13,10 +13,12 @@ function toSlug(name: string) {
     .replace(/^-|-$/g, '');
 }
 
-function generatePassword(name: string) {
-  const prefix = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'client';
-  const suffix = Math.floor(Math.random() * 9000 + 1000);
-  return `${prefix}${suffix}`;
+function generatePassword(_name?: string) {
+  // 12 chars from an unambiguous alphabet via the browser CSPRNG (~70 bits).
+  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint32Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
 }
 
 export default function NewReportPage() {

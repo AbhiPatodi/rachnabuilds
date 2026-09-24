@@ -12,13 +12,14 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendAuditReportReady } from '@/lib/email';
 import { sendPushToAll } from '@/lib/webpush';
+import { safeEqual } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 function unauthorized(req: NextRequest) {
   const auth = req.headers.get('authorization');
-  return !process.env.STOREPROOF_PUBLISH_SECRET || auth !== `Bearer ${process.env.STOREPROOF_PUBLISH_SECRET}`;
+  return !process.env.STOREPROOF_PUBLISH_SECRET || !safeEqual(auth, `Bearer ${process.env.STOREPROOF_PUBLISH_SECRET}`);
 }
 
 export async function GET(req: NextRequest) {

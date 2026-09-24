@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { cookies } from 'next/headers';
+import { mintAdminToken, safeEqual, sessionCookieOptions, ADMIN_TTL_MS } from '@/lib/auth';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
-  const { password } = await req.json();
-  if (!password || password !== process.env.ADMIN_PASSWORD) {
+  if (!(await rateLimitIp(req, 'admin-login', 10, 15 * 60_000))) {
+    return NextResponse.json({ error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429 });
+  }
+  const { password } = await req.json().catch(() => ({ password: '' }));
+  if (!safeEqual(String(password || ''), process.env.ADMIN_PASSWORD)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const hash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
   const cookieStore = await cookies();
-  cookieStore.set('admin_session', hash, {
-    httpOnly: true,
-    path: '/',
-    maxAge: 60 * 60 * 24 * 90, // 90 days — PWA on personal phone; proxy.ts also refreshes it on every visit
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  });
+  // 90 days — PWA on personal phone; proxy.ts also re-mints it on every visit
+  cookieStore.set('admin_session', await mintAdminToken(), sessionCookieOptions(ADMIN_TTL_MS / 1000));
   return NextResponse.json({ ok: true });
 }
 

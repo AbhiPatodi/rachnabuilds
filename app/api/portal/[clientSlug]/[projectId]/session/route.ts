@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
@@ -45,10 +46,8 @@ async function geolocate(ip: string): Promise<{ country: string; countryCode: st
   }
 }
 
-function auth(req: NextRequest, clientSlug: string): boolean {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function auth(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 async function getProject(projectId: string, clientSlug: string) {
@@ -63,7 +62,7 @@ async function getProject(projectId: string, clientSlug: string) {
 // POST — create or confirm session (called on portal mount)
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!auth(req, clientSlug)) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!(await auth(req, clientSlug))) return NextResponse.json({ ok: false }, { status: 401 });
 
   let body: { sessionId: string; userAgent?: string; duration?: number };
   try {
@@ -141,7 +140,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 // PATCH — update session duration (called every 30s + on unload via sendBeacon)
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { clientSlug } = await params;
-  if (!auth(req, clientSlug)) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!(await auth(req, clientSlug))) return NextResponse.json({ ok: false }, { status: 401 });
 
   let body: { sessionId: string; duration: number };
   try {
@@ -156,9 +155,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 });
   }
 
+  // Scope to this client's projects — a sessionId alone must not reach another tenant.
   await prisma.projectSession.updateMany({
-    where: { sessionId },
-    data: { totalDuration: Math.round(duration), lastActiveAt: new Date() },
+    where: { sessionId, project: { client: { slug: clientSlug } } },
+    data: { totalDuration: Math.min(86400, Math.max(0, Math.round(duration))), lastActiveAt: new Date() },
   });
 
   return NextResponse.json({ ok: true });

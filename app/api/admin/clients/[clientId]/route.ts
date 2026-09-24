@@ -5,14 +5,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import bcryptjs from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ clientId: string }>;
 }
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
@@ -63,6 +63,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         const hash = await bcryptjs.hash(newPassword.trim(), 10);
         updateData.passwordHash = hash;
         existingProfile.portalPassword = newPassword.trim();
+        delete existingProfile.passwordSetByClient;
       }
 
       if ('overallStatus' in body) {

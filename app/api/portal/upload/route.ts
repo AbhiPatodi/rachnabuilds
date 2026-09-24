@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { put } from '@vercel/blob';
+import { hasClientPortalAccess } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   // Verify portal or admin cookie
@@ -11,14 +12,7 @@ export async function POST(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug');
   if (!slug) return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  const portalCookie = store.get(`pc_${slug}`)?.value;
-  const adminSession = store.get('admin_session')?.value;
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  const isAdmin = adminSession === adminHash;
-
-  if (portalCookie !== expected && !isAdmin) {
+  if (!(await hasClientPortalAccess(slug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

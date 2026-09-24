@@ -2,14 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createHmac } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { isReportSession } from '@/lib/auth';
 
 async function authReport(slug: string) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(`rp_${slug}`)?.value
-  if (!token) return null
-  const expected = createHmac('sha256', process.env.ADMIN_PASSWORD!)
-    .update(slug).digest('hex')
-  if (token !== expected) return null
+  if (!(await isReportSession(slug))) return null
   return prisma.report.findUnique({ where: { slug } })
 }
 

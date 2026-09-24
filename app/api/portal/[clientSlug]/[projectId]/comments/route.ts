@@ -4,14 +4,12 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyClientComment } from '@/lib/email';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
-function verifyPortalCookie(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) return false;
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function verifyPortalCookie(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 async function verifyProjectBelongsToClient(projectId: string, clientSlug: string) {
@@ -26,7 +24,7 @@ async function verifyProjectBelongsToClient(projectId: string, clientSlug: strin
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!verifyPortalCookie(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await verifyPortalCookie(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await verifyProjectBelongsToClient(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -43,7 +41,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!verifyPortalCookie(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await verifyPortalCookie(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await verifyProjectBelongsToClient(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });

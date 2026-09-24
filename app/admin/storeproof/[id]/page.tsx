@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function AdminFullReportPage({ params }: { params: Promise<
 
   if (!payload.findings?.length) {
     // Legacy publish without a structured payload — serve the stored HTML as-is
-    return <div dangerouslySetInnerHTML={{ __html: report.html }} />;
+    return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(report.html) }} />;
   }
 
   return (

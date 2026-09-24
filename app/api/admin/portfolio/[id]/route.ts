@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { isAdminToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +12,7 @@ interface RouteContext {
 
 async function isAuthenticated() {
   const cookieStore = await cookies();
-  const session = cookieStore.get('admin_session')?.value;
-  const expected = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  return session === expected;
+  return isAdminToken(cookieStore.get('admin_session')?.value);
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {

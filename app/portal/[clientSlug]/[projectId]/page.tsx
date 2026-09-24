@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getVisibleTabs } from '@/lib/portal-config';
 import PortalPasswordGate from '../PortalPasswordGate';
 import ProjectPortalView from './ProjectPortalView';
+import { isClientPortalToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,12 +37,8 @@ export default async function ProjectPortalPage({ params }: PageProps) {
     );
   }
 
-  // HMAC cookie check (v2)
-  const secret = process.env.ADMIN_PASSWORD ?? '';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;
-
-  if (cookieValue !== expected) {
+  // Signed session check
+  if (!(await isClientPortalToken(clientSlug, cookieStore.get(`pc_${clientSlug}`)?.value))) {
     return <PortalPasswordGate clientSlug={clientSlug} clientName={client.name} />;
   }
 

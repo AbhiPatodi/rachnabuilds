@@ -5,14 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { notifyContractSigned } from '@/lib/email';
+import { isClientSession } from '@/lib/auth';
+import { httpsUrlOrNull } from '@/lib/safeUrl';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
-function portalAuth(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) return false;
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function portalAuth(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 async function getProject(projectId: string, clientSlug: string) {
@@ -23,7 +22,7 @@ async function getProject(projectId: string, clientSlug: string) {
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!portalAuth(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await portalAuth(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await getProject(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!portalAuth(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await portalAuth(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await getProject(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -98,7 +97,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!portalAuth(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await portalAuth(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await getProject(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -108,8 +107,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   const body = await req.json();
   const data: Record<string, unknown> = {};
-  if (body.advanceReceiptUrl !== undefined) data.advanceReceiptUrl = body.advanceReceiptUrl;
-  if (body.balanceReceiptUrl !== undefined) data.balanceReceiptUrl = body.balanceReceiptUrl;
+  if (body.advanceReceiptUrl !== undefined) data.advanceReceiptUrl = httpsUrlOrNull(body.advanceReceiptUrl);
+  if (body.balanceReceiptUrl !== undefined) data.balanceReceiptUrl = httpsUrlOrNull(body.balanceReceiptUrl);
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });

@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { isAdmin } from '@/lib/auth';
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 export async function GET(_req: NextRequest) {

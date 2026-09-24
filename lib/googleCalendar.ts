@@ -16,9 +16,10 @@ export function getOAuthClient() {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 }
 
-export function getAuthUrl() {
+export function getAuthUrl(state?: string) {
   const client = getOAuthClient();
   return client.generateAuthUrl({
+    ...(state ? { state } : {}),
     access_type: 'offline',
     prompt: 'consent', // forces refresh_token to be reissued every connect
     scope: [

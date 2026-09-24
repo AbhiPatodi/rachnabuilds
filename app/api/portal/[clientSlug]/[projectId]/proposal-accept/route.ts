@@ -3,18 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { notifyProposalAccepted } from '@/lib/email';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
-function portalAuth(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function portalAuth(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!portalAuth(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await portalAuth(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const client = await prisma.client.findUnique({ where: { slug: clientSlug }, select: { id: true, name: true } });
   if (!client) return NextResponse.json({ error: 'Not found' }, { status: 404 });

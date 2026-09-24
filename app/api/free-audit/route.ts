@@ -1,77 +1,77 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
+import { rateLimitIp } from '@/lib/rateLimit';
+import { normalizeStoreUrl } from '@/lib/storeUrl';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, storeUrl, revenue, challenge, details } = await req.json();
+    if (!(await rateLimitIp(req, 'free-audit', 5, 3600_000))) {
+      return NextResponse.json({ error: 'Too many requests — please try again in an hour.' }, { status: 429 });
+    }
+    const { name, email, storeUrl, revenue } = await req.json();
 
-    if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 });
-    if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!name?.trim() || String(name).length > 120) return NextResponse.json({ error: 'Name required' }, { status: 400 });
+    if (!email?.trim() || String(email).length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
-    if (!storeUrl?.trim()) return NextResponse.json({ error: 'Store URL required' }, { status: 400 });
+    const store = normalizeStoreUrl(storeUrl);
+    if (!store) {
+      return NextResponse.json({ error: 'Please enter your store’s public web address (e.g. yourstore.com)' }, { status: 400 });
+    }
 
-    const message = [
-      `Store: ${storeUrl.trim()}`,
-      `Biggest Challenge: ${challenge || 'Not specified'}`,
-      details?.trim() ? `\nDetails: ${details.trim()}` : '',
-    ].filter(Boolean).join('\n');
-
-    // Single source of truth: funnel_leads (was also mirrored into
-    // contact_leads — removed, it duplicated every submission across two
-    // admin tabs). Blurred-report funnel: lead into the CRM + a StoreProof
-    // job for the audit worker; report link goes out by email when done.
+    // Single source of truth: funnel_leads. Blurred-report funnel: lead into
+    // the CRM + a StoreProof job for the audit worker; the report link goes
+    // out by email when done.
     const cleanEmail = email.trim().toLowerCase();
-    const rawUrl = storeUrl.trim();
-    const normalizedUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
-    let host = rawUrl;
-    try { host = new URL(normalizedUrl).hostname.replace(/^www\./, ''); } catch { /* keep raw */ }
+    const cleanRevenue = revenue ? String(revenue).slice(0, 60) : null;
 
     const lead = await prisma.funnelLead.upsert({
       where: { email: cleanEmail },
       create: {
         name: name.trim(),
         email: cleanEmail,
-        storeUrl: normalizedUrl,
-        challenge: challenge || null,
+        storeUrl: store.url,
+        revenue: cleanRevenue,
         utmSource: 'website',
         utmMedium: 'free-audit',
       },
-      update: { storeUrl: normalizedUrl },
+      update: { storeUrl: store.url, ...(cleanRevenue ? { revenue: cleanRevenue } : {}) },
     });
 
-    // One queued/running job per store at a time — a double submit shouldn't
-    // burn two 10-minute audit runs.
+    // A double submit by the same person shouldn't burn two audit runs — but a
+    // DIFFERENT lead asking about the same store still gets their own job (the
+    // worker reuses a fresh run for that host instead of re-crawling).
     const pending = await prisma.storeProofJob.findFirst({
-      where: { host, status: { in: ['queued', 'running'] } },
+      where: { host: store.host, email: cleanEmail, status: { in: ['queued', 'running'] } },
     });
     if (!pending) {
       await prisma.storeProofJob.create({
-        data: { storeUrl: normalizedUrl, host, name: name.trim(), email: cleanEmail, funnelLeadId: lead.id },
+        data: { storeUrl: store.url, host: store.host, name: name.trim(), email: cleanEmail, funnelLeadId: lead.id },
       });
     }
 
-    sendPushToAll(
-      '🔍 New Free Audit Request!',
-      `${name.trim()} · ${storeUrl.trim()} · ${revenue || 'revenue n/a'}`,
-      '/admin/leads'
-    ).catch(() => {});
-
-    notifyNewLead({
-      source: 'Free Audit',
-      fields: [
-        { label: 'Name',      value: name.trim() },
-        { label: 'Email',     value: email.trim().toLowerCase() },
-        { label: 'Store URL', value: storeUrl.trim() },
-        ...(revenue          ? [{ label: 'Revenue',   value: revenue }]           : []),
-        ...(challenge        ? [{ label: 'Challenge', value: String(challenge) }] : []),
-      ],
-      message: details?.trim() || undefined,
-    }).catch(() => {});
+    const leadPath = `/admin/funnel-leads/${lead.id}`;
+    after(async () => {
+      await sendPushToAll(
+        '🔍 New Free Audit Request!',
+        `${name.trim()} · ${store.host} · ${cleanRevenue || 'revenue n/a'}`,
+        leadPath,
+      ).catch(() => {});
+      await notifyNewLead({
+        source: 'Free Audit',
+        adminPath: leadPath,
+        fields: [
+          { label: 'Name', value: name.trim() },
+          { label: 'Email', value: cleanEmail },
+          { label: 'Store URL', value: store.url },
+          ...(cleanRevenue ? [{ label: 'Revenue', value: cleanRevenue }] : []),
+        ],
+      }).catch(() => {});
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

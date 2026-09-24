@@ -22,6 +22,18 @@ const SITE_URL = 'https://rachnabuilds.com';
 
 // ─── Base layout ─────────────────────────────────────────────────────────────
 
+// User-supplied values (lead names, store names, comments) land in these
+// emails, which are sent from our own Gmail — escape so a crafted name can't
+// inject links/markup into mail that carries our reputation.
+function esc(v: unknown): string {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function base(preheader: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -95,11 +107,11 @@ function base(preheader: string, bodyHtml: string): string {
 // ─── Component helpers ────────────────────────────────────────────────────────
 
 function heading(text: string): string {
-  return `<h1 style="margin:0 0 6px;font-size:24px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;line-height:1.25;">${text}</h1>`;
+  return `<h1 style="margin:0 0 6px;font-size:24px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;line-height:1.25;">${esc(text)}</h1>`;
 }
 
 function subheading(text: string): string {
-  return `<p style="margin:0 0 24px;font-size:14px;color:#64748B;line-height:1.5;">${text}</p>`;
+  return `<p style="margin:0 0 24px;font-size:14px;color:#64748B;line-height:1.5;">${esc(text)}</p>`;
 }
 
 function bodyText(html: string): string {
@@ -107,11 +119,11 @@ function bodyText(html: string): string {
 }
 
 function em(text: string): string {
-  return `<strong style="color:#0F172A;font-weight:700;">${text}</strong>`;
+  return `<strong style="color:#0F172A;font-weight:700;">${esc(text)}</strong>`;
 }
 
 function accentText(text: string): string {
-  return `<span style="color:#06D6A0;font-weight:600;">${text}</span>`;
+  return `<span style="color:#06D6A0;font-weight:600;">${esc(text)}</span>`;
 }
 
 function divider(): string {
@@ -122,13 +134,13 @@ function infoBox(rows: Array<{ label: string; value: string }>): string {
   const cells = rows.map(r => `
     <tr>
       <td style="padding:10px 16px;border-bottom:1px solid #F1F5F9;vertical-align:top;">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94A3B8;">${r.label}</span>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94A3B8;">${esc(r.label)}</span>
       </td>
       <td style="padding:10px 16px;border-bottom:1px solid #F1F5F9;vertical-align:top;">
         <span style="font-size:14px;color:#1E293B;font-weight:500;">${
-          r.value.startsWith('https://')
-            ? `<a href="${r.value}" style="color:#06D6A0;font-weight:700;">${r.value.replace('https://', '')} ↗</a>`
-            : r.value
+          /^https:\/\/[^\s"<>]+$/.test(r.value)
+            ? `<a href="${esc(r.value)}" style="color:#06D6A0;font-weight:700;">${esc(r.value.replace('https://', ''))} ↗</a>`
+            : esc(r.value)
         }</span>
       </td>
     </tr>`).join('');
@@ -144,7 +156,7 @@ function quoteBox(text: string): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
       <tr>
         <td style="border-left:3px solid #06D6A0;padding:12px 18px;background:#F0FDF9;border-radius:0 6px 6px 0;">
-          <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;font-style:italic;">${text}</p>
+          <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;font-style:italic;">${esc(text)}</p>
         </td>
       </tr>
     </table>`;
@@ -336,8 +348,16 @@ export async function notifyNewLead(opts: {
   source: string;           // e.g. "Contact Form", "Free Audit", "CRO Checklist", "Get Started"
   fields: Array<{ label: string; value: string }>;
   message?: string;         // optional quote block
+  adminPath?: string;       // where the "View" button goes (defaults by source)
 }): Promise<{ ok: boolean; reason?: string }> {
   const { source, fields, message } = opts;
+  // Each source lands in a different admin inbox — link to the right one.
+  const defaultPath: Record<string, string> = {
+    'Contact Form': '/admin/leads',
+    'CRO Checklist': '/admin/leads',
+    'Get Started': '/admin/portal-leads',
+  };
+  const adminPath = opts.adminPath ?? defaultPath[source] ?? '/admin/funnel-leads';
   const subjectEmoji: Record<string, string> = {
     'Contact Form': '📬',
     'Free Audit': '🔍',
@@ -356,7 +376,7 @@ export async function notifyNewLead(opts: {
       ...fields,
     ])}
     ${message ? quoteBox(message) : ''}
-    ${adminCtaButton('View in Admin → Leads', `${SITE_URL}/admin/leads`)}
+    ${adminCtaButton('View lead in admin', `${SITE_URL}${adminPath}`)}
     ${divider()}
     ${bodyText(`<span style="font-size:13px;color:#94A3B8;">Reply directly to the lead's email or manage them in your admin panel.</span>`)}
     `,
@@ -557,7 +577,7 @@ export async function sendAuditReportReady(opts: {
     subject,
     `
     ${heading(`Your store report is ready, ${firstName}`)}
-    ${bodyText(`We went through <strong>${opts.storeName}</strong> the way a real shopper does — on a phone, from first visit to checkout — and the way Google and your ad platforms see it. Your report is ready:`)}
+    ${bodyText(`We went through <strong>${esc(opts.storeName)}</strong> the way a real shopper does — on a phone, from first visit to checkout — and the way Google and your ad platforms see it. Your report is ready:`)}
     ${ctaButton('Open My Store Report', reportUrl)}
     ${bodyText('Two findings are open for you right now. The three costing you the most are unlocked on a free 20-minute walkthrough call — we go through every issue on your store, live, and you leave knowing exactly what to fix first.')}
     ${bodyText('No pitch decks, no obligations — just your store, on screen, with someone who does this every day.')}

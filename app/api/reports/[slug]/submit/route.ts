@@ -3,18 +3,19 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPushToAll } from '@/lib/webpush';
+import { isReportSession } from '@/lib/auth';
+import { httpsUrlOrNull } from '@/lib/safeUrl';
 
 interface RouteContext { params: Promise<{ slug: string }> }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { slug } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  if (req.cookies.get(`rp_${slug}`)?.value !== expected) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await isReportSession(slug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { title, url, note } = await req.json();
   if (!title?.trim() || !url?.trim()) return NextResponse.json({ error: 'title and url required' }, { status: 400 });
+  if (!httpsUrlOrNull(url)) return NextResponse.json({ error: 'Please use a full https:// link' }, { status: 400 });
 
   const report = await prisma.report.findUnique({ where: { slug }, select: { id: true } });
   if (!report) return NextResponse.json({ error: 'Not found' }, { status: 404 });

@@ -3,29 +3,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { isAdmin, isClientSession } from '@/lib/auth';
+import { httpsUrlOrNull } from '@/lib/safeUrl';
 
 interface RouteContext {
   params: Promise<{ clientSlug: string; projectId: string }>;
 }
 
 async function isAdminSession() {
-  const store = await cookies();
-  const v = store.get('admin_session')?.value;
-  if (!v) return false;
-  const crypto = await import('crypto');
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  return v === adminHash;
+  return isAdmin();
 }
 
-function verifyPortalCookie(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function verifyPortalCookie(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  const authed = verifyPortalCookie(req, clientSlug) || await isAdminSession();
+  const authed = (await verifyPortalCookie(req, clientSlug)) || await isAdminSession();
   if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
@@ -58,7 +53,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  const authed = verifyPortalCookie(req, clientSlug) || await isAdminSession();
+  const authed = (await verifyPortalCookie(req, clientSlug)) || await isAdminSession();
   if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
@@ -72,7 +67,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
     const count = await prisma.projectDeliverable.count({ where: { projectId: project.id } });
     const deliverable = await prisma.projectDeliverable.create({
-      data: { projectId: project.id, title: title.trim(), description: description?.trim() || null, status: status || 'backlog', addedBy: 'client', attachmentUrl: attachmentUrl || null, attachmentName: attachmentName || null, displayOrder: count },
+      data: { projectId: project.id, title: title.trim(), description: description?.trim() || null, status: status || 'backlog', addedBy: 'client', attachmentUrl: httpsUrlOrNull(attachmentUrl), attachmentName: attachmentName ? String(attachmentName).slice(0, 200) : null, displayOrder: count },
       include: { feedback: { include: { replies: true } } },
     });
     return NextResponse.json(deliverable, { status: 201 });

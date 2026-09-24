@@ -4,16 +4,14 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { sendPushToAll } from '@/lib/webpush';
 import { logDocAction } from '@/lib/docLog';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  if (req.cookies.get(`pc_${clientSlug}`)?.value !== expected) {
+  if (!(await isClientSession(clientSlug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -3,12 +3,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { isAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 export async function GET(req: NextRequest) {

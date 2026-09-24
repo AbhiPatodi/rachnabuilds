@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import PortalPasswordGate from './PortalPasswordGate';
 import ClientPortalView from './ClientPortalView';
+import { isAdminToken, isClientPortalToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,17 +54,13 @@ export default async function ClientPortalPage({ params, searchParams }: PagePro
     );
   }
 
-  // HMAC verification
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;
+  // Signed session check
+  const clientOk = await isClientPortalToken(clientSlug, cookieStore.get(`pc_${clientSlug}`)?.value);
 
   // Admin preview bypass
-  const adminSession = cookieStore.get('admin_session')?.value;
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  const isAdminPreview = preview === '1' && adminSession === adminHash;
+  const isAdminPreview = preview === '1' && (await isAdminToken(cookieStore.get('admin_session')?.value));
 
-  if (cookieValue !== expected && !isAdminPreview) {
+  if (!clientOk && !isAdminPreview) {
     return <PortalPasswordGate clientSlug={clientSlug} clientName={client.name} />;
   }
 

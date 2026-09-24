@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   if (appSecret) {
     const sig = req.headers.get('x-hub-signature-256') || '';
     const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(raw).digest('hex');
-    if (!sig || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+    if (!sig || sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
       return NextResponse.json({ error: 'Bad signature' }, { status: 403 });
     }
   }

@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import type { AuditReportData } from '@/lib/auditBot';
 import AuditReportView from '@/app/components/audit/AuditReportView';
 import '../../training/funnel.css';
+import { isAdmin } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'Shopify Conversion Audit | Rachna Builds',
@@ -13,7 +14,8 @@ export const metadata: Metadata = {
 export default async function AuditReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const audit = await prisma.auditReport.findUnique({ where: { token }, include: { funnelLead: true } });
-  if (!audit || (audit.status !== 'draft' && audit.status !== 'sent')) notFound();
+  // Drafts are the admin's to preview — only sent reports are public.
+  if (!audit || (audit.status !== 'sent' && !(audit.status === 'draft' && (await isAdmin())))) notFound();
 
   let report: AuditReportData;
   try {

@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
 }
 
-async function isAdmin() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
-}
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   if (!await isAdmin()) return NextResponse.json({ columns: [] });

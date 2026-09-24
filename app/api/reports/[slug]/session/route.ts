@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isReportSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ slug: string }> }
 
@@ -52,16 +53,14 @@ async function geolocate(ip: string): Promise<{ country: string; countryCode: st
   }
 }
 
-function auth(req: NextRequest, slug: string): boolean {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  return req.cookies.get(`rp_${slug}`)?.value === expected;
+async function auth(_req: NextRequest, slug: string): Promise<boolean> {
+  return isReportSession(slug);
 }
 
 // POST — create or confirm session (called on portal mount)
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { slug } = await params;
-  if (!auth(req, slug)) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!(await auth(req, slug))) return NextResponse.json({ ok: false }, { status: 401 });
 
   let body: { sessionId: string; userAgent?: string };
   try {
@@ -117,7 +116,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 // PATCH — update session duration (called every 30s + on unload via sendBeacon)
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { slug } = await params;
-  if (!auth(req, slug)) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!(await auth(req, slug))) return NextResponse.json({ ok: false }, { status: 401 });
 
   let body: { sessionId: string; duration: number };
   try {
@@ -130,9 +129,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { sessionId, duration } = body;
   if (!sessionId || typeof duration !== 'number') return NextResponse.json({ error: 'Bad request' }, { status: 400 });
 
+  // Scope to this report — a sessionId alone must not reach another tenant.
   await prisma.portalSession.updateMany({
-    where: { sessionId },
-    data: { totalDuration: Math.round(duration), lastActiveAt: new Date() },
+    where: { sessionId, report: { slug } },
+    data: { totalDuration: Math.min(86400, Math.max(0, Math.round(duration))), lastActiveAt: new Date() },
   });
 
   return NextResponse.json({ ok: true });

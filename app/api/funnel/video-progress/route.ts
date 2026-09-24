@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,10 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
+      // Only NEW sessions are limited — heartbeats on an existing session are cheap updates.
+      if (!(await rateLimitIp(req, 'video-session', 30, 3600_000))) {
+        return NextResponse.json({ error: 'Too many sessions' }, { status: 429 });
+      }
       await prisma.videoWatch.create({
         data: { sessionId, email: cleanEmail, secondsWatched: sec, maxPosition: pos, duration: dur },
       });

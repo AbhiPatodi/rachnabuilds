@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
 import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,9 @@ const LABELS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await rateLimitIp(req, 'funnel-apply', 10, 3600_000))) {
+      return NextResponse.json({ error: 'Too many submissions — please try again later.' }, { status: 429 });
+    }
     const {
       name, email, whatsapp, storeUrl, role,
       challenge, revenue, blocker, financial, readiness,
@@ -53,18 +57,32 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
     const applicationData = {
-      name: name.trim(),
-      whatsapp: whatsapp.trim(),
-      storeUrl: storeUrl.trim(),
-      role: role?.trim() || null,
+      name: name.trim().slice(0, 120),
+      whatsapp: whatsapp.trim().slice(0, 40),
+      storeUrl: storeUrl.trim().slice(0, 300),
+      role: role?.trim()?.slice(0, 120) || null,
       challenge,
       revenue,
-      blocker: blocker.trim(),
+      blocker: blocker.trim().slice(0, 3000),
       financial,
       readiness,
       stage: 'applied',
       appliedAt: new Date(),
     };
+
+    // Anyone can submit any email here, so an application that already exists
+    // is never overwritten — a re-submission is logged on the lead's timeline
+    // instead (nothing lost, nothing clobbered).
+    const existing = await prisma.funnelLead.findUnique({ where: { email: cleanEmail }, select: { id: true, stage: true } });
+    if (existing?.stage === 'applied') {
+      await prisma.leadActivity.create({
+        data: {
+          leadId: existing.id, type: 'system',
+          text: `Application re-submitted — ${LABELS[revenue]}, ${LABELS[readiness]}, ${LABELS[financial]}. Challenge: ${LABELS[challenge]}. "${blocker.trim().slice(0, 400)}"`,
+        },
+      }).catch(() => {});
+      return NextResponse.json({ ok: true, id: existing.id });
+    }
 
     const lead = await prisma.funnelLead.upsert({
       where: { email: cleanEmail },
@@ -90,12 +108,13 @@ export async function POST(req: NextRequest) {
     after(async () => {
       await sendPushToAll(
         isHot ? '🔥 HOT Funnel Application!' : 'New Funnel Application!',
-        `${name} — ${LABELS[revenue]} — ${LABELS[readiness]}`,
-        '/admin/funnel-leads',
+        `${name.trim().slice(0, 80)} — ${LABELS[revenue]} — ${LABELS[readiness]}`,
+        `/admin/funnel-leads/${lead.id}`,
       ).catch(() => {});
 
       await notifyNewLead({
         source: 'VSL Funnel Application',
+        adminPath: `/admin/funnel-leads/${lead.id}`,
         fields: [
           { label: 'Name', value: name.trim() },
           { label: 'Email', value: cleanEmail },

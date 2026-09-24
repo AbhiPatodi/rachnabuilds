@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isAdminToken, isClientPortalToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +20,8 @@ export async function GET(
   });
   if (!client || !client.isActive) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;
-  const adminSession = cookieStore.get('admin_session')?.value;
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  if (cookieValue !== expected && adminSession !== adminHash) {
+  const clientOk = await isClientPortalToken(clientSlug, cookieStore.get(`pc_${clientSlug}`)?.value);
+  if (!clientOk && !(await isAdminToken(cookieStore.get('admin_session')?.value))) {
     return NextResponse.redirect(new URL(`/portal/${clientSlug}`, req.url));
   }
 

@@ -6,14 +6,14 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { logDocAction } from '@/lib/docLog';
 import { notifyDocumentAdded } from '@/lib/email';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
 }
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {

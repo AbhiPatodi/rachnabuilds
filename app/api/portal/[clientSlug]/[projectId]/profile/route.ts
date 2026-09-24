@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { hasClientPortalAccess } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ clientSlug: string; projectId: string }>;
@@ -16,15 +17,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const { clientSlug, projectId } = await params;
 
   // Auth check
-  const store = await cookies();
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  const portalCookie = store.get(`pc_${clientSlug}`)?.value;
-  const adminSession = store.get('admin_session')?.value;
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  const isAdmin = adminSession === adminHash;
-
-  if (portalCookie !== expected && !isAdmin) {
+  if (!(await hasClientPortalAccess(clientSlug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -10,6 +10,8 @@
 // Idempotent on (host, runStamp): re-publishing the same run updates in place.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { safeEqual } from '@/lib/auth';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -19,14 +21,12 @@ export const maxDuration = 30;
  *  Strip the element AND its reveal script so the portal copy can never
  *  leak internal tooling, however it is opened. */
 function sanitizeReportHtml(html: string): string {
-  return html
-    .replace(/<div class="appnav"[^>]*>[\s\S]*?<\/div>/, '')
-    .replace(/<script>[\s\S]*?appnav[\s\S]*?<\/script>/, '');
+  return sanitizeHtml(html.replace(/<div class="appnav"[^>]*>[\s\S]*?<\/div>/, ''));
 }
 
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization');
-  if (!process.env.STOREPROOF_PUBLISH_SECRET || auth !== `Bearer ${process.env.STOREPROOF_PUBLISH_SECRET}`) {
+  if (!process.env.STOREPROOF_PUBLISH_SECRET || !safeEqual(auth, `Bearer ${process.env.STOREPROOF_PUBLISH_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isReportSession } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ slug: string; docId: string }>;
@@ -10,11 +11,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { slug, docId } = await params;
 
   // Verify portal auth cookie
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  const cookieVal = req.cookies.get(`rp_${slug}`)?.value;
-
-  if (cookieVal !== expected) {
+  if (!(await isReportSession(slug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

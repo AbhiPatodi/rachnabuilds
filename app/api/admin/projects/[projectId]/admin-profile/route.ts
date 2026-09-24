@@ -3,12 +3,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ projectId: string }> }
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {

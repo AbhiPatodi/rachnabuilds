@@ -3,11 +3,15 @@ import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
 import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await rateLimitIp(req, 'funnel-optin', 10, 3600_000))) {
+      return NextResponse.json({ error: 'Too many submissions — please try again later.' }, { status: 429 });
+    }
     const { name, email, phone, profession, utmSource, utmMedium, utmCampaign, utmContent, metaEventId } = await req.json();
 
     if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -21,10 +25,10 @@ export async function POST(req: NextRequest) {
     const lead = await prisma.funnelLead.upsert({
       where: { email: cleanEmail },
       create: {
-        name: name.trim(),
+        name: name.trim().slice(0, 120),
         email: cleanEmail,
-        phone: phone.trim(),
-        profession: profession?.trim() || null,
+        phone: phone.trim().slice(0, 40),
+        profession: profession?.trim()?.slice(0, 120) || null,
         utmSource: utmSource || null,
         utmMedium: utmMedium || null,
         utmCampaign: utmCampaign || null,
@@ -44,9 +48,10 @@ export async function POST(req: NextRequest) {
     const clientIp = clientIpFromHeaders(req.headers);
     const userAgent = req.headers.get('user-agent') || undefined;
     after(async () => {
-      await sendPushToAll('VSL Opt-in!', `${name} (${cleanEmail}) unlocked the training`, '/admin/funnel-leads').catch(() => {});
+      await sendPushToAll('VSL Opt-in!', `${name.trim().slice(0, 80)} (${cleanEmail}) unlocked the training`, `/admin/funnel-leads/${lead.id}`).catch(() => {});
       await notifyNewLead({
         source: 'VSL Funnel Opt-in',
+        adminPath: `/admin/funnel-leads/${lead.id}`,
         fields: [
           { label: 'Name', value: name.trim() },
           { label: 'Email', value: cleanEmail },

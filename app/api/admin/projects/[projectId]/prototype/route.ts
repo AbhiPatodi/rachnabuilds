@@ -8,14 +8,12 @@ import crypto from 'crypto';
 import JSZip from 'jszip';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ projectId: string }> }
 
 async function auth() {
-  const store = await cookies();
-  const session = store.get('admin_session')?.value;
-  const hash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  return session === hash;
+  return isAdmin();
 }
 
 // MIME types by extension

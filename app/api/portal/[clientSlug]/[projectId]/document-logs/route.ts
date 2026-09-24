@@ -2,19 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { hasClientPortalAccess } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  const adminSession = req.cookies.get('admin_session')?.value;
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  const isAdmin = adminSession === adminHash;
-
-  if (req.cookies.get(`pc_${clientSlug}`)?.value !== expected && !isAdmin) {
+  if (!(await hasClientPortalAccess(clientSlug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

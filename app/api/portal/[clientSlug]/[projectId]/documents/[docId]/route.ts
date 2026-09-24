@@ -4,15 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { logDocAction } from '@/lib/docLog';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string; docId: string }> }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId, docId } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  if (req.cookies.get(`pc_${clientSlug}`)?.value !== expected) {
+  if (!(await isClientSession(clientSlug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

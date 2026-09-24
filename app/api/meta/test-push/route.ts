@@ -8,12 +8,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
+import { safeEqual } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 function unauthorized(req: NextRequest) {
   const auth = req.headers.get('authorization');
-  return !process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`;
+  return !process.env.CRON_SECRET || !safeEqual(auth, `Bearer ${process.env.CRON_SECRET}`);
 }
 
 export async function GET(req: NextRequest) {

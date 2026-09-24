@@ -11,6 +11,7 @@
 // those paths with the admin_session cookie.)
 import { NextRequest, NextResponse } from 'next/server';
 import { getPageAuth, lastExchangeError } from '@/lib/metaPage';
+import { safeEqual } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ const GRAPH = 'https://graph.facebook.com/v21.0';
 
 function unauthorized(req: NextRequest) {
   const auth = req.headers.get('authorization');
-  return !process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`;
+  return !process.env.CRON_SECRET || !safeEqual(auth, `Bearer ${process.env.CRON_SECRET}`);
 }
 
 export async function GET(req: NextRequest) {

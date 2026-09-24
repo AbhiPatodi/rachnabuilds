@@ -3,19 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string }> }
 
-function verifyPortalCookie(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) return false;
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function verifyPortalCookie(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { clientSlug } = await params;
-  if (!verifyPortalCookie(req, clientSlug)) {
+  if (!(await verifyPortalCookie(req, clientSlug))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -44,7 +42,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     where: { id: client.id },
     data: {
       passwordHash: newHash,
-      clientProfile: { ...existingProfile, portalPassword: newPassword.trim() },
+      // A password the client chose themselves is never stored in plaintext —
+      // people reuse passwords, so admin must not be able to read it.
+      clientProfile: { ...Object.fromEntries(Object.entries(existingProfile).filter(([k]) => k !== 'portalPassword')), passwordSetByClient: true },
     },
   });
 

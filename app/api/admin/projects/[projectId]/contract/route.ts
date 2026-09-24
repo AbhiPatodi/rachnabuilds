@@ -5,12 +5,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { notifyContractReady } from '@/lib/email';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ projectId: string }> }
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 function defaultContent(clientName: string, projectName: string, phase: number, phaseLabel?: string): string {

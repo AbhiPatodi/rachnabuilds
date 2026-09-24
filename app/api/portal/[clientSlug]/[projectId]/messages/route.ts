@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto, { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
+import { isClientSession } from '@/lib/auth';
+import { httpsUrlOrNull } from '@/lib/safeUrl';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
-function verifyPortalCookie(req: NextRequest, clientSlug: string) {
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  return req.cookies.get(`pc_${clientSlug}`)?.value === expected;
+async function verifyPortalCookie(_req: NextRequest, clientSlug: string): Promise<boolean> {
+  return isClientSession(clientSlug);
 }
 
 async function verifyProjectBelongsToClient(projectId: string, clientSlug: string) {
@@ -23,7 +23,7 @@ async function verifyProjectBelongsToClient(projectId: string, clientSlug: strin
 
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!verifyPortalCookie(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await verifyPortalCookie(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await verifyProjectBelongsToClient(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -49,14 +49,14 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
-  if (!verifyPortalCookie(req, clientSlug)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await verifyPortalCookie(req, clientSlug))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const project = await verifyProjectBelongsToClient(projectId, clientSlug);
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const body = await req.json() as { text?: string; attachmentUrl?: string; attachmentName?: string };
   const text = body.text?.trim() || '';
-  const attachmentUrl = body.attachmentUrl?.trim() || null;
+  const attachmentUrl = httpsUrlOrNull(body.attachmentUrl);
   const attachmentName = body.attachmentName?.trim() || null;
 
   if (!text && !attachmentUrl) {

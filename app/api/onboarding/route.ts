@@ -1,28 +1,14 @@
 // POST /api/onboarding  — public endpoint, no auth
 // Clients fill the "Get Started" form → creates a PortalLead record
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { notifyNewLead } from '@/lib/email';
-
-// Simple rate limit: 5 submissions per IP per hour
-const rateMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRate(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
-    return true;
-  }
-  if (entry.count >= 5) return false;
-  entry.count++;
-  return true;
-}
+import { sendPushToAll } from '@/lib/webpush';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRate(ip)) {
+  if (!(await rateLimitIp(req, 'onboarding', 5, 3600_000))) {
     return NextResponse.json({ error: 'Too many submissions. Please try again later.' }, { status: 429 });
   }
 
@@ -41,18 +27,22 @@ export async function POST(req: NextRequest) {
     const lead = await prisma.portalLead.create({
       data: {
         id: crypto.randomBytes(12).toString('hex'),
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone?.trim() || null,
-        businessName: businessName?.trim() || null,
-        website: website?.trim() || null,
-        clientType: clientType || 'new_build',
-        platform: platform || null,
-        message: message?.trim() || null,
+        name: String(name).trim().slice(0, 120),
+        email: String(email).trim().toLowerCase().slice(0, 200),
+        phone: phone?.trim()?.slice(0, 40) || null,
+        businessName: businessName?.trim()?.slice(0, 160) || null,
+        website: website?.trim()?.slice(0, 300) || null,
+        clientType: String(clientType || 'new_build').slice(0, 40),
+        platform: platform ? String(platform).slice(0, 40) : null,
+        message: message?.trim()?.slice(0, 5000) || null,
       },
     });
 
-    notifyNewLead({
+    const cap = (v: unknown, n: number) => (v ? String(v).trim().slice(0, n) : '');
+    after(async () => {
+      // "Start a Project" is the main site CTA — it must reach the phone like every other form.
+      await sendPushToAll('🚀 New project enquiry!', `${cap(name, 80)}${businessName ? ` · ${cap(businessName, 60)}` : ''}`, '/admin/portal-leads').catch(() => {});
+      await notifyNewLead({
       source: 'Get Started',
       fields: [
         { label: 'Name',          value: name.trim() },
@@ -64,7 +54,8 @@ export async function POST(req: NextRequest) {
         ...(platform              ? [{ label: 'Platform',      value: platform }]             : []),
       ],
       message: message?.trim() || undefined,
-    }).catch(() => {});
+      }).catch(() => {});
+    });
 
     return NextResponse.json({ ok: true, id: lead.id }, { status: 201 });
   } catch (err) {

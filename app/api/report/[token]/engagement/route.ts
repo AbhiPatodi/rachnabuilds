@@ -2,11 +2,16 @@
 // lead kept the report open and how far they scrolled, onto their view row.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  // Heartbeats arrive every 10s per open tab — 720/hour covers two tabs for an hour.
+  if (!(await rateLimitIp(req, 'report-engagement', 720, 3600_000))) {
+    return NextResponse.json({ ok: false }, { status: 429 });
+  }
   const body = await req.json().catch(() => ({}));
   const viewId = typeof body.viewId === 'string' ? body.viewId : '';
   const seconds = Math.min(7200, Math.max(0, Math.round(Number(body.seconds) || 0)));

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
+import { rateLimitIp } from '@/lib/rateLimit';
 import { prisma } from '@/lib/prisma';
 import { notifyNewLead } from '@/lib/email';
 
@@ -6,14 +7,17 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await rateLimitIp(req, 'cro-checklist', 5, 3600_000))) {
+      return NextResponse.json({ error: 'Too many requests — please try again later.' }, { status: 429 });
+    }
     const { name, email } = await req.json();
-    if (!email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email?.trim() || String(email).length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
 
     await prisma.contactLead.create({
       data: {
-        name: name?.trim() || 'CRO Checklist Download',
+        name: name?.trim()?.slice(0, 120) || 'CRO Checklist Download',
         email: email.trim().toLowerCase(),
         phone: null,
         service: 'CRO Checklist',
@@ -23,14 +27,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    notifyNewLead({
+    after(() => notifyNewLead({
       source: 'CRO Checklist',
       fields: [
         { label: 'Name',  value: name?.trim() || '—' },
         { label: 'Email', value: email.trim().toLowerCase() },
       ],
       message: 'Downloaded the 50-point Shopify CRO Checklist',
-    }).catch(() => {});
+    }).then(() => undefined, () => undefined));
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set('checklist_access', '1', { path: '/', maxAge: 60 * 60 * 24 * 30 });

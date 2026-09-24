@@ -4,11 +4,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
+import { rateLimitIp } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  if (!(await rateLimitIp(req, 'report-competitors', 5, 3600_000))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   const report = await prisma.storeProofReport.findUnique({
     where: { publicToken: token },
     select: { id: true, storeName: true, host: true, funnelLeadId: true },

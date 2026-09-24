@@ -8,12 +8,12 @@ import bcryptjs from 'bcryptjs';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { getDocumentTemplate, getSectionTemplate } from '@/lib/portal-config';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ id: string }> }
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 function toSlug(str: string): string {

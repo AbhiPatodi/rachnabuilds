@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isReportSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ slug: string }> }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { slug } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  if (req.cookies.get(`rp_${slug}`)?.value !== expected) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!(await isReportSession(slug))) return NextResponse.json({ ok: false }, { status: 401 });
 
   const { eventType, meta, sessionId } = await req.json();
   if (!eventType) return NextResponse.json({ error: 'eventType required' }, { status: 400 });
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   // Update session lastActiveAt if sessionId provided
   if (sessionId) {
     await prisma.portalSession.updateMany({
-      where: { sessionId },
+      where: { sessionId, reportId: report.id },
       data: { lastActiveAt: new Date() },
     });
   }

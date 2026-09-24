@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
-
-async function isAdmin(): Promise<boolean> {
-  const cookieStore = await cookies()
-  const v = cookieStore.get('admin_session')?.value
-  if (!v) return false
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex')
-  return v === adminHash
-}
+import { isAdmin } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   // Only admin can subscribe — the cookie VALUE must match, not merely exist,

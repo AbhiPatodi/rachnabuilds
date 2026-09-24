@@ -6,12 +6,12 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { getDocumentTemplate } from '@/lib/portal-config';
+import { isAdmin } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ projectId: string }> }
 
 async function auth() {
-  const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  return isAdmin();
 }
 
 export async function POST(_req: NextRequest, { params }: RouteContext) {

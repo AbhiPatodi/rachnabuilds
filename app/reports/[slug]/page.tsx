@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import PasswordGate from './PasswordGate';
 import PortalView, { ReportWithSectionsAndDocs } from './PortalView';
+import { isAdminToken, isReportSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,28 +50,24 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     );
   }
 
-  // HMAC verification
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(slug).digest('hex');
-  const cookieValue = cookieStore.get(`rp_${slug}`)?.value;
+  // Signed session check
+  const clientOk = await isReportSession(slug);
 
   // Check if admin is previewing (admin_session must be valid)
-  const adminSession = cookieStore.get('admin_session')?.value;
-  const adminPassword = process.env.ADMIN_PASSWORD || '';
-  const expectedAdmin = await (async () => {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.digest('SHA-256', enc.encode(adminPassword));
-    return Array.from(new Uint8Array(key)).map(b => b.toString(16).padStart(2, '0')).join('');
-  })();
-  const isAdminPreview = preview === '1' && adminSession === expectedAdmin;
+  const isAdminPreview = preview === '1' && (await isAdminToken(cookieStore.get('admin_session')?.value));
 
-  if (cookieValue === expected) {
-    return <PortalView report={report as ReportWithSectionsAndDocs} isAdminPreview={isAdminPreview} />;
+  // Never ship credentials to the browser — PortalView is a client component.
+  const { passwordHash: _ph, clientPasswordPlain: _pp, ...safeReport } = report;
+  void _ph; void _pp;
+  const viewReport = { ...safeReport, passwordHash: '', clientPasswordPlain: null } as unknown as ReportWithSectionsAndDocs;
+
+  if (clientOk) {
+    return <PortalView report={viewReport} isAdminPreview={isAdminPreview} />;
   }
 
   // Admin can preview without client password
   if (isAdminPreview) {
-    return <PortalView report={report as ReportWithSectionsAndDocs} isAdminPreview={true} />;
+    return <PortalView report={viewReport} isAdminPreview={true} />;
   }
 
   return <PasswordGate slug={slug} clientName={report.clientName} />;

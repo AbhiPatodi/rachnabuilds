@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { isClientSession } from '@/lib/auth';
 
 interface RouteContext { params: Promise<{ clientSlug: string; projectId: string }> }
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { clientSlug, projectId } = await params;
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  if (req.cookies.get(`pc_${clientSlug}`)?.value !== expected) {
+  if (!(await isClientSession(clientSlug))) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
   if (sessionId) {
     await prisma.projectSession.updateMany({
-      where: { sessionId },
+      where: { sessionId, projectId: project.id },
       data: { lastActiveAt: new Date() },
     });
   }

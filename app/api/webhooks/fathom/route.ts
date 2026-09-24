@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
+import { safeEqual } from '@/lib/auth';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -40,13 +42,73 @@ function pickString(obj: Record<string, unknown>, keys: string[]): string {
   return '';
 }
 
+// Fathom delivers action items and the transcript as ARRAYS of objects
+// (action_items: [{description,...}], transcript: [{speaker:{display_name}, text}]),
+// while older/other payloads use plain strings — accept both.
+function actionItemsText(v: unknown): string {
+  if (typeof v === 'string') return v.trim();
+  if (!Array.isArray(v)) return '';
+  return v
+    .map((a, i) => {
+      const t = typeof a === 'string' ? a : (a as Record<string, unknown>)?.description ?? (a as Record<string, unknown>)?.text;
+      return t ? `${i + 1}. ${String(t).trim()}` : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function transcriptText(v: unknown): string {
+  if (typeof v === 'string') return v.trim();
+  if (!Array.isArray(v)) return '';
+  return v
+    .map((t) => {
+      if (typeof t === 'string') return t;
+      const o = t as Record<string, unknown>;
+      const sp = o.speaker as Record<string, unknown> | string | undefined;
+      const who = typeof sp === 'string' ? sp : (sp?.display_name as string) || 'Speaker';
+      return o.text ? `${who}: ${String(o.text).trim()}` : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+// Standard Webhooks signature (what Fathom uses): HMAC-SHA256 over
+// "<webhook-id>.<webhook-timestamp>.<raw body>" with the base64-decoded
+// secret ("whsec_" prefix optional); header holds "v1,<base64sig>" entries.
+function validFathomSignature(req: NextRequest, raw: string, secret: string): boolean {
+  const id = req.headers.get('webhook-id');
+  const ts = req.headers.get('webhook-timestamp');
+  const sigHeader = req.headers.get('webhook-signature');
+  if (!id || !ts || !sigHeader) return false;
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false; // 5-min replay window
+  let key: Buffer;
+  try {
+    key = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
+  } catch {
+    return false;
+  }
+  const expected = crypto.createHmac('sha256', key).update(`${id}.${ts}.${raw}`).digest('base64');
+  return sigHeader.split(' ').some((part) => {
+    const sig = part.includes(',') ? part.split(',')[1] : part;
+    return safeEqual(sig, expected);
+  });
+}
+
 export async function POST(req: NextRequest) {
   const key = req.nextUrl.searchParams.get('key');
-  if (!key || key !== process.env.CRON_SECRET) {
+  if (!safeEqual(key, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  const raw = await req.text();
+  // Once FATHOM_WEBHOOK_SECRET is configured, also require Fathom's signature.
+  const whSecret = process.env.FATHOM_WEBHOOK_SECRET;
+  if (whSecret && !validFathomSignature(req, raw, whSecret)) {
+    return NextResponse.json({ error: 'Bad signature' }, { status: 401 });
+  }
+
+  let body: Record<string, unknown> | null = null;
+  try { body = JSON.parse(raw); } catch { /* handled below */ }
   if (!body) return NextResponse.json({ error: 'Bad payload' }, { status: 400 });
 
   const title = pickString(body, ['title', 'meeting_title', 'name']) || 'Call';
@@ -54,9 +116,9 @@ export async function POST(req: NextRequest) {
   // renders it); only inline timestamp links get flattened to their text.
   const deLinks = (s: string) => s.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1');
   const summary = deLinks(pickString(body, ['summary', 'ai_summary', 'default_summary', 'notes']));
-  const actionItems = pickString(body, ['action_items', 'actionItems', 'next_steps']);
+  const actionItems = actionItemsText(body.action_items ?? body.actionItems) || pickString(body, ['next_steps']);
   const recordingUrl = pickString(body, ['share_url', 'recording_url', 'url', 'fathom_url']);
-  const transcript = pickString(body, ['transcript', 'transcript_plaintext', 'full_transcript']);
+  const transcript = transcriptText(body.transcript) || pickString(body, ['transcript_plaintext', 'full_transcript']);
 
   const emails = new Set<string>();
   collectEmails(body, emails);
@@ -108,7 +170,7 @@ export async function POST(req: NextRequest) {
           at: new Date().toISOString(), title,
           matched: leads.map((l) => l.name),
           emailsSeen: [...emails].slice(0, 8),
-          hasSummary: !!summary, hasActionItems: !!actionItems,
+          hasSummary: !!summary, hasActionItems: !!actionItems, hasTranscript: !!transcript, transcriptChars: transcript.length,
         }).slice(0, 1500),
       },
     }),

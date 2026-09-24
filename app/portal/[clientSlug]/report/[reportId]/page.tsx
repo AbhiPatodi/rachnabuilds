@@ -6,6 +6,8 @@ import { notFound, redirect } from 'next/navigation';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
+import { isAdminToken, isClientPortalToken } from '@/lib/auth';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +25,10 @@ export default async function PortalReportPage({
   });
   if (!client || !client.isActive) notFound();
 
-  const secret = process.env.ADMIN_PASSWORD || 'secret';
-  const expected = crypto.createHmac('sha256', secret).update(clientSlug).digest('hex');
-  const cookieValue = cookieStore.get(`pc_${clientSlug}`)?.value;
-  const adminSession = cookieStore.get('admin_session')?.value;
-  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
-  const isAdminPreview = adminSession === adminHash;
+  const clientOk = await isClientPortalToken(clientSlug, cookieStore.get(`pc_${clientSlug}`)?.value);
+  const isAdminPreview = await isAdminToken(cookieStore.get('admin_session')?.value);
 
-  if (cookieValue !== expected && !isAdminPreview) {
+  if (!clientOk && !isAdminPreview) {
     redirect(`/portal/${clientSlug}`);
   }
 
@@ -38,7 +36,7 @@ export default async function PortalReportPage({
   if (!report || report.clientId !== client.id) notFound();
 
   // Engagement tracking — real client views only, never admin previews
-  if (cookieValue === expected) {
+  if (clientOk && !isAdminPreview) {
     await prisma.storeProofReportView.create({ data: { reportId: report.id, device: 'portal' } }).catch(() => {});
     await prisma.storeProofReport.update({
       where: { id: report.id },
@@ -54,7 +52,7 @@ export default async function PortalReportPage({
   try { payload = JSON.parse(report.findingsJson); } catch { /* legacy */ }
 
   if (!payload.findings?.length) {
-    return <div dangerouslySetInnerHTML={{ __html: report.html }} />;
+    return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(report.html) }} />;
   }
 
   return (
