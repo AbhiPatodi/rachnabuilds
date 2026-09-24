@@ -23,6 +23,7 @@ export interface FullReportPayload {
   benchmark?: BenchRow[];
   checkStats?: { run: number; failures: number; warnings: number; passing: number };
   healthByArea?: { area: string; fail: number; warn: number; total: number; verdict: string }[];
+  design?: { notes: { title: string; note: string }[]; shots: Shot[] } | null;
 }
 
 const SEVERITY_STYLE: Record<string, { bg: string; color: string }> = {
@@ -279,6 +280,33 @@ export default function FullReport({
             )}
           </>
         )}
+
+        {payload.design?.notes?.length ? (
+          <>
+            <h2 className="fr-h2">Design review — how the store reads to a shopper</h2>
+            <p className="fr-h2sub">Beyond the automated checks: an expert pass over the store&apos;s first impression, hierarchy, and trust signals.</p>
+            {(payload.design.shots || []).length > 0 && (
+              <div className="fr-shots" style={{ marginBottom: 14 }}>
+                {payload.design.shots.map((s, i) => (
+                  <figure className="fr-shot" key={i} style={{ margin: 0 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.dataUri} alt={s.label} />
+                    <figcaption>{s.label}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
+            {payload.design.notes.map((n, i) => (
+              <div className="fr-finding" key={i}>
+                <span className="fr-num">✏️</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="fr-fhead"><h4>{n.title}</h4></div>
+                  <p className="fr-body">{n.note}</p>
+                </div>
+              </div>
+            ))}
+          </>
+        ) : null}
 
         {screenshots.length > 0 && (
           <>

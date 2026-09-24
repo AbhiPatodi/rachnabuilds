@@ -84,7 +84,16 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
   }
   for (const r of lead.spReports || []) {
     ev.push({ at: r.createdAt, icon: '🔍', text: `Store report generated — ${r.storeName}` });
-    for (const v of r.views) ev.push({ at: v.viewedAt, icon: '👁', text: `Opened their store report` });
+    for (const v of r.views) {
+      const where = [v.city, v.country].filter(Boolean).join(', ');
+      const dev = [v.os, v.browser].filter(Boolean).join(' · ');
+      const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
+      const clicked = (v.clicks || '').split(',').filter(Boolean);
+      ev.push({
+        at: v.viewedAt, icon: '👁',
+        text: `Opened their store report${where ? ` from ${where}` : ''}${dev ? ` (${dev})` : ''}${dur ? ` — read ${dur}` : ''}${clicked.includes('whatsapp') ? ' · tapped WhatsApp 💬' : ''}${clicked.includes('book') ? ' · tapped Book 📅' : ''}`,
+      });
+    }
   }
   return ev.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 }
@@ -553,6 +562,23 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       {/* ─── TIMELINE ─── */}
       {tab === 'timeline' && (
         <div className="admin-card">
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            {['📤 Report link sent', '💬 First message sent', '🔁 Follow-up sent', '📞 Call scheduled', '🎥 Walkthrough done'].map((q) => (
+              <button key={q} type="button" disabled={busy} className="admin-btn admin-btn-secondary" style={{ fontSize: 11.5, padding: '4px 10px' }}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await fetch(`/api/admin/funnel-leads/${id}`, {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ text: q }),
+                    });
+                    await fetchLead();
+                  } finally { setBusy(false); }
+                }}>
+                {q}
+              </button>
+            ))}
+          </div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
             <input
               value={noteText}
@@ -616,7 +642,23 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       {/* ─── AUDIT REPORT ─── */}
       {tab === 'audit' && (
         <div style={{ marginTop: 20, maxWidth: 720 }}>
-          {!lead.storeUrl ? (
+          {lead.spReports?.[0]?.publicToken && !auditReportData ? (
+            <div className="admin-card admin-empty">
+              <div style={{ marginBottom: 8, fontSize: 32 }}>✅</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Store audit is done — {lead.spReports[0].storeName}</div>
+              <div style={{ marginBottom: 16 }}>The StoreProof report is the audit for this lead (see the Store Audit card on Overview for WhatsApp sharing and view tracking).</div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${lead.spReports[0].id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
+                <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`https://rachnabuilds.com/report/${lead.spReports[0].publicToken}`} target="_blank" rel="noopener noreferrer">Teaser (what they see) ↗</a>
+              </div>
+              <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)' }}>
+                The old AI call-prep audit is still available if you want it:{' '}
+                <button type="button" onClick={generateAudit} disabled={busy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                  {busy ? 'Generating…' : 'generate call-prep audit'}
+                </button>
+              </div>
+            </div>
+          ) : !lead.storeUrl ? (
             <div className="admin-card admin-empty">No store URL on file — can&apos;t run an audit for this lead.</div>
           ) : !audit || audit.status === 'failed' ? (
             <div className="admin-card admin-empty">

@@ -65,6 +65,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   let brand: { logoUrl?: string; themeColor?: string } = {};
   let speed: { pages: SpeedPage[]; wins: SpeedWin[] } | null = null;
   let screenshots: Shot[] = [];
+  let design: { notes: { title: string; note: string }[]; shots: Shot[] } | null = null;
   try {
     const parsed = JSON.parse(report.findingsJson);
     findings = parsed.findings || [];
@@ -72,6 +73,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
     brand = parsed.brand || {};
     speed = parsed.speed?.pages?.length ? parsed.speed : null;
     screenshots = parsed.screenshots || [];
+    design = parsed.design?.notes?.length ? parsed.design : null;
   } catch { /* malformed findings — render the shell */ }
 
   // Top 3 locked with blur; next 2 fully visible as proof; the rest are
@@ -177,6 +179,12 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         .rpt-shot { flex:1; min-width:180px; max-width:230px; }
         .rpt-shot img { width:100%; border-radius:14px; border:1px solid #E4E7EC; box-shadow:0 4px 18px rgba(16,24,40,0.08); }
         .rpt-shot figcaption { font-size:12px; color:#667085; margin-top:6px; text-align:center; }
+        .rpt-designshot img { width:100%; max-width:340px; border-radius:12px; border:1px solid #E4E7EC; display:block; }
+        .rpt-designshot figcaption { font-size:12px; color:#667085; margin-top:6px; }
+        .rpt-designlocked { background:#fff; border:1px dashed #98A2B3; border-radius:14px; padding:14px 18px; margin-top:12px; }
+        .rpt-designrow { font-size:13.5px; color:#475467; padding:6px 0; border-bottom:1px solid #F2F4F7; font-weight:600; }
+        .rpt-designrow:last-of-type { border-bottom:none; }
+        .rpt-designnote { font-size:12.5px; color:#667085; margin-top:8px; font-style:italic; }
         .rpt-cta { background:#fff; border:2px solid #171717; border-radius:16px; padding:26px 28px; margin-top:34px; text-align:center; }
         .rpt-cta h2 { color:#0B3D2E; font-size:19px; margin:0 0 8px; }
         .rpt-cta p { font-size:14px; color:#344054; margin:0 0 18px; }
@@ -291,6 +299,35 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
               ))}
             </div>
           </>
+        )}
+
+        {design && (
+          <div data-track="Design review">
+            <h2 className="rpt-h2">A designer&apos;s eye on your store</h2>
+            <p className="rpt-h2sub">Beyond the technical checks — how the store reads to a first-time shopper.</p>
+            {design.shots[0] && (
+              <figure className="rpt-shot rpt-designshot" style={{ margin: '0 0 14px' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={design.shots[0].dataUri} alt={design.shots[0].label} />
+                <figcaption>{design.shots[0].label}</figcaption>
+              </figure>
+            )}
+            <div className="rpt-finding">
+              <span className="rpt-num">✏️</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="rpt-fhead"><h4>{design.notes[0].title}</h4></div>
+                <p className="rpt-body">{design.notes[0].note}</p>
+              </div>
+            </div>
+            {design.notes.length > 1 && (
+              <div className="rpt-designlocked">
+                {design.notes.slice(1).map((n, i) => (
+                  <div key={i} className="rpt-designrow">🔒 {n.title}</div>
+                ))}
+                <div className="rpt-designnote">We walk through {design.notes.length - 1 === 1 ? 'this one' : `these ${design.notes.length - 1}`} with examples on your free call.</div>
+              </div>
+            )}
+          </div>
         )}
 
         <div data-track="Competitor form"><CompetitorAsk token={token} /></div>
