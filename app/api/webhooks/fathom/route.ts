@@ -50,7 +50,13 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Bad payload' }, { status: 400 });
 
   const title = pickString(body, ['title', 'meeting_title', 'name']) || 'Call';
-  const summary = pickString(body, ['summary', 'ai_summary', 'default_summary', 'notes']);
+  // Fathom summaries arrive as markdown — strip the syntax so the admin UI
+  // (which renders plain text) reads cleanly.
+  const deMd = (s: string) => s
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1')
+    .replace(/^#{1,4}\s*/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1');
+  const summary = deMd(pickString(body, ['summary', 'ai_summary', 'default_summary', 'notes']));
   const actionItems = pickString(body, ['action_items', 'actionItems', 'next_steps']);
   const recordingUrl = pickString(body, ['share_url', 'recording_url', 'url', 'fathom_url']);
   const transcript = pickString(body, ['transcript', 'transcript_plaintext', 'full_transcript']);
@@ -61,16 +67,13 @@ export async function POST(req: NextRequest) {
     ? await prisma.funnelLead.findMany({ where: { email: { in: [...emails] } }, select: { id: true, name: true } })
     : [];
 
-  const text = [
-    `📝 Call notes — ${title}`,
-    summary ? `\n${summary.slice(0, 3000)}` : '',
-    actionItems ? `\nACTION ITEMS:\n${actionItems.slice(0, 800)}` : '',
-    recordingUrl ? `\nRecording: ${recordingUrl}` : '',
-  ].filter(Boolean).join('\n').slice(0, 4000);
+  // Timeline stays a timeline: one lean event line. The full summary,
+  // action items, transcript and recording live on the Booking (Bookings tab).
+  const text = `📝 Call notes filed — ${title} (see Bookings tab)`;
 
   for (const lead of leads) {
     await prisma.leadActivity.create({
-      data: { leadId: lead.id, type: 'note', text, actor: 'Fathom' },
+      data: { leadId: lead.id, type: 'system', text, actor: 'Fathom' },
     }).catch(() => {});
     // Attach full call record to the lead's nearest booking (±36h) so the
     // transcript is queryable later for follow-up drafting.

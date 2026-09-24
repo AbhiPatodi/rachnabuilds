@@ -25,6 +25,7 @@ interface Booking {
   status: string;
   meetLink: string | null;
   callSummary?: string | null;
+  callTranscript?: string | null;
   recordingUrl?: string | null;
 }
 
@@ -444,18 +445,12 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               if (lastWithNotes) {
                 const when = new Date(lastWithNotes.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
                 return (
-                  <div>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: lastWithNotes.callSummary ? 10 : 0 }}>
-                      <span style={{ fontSize: 13.5 }}>✅ Call done — <b>{when} IST</b></span>
-                      {lastWithNotes.recordingUrl && (
-                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={lastWithNotes.recordingUrl} target="_blank" rel="noopener noreferrer">🎥 Recording ↗</a>
-                      )}
-                    </div>
-                    {lastWithNotes.callSummary && (
-                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', maxHeight: 220, overflowY: 'auto' }}>
-                        {lastWithNotes.callSummary}
-                      </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13.5 }}>✅ Call done — <b>{when} IST</b></span>
+                    {lastWithNotes.recordingUrl && (
+                      <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={lastWithNotes.recordingUrl} target="_blank" rel="noopener noreferrer">🎥 Recording ↗</a>
                     )}
+                    <button type="button" className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} onClick={() => setTab('bookings')}>📝 Notes & transcript → Bookings</button>
                   </div>
                 );
               }
@@ -813,17 +808,47 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             <div className="admin-card admin-empty">No calls booked yet.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {lead.bookings.map((b) => (
-                <div key={b.id} className="admin-card" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      {new Date(b.startTime).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST
+              {lead.bookings.map((b) => {
+                const mins = Math.round((new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) / 60_000);
+                const parts = (b.callSummary || '').split(/\n\s*ACTION ITEMS:\s*\n?/);
+                const summaryText = parts[0]?.trim();
+                const actionText = parts[1]?.trim();
+                return (
+                  <div key={b.id} className="admin-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>
+                          {new Date(b.startTime).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {mins} min</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: STATUS_META[b.status]?.color || '#94A3B8' }}>{b.status}</span>
+                      {b.recordingUrl && <a href={b.recordingUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>🎥 Recording</a>}
+                      {b.meetLink && !b.callSummary && <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>Join Meet</a>}
                     </div>
+                    {summaryText && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Summary</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{summaryText}</div>
+                      </div>
+                    )}
+                    {actionText && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Action items</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{actionText}</div>
+                      </div>
+                    )}
+                    {b.callTranscript && (
+                      <details style={{ marginTop: 12 }}>
+                        <summary style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer' }}>Full transcript</summary>
+                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.55, marginTop: 8, maxHeight: 320, overflowY: 'auto', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+                          {b.callTranscript}
+                        </div>
+                      </details>
+                    )}
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: STATUS_META[b.status]?.color || '#94A3B8' }}>{b.status}</span>
-                  {b.meetLink && <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>Join Meet</a>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
