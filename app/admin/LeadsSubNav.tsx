@@ -4,6 +4,7 @@
 //   Pipeline  — funnel_leads (people who raised a hand, any source)
 //   Prospects — cold-email pool (we picked them; quarantined)
 //   Inbox     — general contact-form submissions
+//   Enquiries — "Start a Project" (/start) submissions → convertible to clients
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -11,7 +12,10 @@ const ITEMS = [
   { href: '/admin/funnel-leads', label: 'Pipeline' },
   { href: '/admin/prospects', label: 'Prospects' },
   { href: '/admin/leads', label: 'Inbox' },
+  { href: '/admin/portal-leads', label: 'Enquiries' },
 ];
+
+export const LEADS_HUB_PATHS = ITEMS.map((i) => i.href);
 
 export default function LeadsSubNav() {
   const pathname = usePathname();

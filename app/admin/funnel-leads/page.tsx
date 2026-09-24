@@ -139,7 +139,7 @@ export default function FunnelLeadsPage() {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Funnel Leads</h1>
-          <p className="admin-page-subtitle">Website opt-ins &amp; applications (/training) + Meta Instant Form leads</p>
+          <p className="admin-page-subtitle">Every inbound lead — Meta Instant Form, free-audit requests, website applications and cold-email replies</p>
         </div>
       </div>
 
@@ -155,7 +155,7 @@ export default function FunnelLeadsPage() {
           <div className="admin-stat-value accent">{applied.length}</div>
         </div>
         <div className="admin-stat-card">
-          <div className="admin-stat-label">Opt-in Only (follow up!)</div>
+          <div className="admin-stat-label">Not applied yet</div>
           <div className="admin-stat-value" style={{ color: '#FBBF24' }}>{leads.length - applied.length}</div>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function FunnelLeadsPage() {
                 marginBottom: -1,
               }}
             >
-              {t === 'all' ? 'All' : t === 'applied' ? 'Applications' : 'Opt-ins only'}
+              {t === 'all' ? 'All' : t === 'applied' ? 'Applications' : 'Not applied'}
             </button>
           ))}
         </div>
@@ -219,7 +219,7 @@ export default function FunnelLeadsPage() {
           <div className="admin-empty">
             <div style={{ marginBottom: 8, fontSize: 32 }}>🎯</div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>No funnel leads yet</div>
-            <div>Leads from the /training VSL funnel will appear here.</div>
+            <div>Leads from Meta ads, the free-audit form and the website will appear here.</div>
           </div>
         ) : (
           <div className="admin-table-wrap">
@@ -251,7 +251,11 @@ export default function FunnelLeadsPage() {
                               background: l.stage === 'applied' ? 'rgba(6,214,160,0.12)' : 'rgba(251,191,36,0.12)',
                               color: l.stage === 'applied' ? '#06D6A0' : '#FBBF24',
                             }}>
-                              {l.stage === 'applied' ? 'Applied' : 'Opt-in'}
+                              {l.stage === 'applied' ? 'Applied'
+                                : l.utmMedium === 'instant-form' ? 'Meta form'
+                                : l.utmMedium === 'free-audit' ? 'Audit req.'
+                                : l.utmSource === 'cold-email' ? 'Cold reply'
+                                : 'Opt-in'}
                             </span>
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.email}</div>

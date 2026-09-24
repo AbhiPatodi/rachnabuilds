@@ -31,6 +31,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ jobs });
   }
 
+  // Recover jobs orphaned by a crashed/killed worker: a 'running' job older
+  // than 45 min is requeued (up to 3 attempts), then marked failed — so one
+  // crash can never block a store forever.
+  await prisma.$executeRaw`
+    UPDATE storeproof_jobs SET status = 'queued', "updatedAt" = now()
+    WHERE status = 'running' AND "startedAt" < now() - interval '45 minutes' AND attempts < 3`;
+  await prisma.$executeRaw`
+    UPDATE storeproof_jobs SET status = 'failed', error = 'Worker timed out 3 times', "finishedAt" = now(), "updatedAt" = now()
+    WHERE status = 'running' AND "startedAt" < now() - interval '45 minutes' AND attempts >= 3`;
+
   // Atomic claim: only one worker instance can win a given job.
   const claimed = await prisma.$queryRaw<{ id: string }[]>`
     UPDATE storeproof_jobs SET status = 'running', "startedAt" = now(),
@@ -59,7 +69,16 @@ export async function POST(req: NextRequest) {
       where: { id: jobId },
       data: { status: 'failed', error: String(error || 'unknown'), finishedAt: new Date() },
     });
-    await sendPushToAll('⚠️ StoreProof audit failed', `${job.host} — ${String(error || 'unknown').slice(0, 80)}`, '/admin/storeproof').catch(() => {});
+    if (job.funnelLeadId) {
+      await prisma.leadActivity.create({
+        data: { leadId: job.funnelLeadId, type: 'system', text: `Store audit failed for ${job.host} — ${String(error || 'unknown').slice(0, 160)}` },
+      }).catch(() => {});
+    }
+    await sendPushToAll(
+      '⚠️ StoreProof audit failed',
+      `${job.host} — ${String(error || 'unknown').slice(0, 80)}`,
+      job.funnelLeadId ? `/admin/funnel-leads/${job.funnelLeadId}` : '/admin/storeproof#jobs',
+    ).catch(() => {});
     return NextResponse.json({ ok: true, status: 'failed' });
   }
 

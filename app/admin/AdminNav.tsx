@@ -89,7 +89,7 @@ export default function AdminNav() {
 
       <Link
         href="/admin/funnel-leads"
-        className={pathname.startsWith('/admin/funnel-leads') ? 'active' : ''}
+        className={['/admin/funnel-leads', '/admin/prospects', '/admin/leads', '/admin/portal-leads'].some((p) => pathname.startsWith(p)) ? 'active' : ''}
       >
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/>
@@ -168,6 +168,27 @@ export default function AdminNav() {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
         Clients
+      </Link>
+
+      <Link
+        href="/admin/projects"
+        className={pathname.startsWith('/admin/projects') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        All Projects
+      </Link>
+
+      <Link
+        href="/admin/reports"
+        className={pathname.startsWith('/admin/reports') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+        </svg>
+        Report Portals (legacy)
       </Link>
 
       <Link

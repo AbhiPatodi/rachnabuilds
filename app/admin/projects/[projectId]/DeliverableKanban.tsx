@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // ── Image compression helper ───────────────────────────────────────────────────
 async function compressImage(file: File, maxWidth = 1920, quality = 0.85): Promise<File> {
@@ -166,18 +166,35 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
   const [adminCommentSubmitting, setAdminCommentSubmitting] = useState(false);
   const adminCommentFileRef = useRef<HTMLInputElement>(null);
 
+  // Clients can add their own kanban columns in the portal — load them so
+  // cards moved there don't vanish from this board.
+  const [extraCols, setExtraCols] = useState<{ id: string; label: string; color?: string }[]>([]);
+
   const loadTasks = useCallback(async () => {
     setLoading(true);
-    const [delRes, linkRes] = await Promise.all([
+    const [delRes, linkRes, colRes] = await Promise.all([
       fetch(`/api/admin/projects/${projectId}/deliverables`),
       fetch(`/api/admin/projects/${projectId}/build-links`),
+      fetch(`/api/admin/projects/${projectId}/kanban-columns`),
     ]);
     if (delRes.ok) { const d = await delRes.json(); setTasks(d.deliverables ?? []); }
     if (linkRes.ok) { const d = await linkRes.json(); setBuildLinks(d.links ?? []); }
+    if (colRes.ok) { const d = await colRes.json(); setExtraCols(Array.isArray(d.columns) ? d.columns : []); }
     setLoading(false);
   }, [projectId]);
 
   useEffect(() => { loadTasks(); }, [loadTasks]);
+
+  const allColumns = useMemo(() => {
+    const cols: typeof COLUMNS = [...COLUMNS];
+    const add = (id: string, label: string, color = '#A78BFA') => {
+      if (!cols.some((c) => c.id === id)) cols.push({ id, label, color, bg: `${color}1A`, border: `${color}40` });
+    };
+    for (const c of extraCols) if (c?.id) add(c.id, c.label || c.id, c.color);
+    // Any status nothing defines (e.g. a column the client since deleted) still gets a lane.
+    for (const t of tasks) if (t.status) add(t.status, `Other: ${t.status}`, '#64748B');
+    return cols;
+  }, [extraCols, tasks]);
 
   const saveBuildLinks = async (links: BuildLink[]) => {
     await fetch(`/api/admin/projects/${projectId}/build-links`, {
@@ -532,7 +549,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
 
   const renderModal = () => {
     if (!selectedTask) return null;
-    const col = COLUMNS.find(c => c.id === selectedTask.status)!;
+    const col = allColumns.find(c => c.id === selectedTask.status) ?? allColumns[0];
     const ms = milestones.find(m => m.id === selectedTask.milestoneId);
     return (
       <div
@@ -630,7 +647,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
               <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Move to</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {COLUMNS.filter(c => c.id !== selectedTask.status).map(c => (
+                  {allColumns.filter(c => c.id !== selectedTask.status).map(c => (
                     <button key={c.id}
                       style={{ fontSize: 11, fontWeight: 600, color: c.color, background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                       onClick={() => moveTaskToStatus(selectedTask, c.id)}
@@ -946,7 +963,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
 
       {/* ── Kanban Board ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, paddingRight: selectedTask ? 0 : 0 }}>
-        {COLUMNS.map(col => {
+        {allColumns.map(col => {
           const colTasks = tasks
             .filter(t => t.status === col.id)
             .sort((a, b) => a.displayOrder - b.displayOrder);

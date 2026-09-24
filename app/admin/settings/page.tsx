@@ -316,6 +316,9 @@ export default function SettingsPage() {
 
   return (
     <div className="admin-content" style={{ maxWidth: 720 }}>
+      <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 12.5, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+        ⚠️ Only the <b>Funnel emails</b> tab changes live behaviour (the reminder/nudge crons read it). The homepage tabs (Stats, Hero, Services, Pricing, Process, Marquee) and the availability status are saved but not read by the live site, whose homepage is hard-coded in <code>app/HomeV2Client.tsx</code>.
+      </div>
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Settings</h1>
@@ -552,7 +555,7 @@ export default function SettingsPage() {
           <div className="admin-field">
             <label className="admin-label">Hero Headline</label>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)', fontStyle: 'italic' }}>
-              🔒 &quot;I build stores that actually sell.&quot; — hardcoded with animation, edit in <code>app/HomepageClient.tsx</code> line 530 if needed.
+              🔒 &quot;I build stores that actually sell.&quot; — hardcoded with animation, edit in <code>app/HomeV2Client.tsx</code> if needed.
             </div>
           </div>
 

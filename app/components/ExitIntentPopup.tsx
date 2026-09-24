@@ -15,7 +15,7 @@ export function ExitIntentPopup() {
     // ALLOWLIST: browse-mode marketing pages only. Never on conversion or
     // deliverable pages (/free-audit, /audit, /report, /training, /start,
     // /contact...) — a popup there competes with the page's own single job.
-    const BROWSE_PAGES = ['/', '/work', '/services', '/pricing', '/blog', '/tools']
+    const BROWSE_PAGES = ['/', '/work', '/services', '/blog', '/tools']
     const allowed = BROWSE_PAGES.some((p) =>
       p === '/' ? pathname === '/' : pathname === p || pathname?.startsWith(`${p}/`),
     )
@@ -75,23 +75,10 @@ export function ExitIntentPopup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
+    // The audit needs a store URL, which this tiny form doesn't collect —
+    // hand off to the real free-audit flow (email prefilled) so a job runs.
     setLoading(true)
-    try {
-      await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name || 'Exit Intent Lead',
-          email,
-          message: 'Requested free store audit via exit intent popup',
-          service: 'Free Audit',
-        }),
-      })
-      setDone(true)
-    } catch {
-      // fail silently
-    }
-    setLoading(false)
+    window.location.href = `/free-audit?email=${encodeURIComponent(email)}`
   }
 
   if (!visible) return null

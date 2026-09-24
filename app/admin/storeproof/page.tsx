@@ -18,11 +18,13 @@ interface ReportRow {
   lastViewedAt: string | null;
   createdAt: string;
   topFindings: string[];
+  competitorsRequested: string | null;
   client: { id: string; name: string; slug: string } | null;
   views: { viewedAt: string; device: string | null }[];
 }
 
 interface ClientOption { id: string; name: string; slug: string }
+interface JobRow { id: string; host: string; name: string; status: string; error: string | null; attempts: number; funnelLeadId: string | null; createdAt: string; startedAt: string | null }
 
 function ago(iso: string | null): string {
   if (!iso) return '—';
@@ -35,6 +37,7 @@ function ago(iso: string | null): string {
 export default function StoreProofAdminPage() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -46,6 +49,7 @@ export default function StoreProofAdminPage() {
       const data = await res.json();
       setReports(data.reports);
       setClients(data.clients);
+      setJobs(data.jobs || []);
     } catch {
       setError('Failed to load StoreProof reports');
     } finally {
@@ -62,6 +66,20 @@ export default function StoreProofAdminPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId, clientId: clientId || null }),
+      });
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const retryJob = async (jobId: string) => {
+    setBusy(jobId);
+    try {
+      await fetch('/api/admin/storeproof', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, action: 'retry' }),
       });
       await load();
     } finally {
@@ -92,6 +110,29 @@ export default function StoreProofAdminPage() {
 
       {error && <div className="admin-alert admin-alert-error" style={{ marginBottom: 20 }}>{error}</div>}
 
+      {jobs.length > 0 && (
+        <div id="jobs" className="admin-card" style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px' }}>Audit queue</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
+            Jobs run on the StoreProof worker (Mac: <code>caffeinate -i npm run worker</code>). A job stuck running &gt;45 min is auto-requeued.
+          </p>
+          {jobs.map((j) => (
+            <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
+              <span style={{ fontWeight: 700, minWidth: 64, color: j.status === 'failed' ? '#FF6B6B' : j.status === 'running' ? '#38BDF8' : '#FBBF24' }}>{j.status}</span>
+              <span style={{ fontWeight: 600 }}>{j.host}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{j.name} · {ago(j.createdAt)}{j.attempts > 1 ? ` · ${j.attempts} attempts` : ''}</span>
+              {j.error && <span style={{ color: '#FF6B6B', fontSize: 12, flexBasis: '100%' }}>{j.error.slice(0, 180)}</span>}
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                {j.funnelLeadId && <a className="admin-btn admin-btn-secondary" style={{ fontSize: 11.5 }} href={`/admin/funnel-leads/${j.funnelLeadId}`}>Lead →</a>}
+                {j.status === 'failed' && (
+                  <button type="button" className="admin-btn admin-btn-primary" style={{ fontSize: 11.5 }} disabled={busy === j.id} onClick={() => retryJob(j.id)}>↻ Retry</button>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {reports.length === 0 ? (
         <div className="admin-card" style={{ textAlign: 'center', padding: 40 }}>
           <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>
@@ -113,6 +154,13 @@ export default function StoreProofAdminPage() {
                   {r.clientId ? `Assigned → ${r.client?.name}` : 'Unassigned'}
                 </span>
               </div>
+
+              {r.competitorsRequested && (
+                <div style={{ marginTop: 10, fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+                  🥊 Lead asked to be compared against: <b>{r.competitorsRequested.split(',').join(', ')}</b>
+                  {' '}— add them to the store&apos;s competitors in StoreProof and re-run the benchmark before the call.
+                </div>
+              )}
 
               {r.topFindings.length > 0 && (
                 <ul style={{ margin: '10px 0 0', paddingLeft: 18, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>

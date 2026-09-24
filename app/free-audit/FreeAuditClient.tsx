@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import '../tools/tools.css';
 
@@ -14,7 +14,12 @@ const REVENUE_OPTIONS = [
 ];
 
 export default function FreeAuditClient() {
-  const [form, setForm] = useState({ name: '', email: '', storeUrl: '', revenue: '', challenge: '', details: '' });
+  const [form, setForm] = useState({ name: '', email: '', storeUrl: '', revenue: '' });
+  // Prefill from the exit-intent popup (?email=)
+  useEffect(() => {
+    const e = new URLSearchParams(window.location.search).get('email');
+    if (e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) setForm((f) => ({ ...f, email: e.slice(0, 200) }));
+  }, []);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');

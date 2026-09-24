@@ -798,17 +798,20 @@ export default function HomeV2Client() {
               <li><a href="#work">Portfolio</a></li>
               <li><a href="#services">Services</a></li>
               <li><a href="#contact">Contact</a></li>
-              <li><a href="https://rachnabuilds.com/blog" target="_blank" rel="noopener noreferrer">Blog</a></li>
+              <li><a href="/blog">Blog</a></li>
+              <li><a href="/contact">Contact form</a></li>
             </ul>
           </div>
 
           <div>
             <p className="footer-col-title">Connect</p>
             <ul className="footer-links">
-              <li><a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
-              <li><a href="https://instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a></li>
-              <li><a href="https://upwork.com" target="_blank" rel="noopener noreferrer">Upwork</a></li>
-              <li><a href="https://calendly.com" target="_blank" rel="noopener noreferrer">Book a Call</a></li>
+              <li><a href="https://linkedin.com/in/rachna-jain-a2150110b" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+              <li><a href="https://instagram.com/rachnabuilds" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+              <li><a href="https://upwork.com/fl/~01806f752cdfa1ed0e" target="_blank" rel="noopener noreferrer">Upwork</a></li>
+              <li><a href="/free-audit">Free Store Audit</a></li>
+              <li><a href="/start">Start a Project</a></li>
+              <li><a href="/training/apply">Book a Call</a></li>
             </ul>
           </div>
         </div>

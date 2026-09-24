@@ -31,8 +31,16 @@ export default async function DashboardPage() {
     prisma.blogPost.count(),
     prisma.blogPost.count({ where: { isPublished: true } }),
     prisma.socialLink.count({ where: { isVisible: true } }),
-    prisma.contactLead.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
-    prisma.contactLead.count({ where: { status: 'new' } }),
+    // The pipeline (funnel_leads) is where real leads land — Meta, free audit, website.
+    prisma.funnelLead.findMany({
+      orderBy: { createdAt: 'desc' }, take: 5,
+      select: { id: true, name: true, email: true, status: true, createdAt: true, utmMedium: true, utmSource: true, storeUrl: true },
+    }),
+    Promise.all([
+      prisma.funnelLead.count({ where: { status: 'new' } }),
+      prisma.contactLead.count({ where: { status: 'new' } }),
+      prisma.portalLead.count({ where: { status: 'new' } }),
+    ]).then(([a, b, c]) => a + b + c),
     prisma.projectContract.findMany({
       where: { status: 'signed' },
       orderBy: { signedAt: 'desc' },
@@ -105,7 +113,11 @@ export default async function DashboardPage() {
         .dash-lead-status { font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; margin-left: auto; flex-shrink: 0; }
         .dash-lead-status.new { background: rgba(6,214,160,.12); color: var(--accent); border: 1px solid rgba(6,214,160,.25); }
         .dash-lead-status.contacted { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.25); }
-        .dash-lead-status.closed { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border); }
+        .dash-lead-status.closed, .dash-lead-status.closed_lost, .dash-lead-status.disqualified { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border); }
+        .dash-lead-status.confirmed { background: rgba(56,189,248,.12); color: #38BDF8; border: 1px solid rgba(56,189,248,.25); }
+        .dash-lead-status.call_booked { background: rgba(251,191,36,.12); color: #FBBF24; border: 1px solid rgba(251,191,36,.25); }
+        .dash-lead-status.showed { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.25); }
+        .dash-lead-status.closed_won { background: rgba(6,214,160,.2); color: var(--accent); border: 1px solid rgba(6,214,160,.4); }
         .dash-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
         .dash-notice { background: rgba(6,214,160,.06); border: 1px solid rgba(6,214,160,.2); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .dash-notice strong { color: var(--accent); }
@@ -153,8 +165,8 @@ export default async function DashboardPage() {
       {newLeadsCount > 0 && (
         <div className="dash-notice">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-          <span>You have <strong>{newLeadsCount} new lead{newLeadsCount > 1 ? 's' : ''}</strong> waiting in your inbox.</span>
-          <Link href="/admin/leads" style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
+          <span>You have <strong>{newLeadsCount} new lead{newLeadsCount > 1 ? 's' : ''}</strong> waiting for follow-up.</span>
+          <Link href="/admin/funnel-leads" style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
         </div>
       )}
 
@@ -254,27 +266,26 @@ export default async function DashboardPage() {
         <div className="admin-card">
           <div className="dash-section-title">
             Recent Leads
-            <Link href="/admin/leads">View all →</Link>
+            <Link href="/admin/funnel-leads">View all →</Link>
           </div>
           {recentLeads.length === 0 ? (
-            <div className="dash-empty">No leads yet — contact form submissions will appear here.</div>
+            <div className="dash-empty">No leads yet — Meta, free-audit and website leads will appear here.</div>
           ) : (
             recentLeads.map(lead => (
-              <div key={lead.id} className="dash-lead-item">
+              <Link key={lead.id} href={`/admin/funnel-leads/${lead.id}`} className="dash-lead-item" style={{ textDecoration: 'none' }}>
                 <div className={`dash-lead-dot${lead.status !== 'new' ? ' read' : ''}`} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="dash-lead-name">{lead.name}</div>
                   <div className="dash-lead-meta">
                     {lead.email} · {new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                   </div>
-                  {lead.message && (
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>
-                      {lead.message}
-                    </div>
-                  )}
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>
+                    {lead.utmMedium === 'instant-form' ? 'Meta Instant Form' : lead.utmMedium === 'free-audit' ? 'Free audit request' : lead.utmSource === 'cold-email' ? 'Cold email reply' : 'Website'}
+                    {lead.storeUrl ? ` · ${lead.storeUrl.replace(/^https?:\/\//, '')}` : ''}
+                  </div>
                 </div>
-                <span className={`dash-lead-status ${lead.status}`}>{lead.status}</span>
-              </div>
+                <span className={`dash-lead-status ${lead.status}`}>{lead.status.replace('_', ' ')}</span>
+              </Link>
             ))
           )}
         </div>

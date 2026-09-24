@@ -9,13 +9,14 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [reports, clients] = await Promise.all([
+  const [reports, clients, jobs] = await Promise.all([
     prisma.storeProofReport.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true, host: true, runStamp: true, storeName: true, status: true,
         publicToken: true, clientId: true, funnelLeadId: true, viewCount: true,
         firstViewedAt: true, lastViewedAt: true, createdAt: true, findingsJson: true,
+        competitorsRequested: true,
         client: { select: { id: true, name: true, slug: true } },
         views: { orderBy: { viewedAt: 'desc' }, take: 5, select: { viewedAt: true, device: true } },
       },
@@ -25,10 +26,18 @@ export async function GET() {
       orderBy: { name: 'asc' },
       select: { id: true, name: true, slug: true },
     }),
+    // Audit queue health: anything not done, plus recent failures.
+    prisma.storeProofJob.findMany({
+      where: { OR: [{ status: { in: ['queued', 'running'] } }, { status: 'failed', updatedAt: { gte: new Date(Date.now() - 14 * 86400_000) } }] },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: { id: true, host: true, name: true, status: true, error: true, attempts: true, funnelLeadId: true, createdAt: true, startedAt: true },
+    }),
   ]);
 
   return NextResponse.json({
     clients,
+    jobs,
     reports: reports.map((r) => {
       let topFindings: string[] = [];
       try {
@@ -41,7 +50,17 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { reportId, clientId } = await req.json();
+  const body = await req.json();
+  // Retry a failed audit job
+  if (body.jobId && body.action === 'retry') {
+    const job = await prisma.storeProofJob.update({
+      where: { id: String(body.jobId) },
+      data: { status: 'queued', error: null, attempts: 0, startedAt: null, finishedAt: null },
+      select: { id: true, status: true },
+    });
+    return NextResponse.json({ ok: true, job });
+  }
+  const { reportId, clientId } = body;
   if (!reportId) return NextResponse.json({ error: 'reportId required' }, { status: 400 });
 
   const report = await prisma.storeProofReport.update({

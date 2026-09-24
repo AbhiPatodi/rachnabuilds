@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
         id: true, email: true, name: true, country: true, storeName: true,
         domain: true, firstSeenApp: true, tier: true, verifyStatus: true,
         scanStatus: true, finding: true, issueCount: true, stage: true, score: true,
+        promotedLeadId: true,
       },
     }),
     prisma.prospect.groupBy({ by: ['tier'], _count: true }),
@@ -66,4 +67,34 @@ export async function PATCH(req: NextRequest) {
   if (!ALLOWED.includes(stage)) return NextResponse.json({ error: 'bad stage' }, { status: 400 });
   const row = await prisma.prospect.update({ where: { id }, data: { stage } });
   return NextResponse.json({ ok: true, id: row.id, stage: row.stage });
+}
+
+/**
+ * POST { id } — promote a prospect who replied into the lead pipeline.
+ * Creates (or links) a FunnelLead tagged as a cold-email reply, marks the
+ * prospect promoted, and returns the lead id.
+ */
+export async function POST(req: NextRequest) {
+  const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  const p = await prisma.prospect.findUnique({ where: { id: String(id) } });
+  if (!p) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
+
+  const email = p.email.toLowerCase();
+  const existing = await prisma.funnelLead.findUnique({ where: { email }, select: { id: true } });
+  const lead = existing ?? await prisma.funnelLead.create({
+    data: {
+      name: p.name || p.storeName || email.split('@')[0],
+      email,
+      storeUrl: p.websiteUrl || (p.domain ? `https://${p.domain}` : null),
+      utmSource: 'cold-email',
+      utmMedium: 'cold-email',
+    },
+    select: { id: true },
+  });
+  await prisma.prospect.update({ where: { id: p.id }, data: { stage: 'promoted', promotedLeadId: lead.id } });
+  await prisma.leadActivity.create({
+    data: { leadId: lead.id, type: 'system', text: `Promoted from cold-email prospects${p.tier ? ` (tier ${p.tier})` : ''}` },
+  }).catch(() => {});
+  return NextResponse.json({ ok: true, leadId: lead.id, existed: !!existing });
 }

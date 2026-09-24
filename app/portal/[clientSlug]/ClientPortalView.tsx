@@ -25,10 +25,13 @@ interface ProjectSummary {
   updatedAt: string;
 }
 
+interface ReportSummary { id: string; storeName: string; host: string; createdAt: string }
+
 interface ClientPortalViewProps {
   clientSlug: string;
   clientName: string;
   projects: ProjectSummary[];
+  reports?: ReportSummary[];
 }
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
@@ -56,7 +59,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export default function ClientPortalView({ clientSlug, clientName, projects }: ClientPortalViewProps) {
+export default function ClientPortalView({ clientSlug, clientName, projects, reports = [] }: ClientPortalViewProps) {
   const router = useRouter();
 
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -69,12 +72,13 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
     return h >= 6 && h < 20 ? 'light' : 'dark';
   });
 
-  // If only one project, redirect directly to it
+  // If only one project (and no reports to show), go straight to it
+  const autoRedirect = projects.length === 1 && reports.length === 0;
   useEffect(() => {
-    if (projects.length === 1) {
+    if (autoRedirect) {
       router.replace(`/portal/${clientSlug}/${projects[0].id}`);
     }
-  }, [projects, clientSlug, router]);
+  }, [autoRedirect, projects, clientSlug, router]);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -87,7 +91,7 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
   };
 
   // Show nothing while redirecting for single project
-  if (projects.length === 1) {
+  if (autoRedirect) {
     return (
       <div style={{ minHeight: '100vh', background: '#0B0F1A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ color: '#8B95A8', fontSize: '14px' }}>Loading your project…</div>
@@ -150,18 +154,38 @@ export default function ClientPortalView({ clientSlug, clientName, projects }: C
           <h1 className="portal-tab-heading">Welcome back, {clientName}</h1>
           <p className="portal-tab-sub">
             {projects.length === 0
-              ? 'Your projects will appear here once they are set up.'
+              ? (reports.length > 0 ? 'Your store audit is below.' : 'Your projects will appear here once they are set up.')
               : `You have ${projects.length} project${projects.length !== 1 ? 's' : ''} — select one to view details.`}
           </p>
         </div>
 
+        {reports.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <h2 className="portal-tab-heading" style={{ fontSize: '18px', marginBottom: '12px' }}>Your store audit</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+              {reports.map((r) => (
+                <a
+                  key={r.id}
+                  href={`/portal/${clientSlug}/report/${r.id}`}
+                  className="portal-card"
+                  style={{ display: 'block', padding: '20px', borderRadius: '14px', border: '1px solid rgba(6,214,160,0.3)', background: 'rgba(6,214,160,0.06)', textDecoration: 'none', color: 'inherit' }}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#06D6A0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>🔍 Store Health Report</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>{r.storeName}</div>
+                  <div style={{ fontSize: '13px', opacity: 0.7 }}>{r.host} · {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Projects grid */}
-        {projects.length === 0 ? (
+        {projects.length === 0 ? (reports.length > 0 ? null : (
           <div className="portal-empty">
             <div className="portal-empty-icon">📁</div>
             <p>No projects yet. Your project will appear here once it has been set up.</p>
           </div>
-        ) : (
+        )) : (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',

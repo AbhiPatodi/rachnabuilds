@@ -59,7 +59,7 @@ interface FunnelLead {
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
   emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
   activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
-  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null; country?: string | null; city?: string | null; os?: string | null; browser?: string | null; screen?: string | null; clicks?: string | null; ip?: string | null; sections?: Record<string, number> | null }[] }[];
+  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; competitorsRequested?: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null; country?: string | null; city?: string | null; os?: string | null; browser?: string | null; screen?: string | null; clicks?: string | null; ip?: string | null; sections?: Record<string, number> | null }[] }[];
   auditJob: { id: string; status: string; host: string; error: string | null; createdAt: string } | null;
 }
 
@@ -149,6 +149,19 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 };
 
 type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings';
+
+// Only leads from the /training VSL funnel have an opt-in → application
+// journey; Meta form, free-audit and cold-email leads arrive complete.
+function isVslLead(l: { utmMedium: string | null; utmSource: string | null }) {
+  return l.utmMedium !== 'instant-form' && l.utmMedium !== 'free-audit' && l.utmSource !== 'cold-email';
+}
+function stageLabel(l: { stage: string; utmMedium: string | null; utmSource: string | null }) {
+  if (l.stage === 'applied') return 'Applied (full application)';
+  if (l.utmMedium === 'instant-form') return 'Meta form lead';
+  if (l.utmMedium === 'free-audit') return 'Free audit request';
+  if (l.utmSource === 'cold-email') return 'Cold email reply';
+  return 'VSL opt-in (no application yet)';
+}
 
 // Render Fathom's markdown-ish call summaries as structured UI: ## headings,
 // ### subheadings, "- " bullets (nested by indent), **bold** inline.
@@ -275,32 +288,6 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
     }
   };
 
-  const generateAudit = async () => {
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/admin/funnel-leads/${id}/audit`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) { alert(`Audit failed: ${data.error}`); return; }
-      await fetchLead();
-      setTab('audit');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const sendAudit = async (auditId: string) => {
-    if (!confirm(`Email the audit report to ${lead?.email}?`)) return;
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/admin/audit-reports/${auditId}/send`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) { alert(`Send failed: ${data.error}`); return; }
-      await fetchLead();
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const generateScript = async () => {
     setBusy(true);
     try {
@@ -382,7 +369,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       {/* ─── OVERVIEW ─── */}
       {tab === 'overview' && (
         <div style={{ marginTop: 20 }}>
-          {lead.stage !== 'applied' && (
+          {lead.stage !== 'applied' && isVslLead(lead) && (
             <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, fontSize: 13, color: '#FBBF24', fontWeight: 600 }}>
               ✋ Opt-in only — hasn&apos;t submitted the full application yet.
               {lead.videoWatch && lead.videoWatch.duration > 0 && (
@@ -408,7 +395,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
 
           <div className="admin-card">
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Funnel status</h3>
-            <Field label="Stage" value={lead.stage === 'applied' ? 'Applied (full application)' : 'Opt-in only'} />
+            <Field label="Stage" value={stageLabel(lead)} />
             <Field label="Source" value={lead.utmSource ? `${lead.utmSource}${lead.utmCampaign ? ` / ${lead.utmCampaign}` : ''}${lead.utmContent ? ` / ${lead.utmContent}` : ''}` : 'Organic / direct'} />
             <Field label="Applied on" value={lead.appliedAt ? new Date(lead.appliedAt).toLocaleString('en-IN') : null} />
             <Field
@@ -553,6 +540,11 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={link} target="_blank" rel="noopener noreferrer">Teaser ↗</a>
                       <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${report.id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
                     </div>
+                    {report.competitorsRequested && (
+                      <div style={{ marginTop: 12, fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+                        🥊 Wants a comparison vs <b>{report.competitorsRequested.split(',').join(', ')}</b> — high intent. Run the benchmark before the call.
+                      </div>
+                    )}
                     {(report.views || []).length > 0 && (
                       <div style={{ marginTop: 14 }}>
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Report activity</div>
@@ -722,12 +714,16 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
         lead.stage !== 'applied' ? (
           <div className="admin-card admin-empty" style={{ marginTop: 20 }}>
             <div style={{ marginBottom: 8, fontSize: 32 }}>✋</div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Opt-in only — no application yet</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>{isVslLead(lead) ? 'Opt-in only — no application yet' : `${stageLabel(lead)} — no website application`}</div>
+            {!isVslLead(lead) ? (
+              <div>This lead didn&apos;t come through the website application. {lead.formAnswers ? 'Their form answers are on the Overview tab.' : ''}</div>
+            ) : (
             <div>
               This lead unlocked the training video but hasn&apos;t submitted the full application
               (step 3 of the funnel) yet. Worth a follow-up — they gave us their name, email
               and phone but nothing else.
             </div>
+            )}
           </div>
         ) : (
           <div className="admin-card" style={{ marginTop: 20, maxWidth: 640 }}>
@@ -750,57 +746,56 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       {/* ─── AUDIT REPORT ─── */}
       {tab === 'audit' && (
         <div style={{ marginTop: 20, maxWidth: 720 }}>
-          {lead.spReports?.[0]?.publicToken && !auditReportData ? (
-            <div className="admin-card admin-empty">
-              <div style={{ marginBottom: 8, fontSize: 32 }}>✅</div>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>Store audit is done — {lead.spReports[0].storeName}</div>
-              <div style={{ marginBottom: 16 }}>The StoreProof report is the audit for this lead (see the Store Audit card on Overview for WhatsApp sharing and view tracking).</div>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${lead.spReports[0].id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
-                <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`https://rachnabuilds.com/report/${lead.spReports[0].publicToken}`} target="_blank" rel="noopener noreferrer">Teaser (what they see) ↗</a>
-              </div>
-              <div style={{ marginTop: 14, fontSize: 12, color: 'var(--text-muted)' }}>
-                The old AI call-prep audit is still available if you want it:{' '}
-                <button type="button" onClick={generateAudit} disabled={busy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-                  {busy ? 'Generating…' : 'generate call-prep audit'}
+          {(() => {
+            const sp = lead.spReports?.[0];
+            const job = lead.auditJob;
+            if (sp?.publicToken) {
+              return (
+                <div className="admin-card admin-empty">
+                  <div style={{ marginBottom: 8, fontSize: 32 }}>✅</div>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Store audit is done — {sp.storeName}</div>
+                  <div style={{ marginBottom: 16 }}>Share it from the Store Audit card on Overview (WhatsApp + view tracking).</div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${sp.id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
+                    <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`https://rachnabuilds.com/report/${sp.publicToken}`} target="_blank" rel="noopener noreferrer">Teaser (what they see) ↗</a>
+                  </div>
+                </div>
+              );
+            }
+            if (job && (job.status === 'queued' || job.status === 'running')) {
+              return (
+                <div className="admin-card admin-empty">
+                  <div style={{ marginBottom: 8, fontSize: 32 }}>{job.status === 'running' ? '⚙️' : '⏳'}</div>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Audit {job.status} for {job.host}</div>
+                  <div style={{ marginBottom: 12 }}>A full store audit takes about 10–15 minutes once the audit worker picks it up. You&apos;ll get a push when the report is ready.</div>
+                  <button type="button" onClick={fetchLead} className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>Refresh</button>
+                </div>
+              );
+            }
+            if (!lead.storeUrl) {
+              return <div className="admin-card admin-empty">No store URL on file yet — add it on the Overview tab&apos;s Store Audit card to run an audit.</div>;
+            }
+            return (
+              <div className="admin-card admin-empty">
+                <div style={{ marginBottom: 8, fontSize: 32 }}>🔍</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{job?.status === 'failed' ? 'Last audit failed' : 'No store audit yet'}</div>
+                {job?.status === 'failed' && job.error && <div style={{ color: '#FF6B6B', fontSize: 12.5, marginBottom: 10 }}>{job.error.slice(0, 200)}</div>}
+                <div style={{ marginBottom: 16 }}>Runs the full StoreProof audit on {lead.storeUrl} (~10–15 min) and produces the teaser + full report.</div>
+                <button type="button" onClick={runAudit} disabled={busy} className="admin-btn admin-btn-primary">
+                  {busy ? 'Queuing…' : job?.status === 'failed' ? '↻ Retry store audit' : '🔍 Run store audit'}
                 </button>
               </div>
-            </div>
-          ) : !lead.storeUrl ? (
-            <div className="admin-card admin-empty">No store URL on file — can&apos;t run an audit for this lead.</div>
-          ) : !audit || audit.status === 'failed' ? (
-            <div className="admin-card admin-empty">
-              <div style={{ marginBottom: 8, fontSize: 32 }}>⚡</div>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>No audit generated yet</div>
-              <div style={{ marginBottom: 16 }}>Analyzes {lead.storeUrl} for conversion bottlenecks. Takes about 60–90 seconds.</div>
-              {audit?.status === 'failed' && <div style={{ color: '#FF6B6B', fontSize: 12.5, marginBottom: 12 }}>Last attempt failed: {audit.error}</div>}
-              <button type="button" onClick={generateAudit} disabled={busy} className="admin-btn admin-btn-primary">
-                {busy ? 'Generating…' : '⚡ Generate Audit'}
-              </button>
-            </div>
-          ) : audit.status === 'generating' ? (
-            <div className="admin-card admin-empty">⏳ Audit is generating — refresh in a minute.</div>
-          ) : auditReportData ? (
-            <>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                <a href={`/audit/${audit.token}`} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>
-                  Open Public Link ↗
-                </a>
-                {audit.status === 'draft' ? (
-                  <button type="button" onClick={() => sendAudit(audit.id)} disabled={busy} className="admin-btn admin-btn-primary" style={{ fontSize: 12 }}>
-                    {busy ? 'Sending…' : '📤 Send Report to Lead'}
-                  </button>
-                ) : (
-                  <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>✓ Sent {audit.sentAt ? new Date(audit.sentAt).toLocaleDateString() : ''}</span>
-                )}
-                <button type="button" onClick={generateAudit} disabled={busy} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
-                  {busy ? 'Regenerating…' : 'Regenerate'}
-                </button>
+            );
+          })()}
+
+          {auditReportData && audit && (
+            <details style={{ marginTop: 16 }}>
+              <summary style={{ fontSize: 12.5, color: 'var(--text-muted)', cursor: 'pointer' }}>Earlier AI audit (legacy, {audit.status})</summary>
+              <div style={{ marginTop: 12 }}>
+                <a href={`/audit/${audit.token}`} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12, marginBottom: 12, display: 'inline-block' }}>Open legacy report ↗</a>
+                <AuditReportView report={auditReportData} />
               </div>
-              <AuditReportView report={auditReportData} />
-            </>
-          ) : (
-            <div className="admin-card admin-empty">Report data couldn&apos;t be read — try regenerating.</div>
+            </details>
           )}
         </div>
       )}

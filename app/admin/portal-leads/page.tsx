@@ -1,5 +1,7 @@
 'use client';
 
+import LeadsSubNav from '../LeadsSubNav';
+
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
@@ -122,6 +124,7 @@ export default function PortalLeadsPage() {
 
   return (
     <div className="admin-content">
+      <LeadsSubNav />
       <style>{`
         .pl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
         .pl-tabs { display: flex; gap: 4px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }

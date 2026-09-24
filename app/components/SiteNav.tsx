@@ -60,7 +60,6 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
           <div className="nav-mid">
             <Link href="/#work">Work</Link>
             <Link href="/#services">Services</Link>
-            <Link href="/#pricing">Pricing</Link>
             <Link href="/tools">Free Tools</Link>
             <Link href="/blog">Blog</Link>
             <Link href="/free-audit">Free Audit</Link>
@@ -82,7 +81,6 @@ export default function SiteNav({ whatsappNumber = "919404643510" }: { whatsappN
       <div className="mob-menu" id="siteMobMenu">
         <Link href="/#work" className="ml">Work</Link>
         <Link href="/#services" className="ml">Services</Link>
-        <Link href="/#pricing" className="ml">Pricing</Link>
         <Link href="/tools" className="ml">Free Tools</Link>
         <Link href="/blog" className="ml">Blog</Link>
         <Link href="/free-audit" className="ml">Free Audit</Link>

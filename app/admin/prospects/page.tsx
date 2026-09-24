@@ -8,6 +8,7 @@ import LeadsSubNav from '../LeadsSubNav';
 
 interface ProspectRow {
   id: string;
+  promotedLeadId?: string | null;
   email: string;
   name: string | null;
   country: string | null;
@@ -131,11 +132,12 @@ export default function ProspectsPage() {
               <th>Verify</th>
               <th>Scan</th>
               <th>Stage</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>Loading…</td></tr>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>Loading…</td></tr>
             ) : rows.map((r) => (
               <tr key={r.id}>
                 <td>
@@ -162,6 +164,26 @@ export default function ProspectsPage() {
                   <span style={{ fontSize: 11, fontWeight: 700, color: STAGE_COLORS[r.stage], background: `${STAGE_COLORS[r.stage]}1f`, padding: '3px 9px', borderRadius: 100 }}>
                     {r.stage}
                   </span>
+                </td>
+                <td>
+                  {r.stage === 'promoted' && r.promotedLeadId ? (
+                    <a href={`/admin/funnel-leads/${r.promotedLeadId}`} style={{ fontSize: 12, color: 'var(--accent)' }}>Lead →</a>
+                  ) : (
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-secondary"
+                      style={{ fontSize: 11, padding: '3px 9px' }}
+                      title="They replied — move them into the lead pipeline"
+                      onClick={async () => {
+                        const res = await fetch('/api/admin/prospects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id }) });
+                        const d = await res.json();
+                        if (res.ok) window.location.href = `/admin/funnel-leads/${d.leadId}`;
+                        else alert(d.error || 'Failed');
+                      }}
+                    >
+                      Promote
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

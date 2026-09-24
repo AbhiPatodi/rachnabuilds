@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { safeEqual } from '@/lib/auth';
+import { syncLeadFromBooking } from '@/lib/leadStatus';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -155,6 +156,8 @@ export async function POST(req: NextRequest) {
         },
       }).catch(() => {});
     }
+    // They were on a recorded call → the lead showed.
+    await syncLeadFromBooking(lead.id, 'completed', 'Call recorded by Fathom').catch(() => {});
   }
 
   // Receipt log — lets us confirm delivery even when no lead matched.

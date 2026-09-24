@@ -48,8 +48,8 @@ export default function AdminMobileNav() {
       </Link>
 
       <Link
-        href="/admin/leads"
-        className={`anm-item${pathname.startsWith('/admin/leads') ? ' active' : ''}`}
+        href="/admin/funnel-leads"
+        className={`anm-item${['/admin/funnel-leads', '/admin/prospects', '/admin/leads', '/admin/portal-leads'].some((p) => pathname.startsWith(p)) ? ' active' : ''}`}
       >
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -60,13 +60,13 @@ export default function AdminMobileNav() {
       </Link>
 
       <Link
-        href="/admin/funnel-leads"
-        className={`anm-item${pathname.startsWith('/admin/funnel-leads') ? ' active' : ''}`}
+        href="/admin/storeproof"
+        className={`anm-item${pathname.startsWith('/admin/storeproof') ? ' active' : ''}`}
       >
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-          <path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/>
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
         </svg>
-        <span>Funnel</span>
+        <span>Audits</span>
       </Link>
 
       <Link

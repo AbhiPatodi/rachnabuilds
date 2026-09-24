@@ -62,7 +62,31 @@ export async function generateCallScript(leadId: string): Promise<CallScriptData
 
   const audit = lead.auditReports[0];
   let auditSummary = 'No audit run yet.';
-  if (audit && audit.status !== 'failed') {
+
+  // Current audits come from StoreProof (the teaser/full report the lead saw);
+  // the legacy AuditReport is only a fallback for older leads.
+  const sp = await prisma.storeProofReport.findFirst({
+    where: { funnelLeadId: leadId },
+    orderBy: { createdAt: 'desc' },
+    select: { storeName: true, host: true, findingsJson: true, viewCount: true, competitorsRequested: true },
+  });
+  if (sp) {
+    try {
+      const f = JSON.parse(sp.findingsJson);
+      auditSummary = JSON.stringify({
+        store: `${sp.storeName} (${sp.host})`,
+        leadHasOpenedReport: sp.viewCount > 0,
+        competitorsTheyAskedAbout: sp.competitorsRequested || undefined,
+        summary: f.opener,
+        topFindings: (f.findings || []).slice(0, 6).map((x: { title?: string; severity?: string; merchant_copy?: string }) => ({
+          title: x.title, severity: x.severity, detail: x.merchant_copy,
+        })),
+        designNotes: (f.design?.notes || []).map((n: { title?: string }) => n.title),
+        mobileSpeed: f.speed?.pages,
+      }, null, 2);
+    } catch { /* fall through to legacy */ }
+  }
+  if (!sp && audit && audit.status !== 'failed') {
     try {
       const r = JSON.parse(audit.reportJson);
       auditSummary = JSON.stringify({

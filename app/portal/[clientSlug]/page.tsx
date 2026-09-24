@@ -29,6 +29,10 @@ export default async function ClientPortalPage({ params, searchParams }: PagePro
           },
         },
       },
+      storeproofReports: {
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, storeName: true, host: true, createdAt: true },
+      },
     },
   });
 
@@ -76,11 +80,16 @@ export default async function ClientPortalPage({ params, searchParams }: PagePro
     updatedAt: p.updatedAt.toISOString(),
   }));
 
+  const reports = client.storeproofReports.map((r) => ({
+    id: r.id, storeName: r.storeName, host: r.host, createdAt: r.createdAt.toISOString(),
+  }));
+
   return (
     <ClientPortalView
       clientSlug={clientSlug}
       clientName={client.name}
       projects={projects}
+      reports={reports}
     />
   );
 }

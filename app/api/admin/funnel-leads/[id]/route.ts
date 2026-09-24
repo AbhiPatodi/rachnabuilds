@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     orderBy: { createdAt: 'desc' },
     select: {
       id: true, storeName: true, host: true, publicToken: true, viewCount: true,
-      lastViewedAt: true, createdAt: true,
+      lastViewedAt: true, createdAt: true, competitorsRequested: true,
       views: { orderBy: { viewedAt: 'desc' }, take: 10, select: { viewedAt: true, durationSec: true, scrollPct: true, country: true, city: true, os: true, browser: true, screen: true, clicks: true, ip: true, sections: true } },
     },
   });

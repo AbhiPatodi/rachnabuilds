@@ -13,7 +13,6 @@ export default function SiteFooter() {
           <div className="foot-links">
             <a href="/#work">Work</a>
             <a href="/#services">Services</a>
-            <a href="/#pricing">Pricing</a>
             <a href="/blog">Blog</a>
             <a href="/#contact">Contact</a>
           </div>

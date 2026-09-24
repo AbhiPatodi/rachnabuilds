@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cancelCalendarEvent } from '@/lib/googleCalendar';
+import { syncLeadFromBooking } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     }
 
     const updated = await prisma.booking.update({ where: { id }, data: { status } });
+    if (booking.status !== status) await syncLeadFromBooking(booking.funnelLeadId, status).catch(() => {});
     return NextResponse.json(updated);
   } catch (err) {
     console.error(err);
