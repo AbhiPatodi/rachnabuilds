@@ -197,6 +197,8 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
   };
 
   const [auditUrl, setAuditUrl] = useState('');
+  const [callStart, setCallStart] = useState('');
+  const [callDuration, setCallDuration] = useState(20);
   const runAudit = async () => {
     const url = auditUrl.trim() || lead?.storeUrl || '';
     if (!url) return;
@@ -407,6 +409,64 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
+
+          {/* ─── SCHEDULE CALL (Google Meet) ─── */}
+          <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Call</h3>
+            {(() => {
+              const upcoming = (lead.bookings || []).find((b) => new Date(b.startTime).getTime() > Date.now() - 30 * 60_000 && b.status !== 'cancelled');
+              if (upcoming) {
+                const when = new Date(upcoming.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+                const waDigits2 = (lead.whatsapp || lead.phone || '').replace(/[^0-9]/g, '');
+                const waCallMsg = encodeURIComponent(
+                  `Locked in! ${when} IST — here's our Google Meet link: ${upcoming.meetLink || ''}\n\nI'll have your full report open and we'll go through the top three fixes. See you there 🙂`
+                );
+                return (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13.5 }}>📅 <b>{when} IST</b>{upcoming.meetLink ? '' : ' (no Meet link)'}</span>
+                    {upcoming.meetLink && (
+                      <>
+                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={upcoming.meetLink} target="_blank" rel="noopener noreferrer">Open Meet ↗</a>
+                        {waDigits2 && (
+                          <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }} href={`https://wa.me/${waDigits2}?text=${waCallMsg}`} target="_blank" rel="noopener noreferrer">
+                            💬 Send Meet link on WhatsApp
+                          </a>
+                        )}
+                      </>
+                    )}
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Google invite emailed to {lead.email}</span>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input type="datetime-local" value={callStart} onChange={(e) => setCallStart(e.target.value)}
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', color: 'var(--text)', fontSize: 13 }} />
+                  <select value={callDuration} onChange={(e) => setCallDuration(Number(e.target.value))}
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', color: 'var(--text)', fontSize: 13 }}>
+                    <option value={20}>20 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                  </select>
+                  <button type="button" disabled={busy || !callStart} className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        const res = await fetch(`/api/admin/funnel-leads/${id}/schedule-call`, {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ start: new Date(callStart).toISOString(), durationMin: callDuration }),
+                        });
+                        if (!res.ok) alert((await res.json()).error || 'Failed to schedule');
+                        await fetchLead();
+                      } finally { setBusy(false); }
+                    }}>
+                    {busy ? 'Creating…' : '📅 Create Meet + send invite'}
+                  </button>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Times in your local clock (IST) · lead gets the Google invite by email</span>
+                </div>
+              );
+            })()}
+          </div>
 
           {/* ─── STORE AUDIT (StoreProof) ─── */}
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
