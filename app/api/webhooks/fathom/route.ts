@@ -73,6 +73,25 @@ export async function POST(req: NextRequest) {
     }).catch(() => {});
   }
 
+  // Receipt log — lets us confirm delivery even when no lead matched.
+  await prisma.setting.upsert({
+    where: { key: 'fathom_last_webhook' },
+    create: { key: 'fathom_last_webhook', value: '' },
+    update: {},
+  }).then(() =>
+    prisma.setting.update({
+      where: { key: 'fathom_last_webhook' },
+      data: {
+        value: JSON.stringify({
+          at: new Date().toISOString(), title,
+          matched: leads.map((l) => l.name),
+          emailsSeen: [...emails].slice(0, 8),
+          hasSummary: !!summary, hasActionItems: !!actionItems,
+        }).slice(0, 1500),
+      },
+    }),
+  ).catch(() => {});
+
   await sendPushToAll(
     '📝 Call notes ready',
     leads.length ? `${title} — filed to ${leads.map((l) => l.name).join(', ')}` : `${title} — no matching lead (check Inbox)`,
