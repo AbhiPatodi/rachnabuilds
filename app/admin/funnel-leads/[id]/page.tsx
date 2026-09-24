@@ -24,6 +24,8 @@ interface Booking {
   endTime: string;
   status: string;
   meetLink: string | null;
+  callSummary?: string | null;
+  recordingUrl?: string | null;
 }
 
 interface FunnelLead {
@@ -435,6 +437,25 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       </>
                     )}
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Google invite emailed to {lead.email}</span>
+                  </div>
+                );
+              }
+              const lastWithNotes = (lead.bookings || []).find((b) => b.callSummary || b.recordingUrl);
+              if (lastWithNotes) {
+                const when = new Date(lastWithNotes.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+                return (
+                  <div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: lastWithNotes.callSummary ? 10 : 0 }}>
+                      <span style={{ fontSize: 13.5 }}>✅ Call done — <b>{when} IST</b></span>
+                      {lastWithNotes.recordingUrl && (
+                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={lastWithNotes.recordingUrl} target="_blank" rel="noopener noreferrer">🎥 Recording ↗</a>
+                      )}
+                    </div>
+                    {lastWithNotes.callSummary && (
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', maxHeight: 220, overflowY: 'auto' }}>
+                        {lastWithNotes.callSummary}
+                      </div>
+                    )}
                   </div>
                 );
               }
