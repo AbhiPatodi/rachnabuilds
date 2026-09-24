@@ -56,7 +56,7 @@ interface FunnelLead {
   videoWatch: { secondsWatched: number; maxPosition: number; duration: number } | null;
   emailLogs: { id: string; kind: string; subject: string; ok: boolean; error: string | null; createdAt: string }[];
   activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
-  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null; country?: string | null; city?: string | null; os?: string | null; browser?: string | null; screen?: string | null; clicks?: string | null; ip?: string | null }[] }[];
+  spReports: { id: string; storeName: string; host?: string; publicToken: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null; country?: string | null; city?: string | null; os?: string | null; browser?: string | null; screen?: string | null; clicks?: string | null; ip?: string | null; sections?: Record<string, number> | null }[] }[];
   auditJob: { id: string; status: string; host: string; error: string | null; createdAt: string } | null;
 }
 
@@ -439,7 +439,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                     {(report.views || []).length > 0 && (
                       <div style={{ marginTop: 14 }}>
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Report activity</div>
-                        {(report.views || []).map((v, i) => {
+                        {(report.views || []).map((v, i, all) => {
                           const flag = v.country && /^[A-Z]{2}$/.test(v.country)
                             ? String.fromCodePoint(...[...v.country].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
                             : '';
@@ -447,14 +447,26 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                           const dev = [v.os, v.browser].filter(Boolean).join(' · ');
                           const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
                           const clicked = (v.clicks || '').split(',').filter(Boolean);
+                          // Views arrive newest-first; visit # = how many earlier views share this device (ip+os)
+                          const visitNo = v.ip ? all.slice(i + 1).filter((o) => o.ip === v.ip && o.os === v.os).length + 1 : null;
+                          const topSections = Object.entries(v.sections || {})
+                            .filter(([, s]) => s >= 3).sort((a, b) => b[1] - a[1]).slice(0, 2);
                           return (
-                            <div key={i} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)', padding: '5px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
-                              <span style={{ color: 'var(--text-muted)', minWidth: 118 }}>{new Date(v.viewedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                              {where && <span>{flag} {where}</span>}
-                              {dev && <span>{dev}</span>}
-                              {dur && <span>⏱ {dur}{v.scrollPct ? ` · ${v.scrollPct}%` : ''}</span>}
-                              {clicked.includes('whatsapp') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>💬 tapped WhatsApp</span>}
-                              {clicked.includes('book') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>📅 tapped Book</span>}
+                            <div key={i} style={{ padding: '5px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
+                                <span style={{ color: 'var(--text-muted)', minWidth: 118 }}>{new Date(v.viewedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                {where && <span>{flag} {where}</span>}
+                                {dev && <span>{dev}</span>}
+                                {visitNo && visitNo > 1 && <span style={{ background: 'var(--surface-2, #EEF2F0)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>↩ visit {visitNo}</span>}
+                                {dur && <span>⏱ {dur}{v.scrollPct ? ` · ${v.scrollPct}%` : ''}</span>}
+                                {clicked.includes('whatsapp') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>💬 tapped WhatsApp</span>}
+                                {clicked.includes('book') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>📅 tapped Book</span>}
+                              </div>
+                              {topSections.length > 0 && (
+                                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, paddingLeft: 118 }}>
+                                  read most: {topSections.map(([k, s]) => `${k} (${s}s)`).join(' · ')}
+                                </div>
+                              )}
                             </div>
                           );
                         })}

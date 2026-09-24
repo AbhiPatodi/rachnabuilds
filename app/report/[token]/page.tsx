@@ -228,7 +228,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           We went through {report.host} the way a real shopper does — on a phone, from first visit
           to checkout — and the way Google and your ad platforms see it.
         </p>
-        {opener && <div className="rpt-summary">{opener}</div>}
+        {opener && <div className="rpt-summary" data-track="Summary">{opener}</div>}
 
         <div className="rpt-count">
           <div className="chip"><b>{total}</b> issues found</div>
@@ -239,7 +239,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         {visible.map((f, i) => {
           const e = effortMeta(f);
           return (
-            <div className="rpt-finding" key={i}>
+            <div className="rpt-finding" key={i} data-track={`Finding: ${f.title?.slice(0, 48) || i + 1}`}>
               <span className="rpt-num">{i + 1}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="rpt-fhead">
@@ -256,7 +256,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           <>
             <h2 className="rpt-h2">Is your store fast enough?</h2>
             <p className="rpt-h2sub">Measured with Google&apos;s own engine on a typical phone — the same test Google ranks you by.</p>
-            <div className="rpt-speedcard">
+            <div className="rpt-speedcard" data-track="Speed scores">
               <div className="rpt-chips">
                 {speed.pages.map((p, i) => {
                   const m = scoreMeta(p.score);
@@ -281,7 +281,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           <>
             <h2 className="rpt-h2">What we saw on your store</h2>
             <p className="rpt-h2sub">Captured during the audit — exactly what a mobile shopper gets.</p>
-            <div className="rpt-shots">
+            <div className="rpt-shots" data-track="Screenshots">
               {screenshots.map((s, i) => (
                 <figure className="rpt-shot" key={i} style={{ margin: 0 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -293,9 +293,9 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           </>
         )}
 
-        <CompetitorAsk token={token} />
+        <div data-track="Competitor form"><CompetitorAsk token={token} /></div>
 
-        <div className="rpt-lockedwrap">
+        <div className="rpt-lockedwrap" data-track="Locked top-3">
           <h2>The three things costing you the most</h2>
           <div className="sub">Ranked by revenue impact — we walk you through all three, live, on your free call.</div>
           {locked.map((f, i) => {
@@ -331,7 +331,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           )}
         </div>
 
-        <div className="rpt-cta">
+        <div className="rpt-cta" data-track="Call CTA">
           <h2>See all {total} findings — on your store, live</h2>
           <p>
             A free 20-minute walkthrough: we share the full report, go through the top three

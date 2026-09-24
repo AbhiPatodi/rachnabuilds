@@ -14,6 +14,23 @@ export default function EngagementPing({ token, viewId }: { token: string; viewI
     let hiddenSince: number | null = null;
     const clicks = new Set<string>();
 
+    // Per-section dwell time: count a second for every tagged section at
+    // least half-visible while the tab is in the foreground.
+    const sectionSec: Record<string, number> = {};
+    const inView = new Set<string>();
+    const io = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        const key = (en.target as HTMLElement).dataset.track;
+        if (!key) continue;
+        if (en.isIntersecting) inView.add(key); else inView.delete(key);
+      }
+    }, { threshold: 0.5 });
+    document.querySelectorAll<HTMLElement>('[data-track]').forEach((el) => io.observe(el));
+    const dwell = setInterval(() => {
+      if (document.hidden) return;
+      for (const key of inView) sectionSec[key] = (sectionSec[key] || 0) + 1;
+    }, 1000);
+
     // High-intent moments: which CTAs they actually tapped.
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement | null)?.closest?.('a');
@@ -40,6 +57,7 @@ export default function EngagementPing({ token, viewId }: { token: string; viewI
       scrollPct: maxScroll,
       screen: `${window.screen.width}x${window.screen.height}`,
       clicks: [...clicks],
+      sections: sectionSec,
     });
     const url = `/api/report/${token}/engagement`;
     const send = () => { navigator.sendBeacon?.(url, new Blob([payload()], { type: 'application/json' })) || fetch(url, { method: 'POST', body: payload(), keepalive: true }).catch(() => {}); };
@@ -52,6 +70,8 @@ export default function EngagementPing({ token, viewId }: { token: string; viewI
     window.addEventListener('pagehide', send);
     return () => {
       clearInterval(timer);
+      clearInterval(dwell);
+      io.disconnect();
       window.removeEventListener('scroll', onScroll);
       document.removeEventListener('visibilitychange', onVisibility);
       document.removeEventListener('click', onClick, true);
