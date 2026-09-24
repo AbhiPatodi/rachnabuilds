@@ -50,13 +50,10 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Bad payload' }, { status: 400 });
 
   const title = pickString(body, ['title', 'meeting_title', 'name']) || 'Call';
-  // Fathom summaries arrive as markdown — strip the syntax so the admin UI
-  // (which renders plain text) reads cleanly.
-  const deMd = (s: string) => s
-    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1')
-    .replace(/^#{1,4}\s*/gm, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1');
-  const summary = deMd(pickString(body, ['summary', 'ai_summary', 'default_summary', 'notes']));
+  // Keep Fathom's markdown structure (headings/bullets/bold — the admin UI
+  // renders it); only inline timestamp links get flattened to their text.
+  const deLinks = (s: string) => s.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, '$1');
+  const summary = deLinks(pickString(body, ['summary', 'ai_summary', 'default_summary', 'notes']));
   const actionItems = pickString(body, ['action_items', 'actionItems', 'next_steps']);
   const recordingUrl = pickString(body, ['share_url', 'recording_url', 'url', 'fathom_url']);
   const transcript = pickString(body, ['transcript', 'transcript_plaintext', 'full_transcript']);

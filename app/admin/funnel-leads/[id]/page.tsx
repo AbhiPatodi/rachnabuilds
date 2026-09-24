@@ -150,6 +150,38 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
 
 type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings';
 
+// Render Fathom's markdown-ish call summaries as structured UI: ## headings,
+// ### subheadings, "- " bullets (nested by indent), **bold** inline.
+function CallMd({ text }: { text: string }) {
+  const bold = (s: string, key: string) =>
+    s.split(/\*\*([^*]+)\*\*/).map((part, i) =>
+      i % 2 === 1 ? <b key={`${key}-${i}`} style={{ color: 'var(--text)', fontWeight: 600 }}>{part}</b> : part);
+  const out: React.ReactNode[] = [];
+  text.split('\n').forEach((raw, i) => {
+    const line = raw.trimEnd();
+    if (!line.trim()) return;
+    const h3 = line.match(/^###\s+(.*)/);
+    const h2 = line.match(/^##\s+(.*)/);
+    const bullet = line.match(/^(\s*)-\s+(.*)/);
+    if (h2 && !h3) {
+      out.push(<div key={i} style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent, #06D6A0)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 6px' }}>{h2[1]}</div>);
+    } else if (h3) {
+      out.push(<div key={i} style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', margin: '12px 0 4px' }}>{h3[1]}</div>);
+    } else if (bullet) {
+      const depth = Math.min(2, Math.floor(bullet[1].length / 2));
+      out.push(
+        <div key={i} style={{ display: 'flex', gap: 8, paddingLeft: 6 + depth * 14, margin: '3px 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)' }}>
+          <span style={{ color: 'var(--accent, #06D6A0)', flexShrink: 0 }}>{depth > 0 ? '◦' : '•'}</span>
+          <span>{bold(bullet[2], `b${i}`)}</span>
+        </div>,
+      );
+    } else {
+      out.push(<p key={i} style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '4px 0' }}>{bold(line, `p${i}`)}</p>);
+    }
+  });
+  return <div>{out}</div>;
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 18 }}>
@@ -813,38 +845,54 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                 const parts = (b.callSummary || '').split(/\n\s*ACTION ITEMS:\s*\n?/);
                 const summaryText = parts[0]?.trim();
                 const actionText = parts[1]?.trim();
+                const done = b.status === 'completed';
                 return (
-                  <div key={b.id} className="admin-card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>
+                  <div key={b.id} className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '14px 18px', background: 'var(--bg-elevated)', borderBottom: b.callSummary || b.callTranscript ? '1px solid var(--border)' : 'none' }}>
+                      <span style={{ fontSize: 20 }}>{done ? '✅' : '📅'}</span>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>
                           {new Date(b.startTime).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST
-                          <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {mins} min</span>
                         </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{mins} min · {done ? 'call completed' : 'upcoming'}</div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: STATUS_META[b.status]?.color || '#94A3B8' }}>{b.status}</span>
-                      {b.recordingUrl && <a href={b.recordingUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>🎥 Recording</a>}
-                      {b.meetLink && !b.callSummary && <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>Join Meet</a>}
+                      <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '3px 10px', borderRadius: 99, background: done ? 'rgba(6,214,160,0.12)' : 'rgba(148,163,184,0.12)', color: done ? '#06D6A0' : STATUS_META[b.status]?.color || '#94A3B8' }}>{b.status}</span>
+                      {b.recordingUrl && <a href={b.recordingUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-primary" style={{ fontSize: 12 }}>🎥 Watch recording</a>}
+                      {b.meetLink && !done && <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>Join Meet</a>}
                     </div>
-                    {summaryText && (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Summary</div>
-                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{summaryText}</div>
+                    {(summaryText || actionText) && (
+                      <div style={{ padding: '4px 18px 16px' }}>
+                        {summaryText && <CallMd text={summaryText} />}
+                        {actionText && (
+                          <div style={{ marginTop: 16, background: 'rgba(6,214,160,0.06)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 10, padding: '12px 14px' }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#06D6A0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>✔ Action items</div>
+                            {actionText.split('\n').filter(Boolean).map((a, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', margin: '4px 0' }}>
+                                <span style={{ flexShrink: 0 }}>☐</span>
+                                <span>{a.replace(/^\d+\.\s*/, '')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {b.callTranscript && (
+                          <details style={{ marginTop: 14 }}>
+                            <summary style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer' }}>💬 Full transcript</summary>
+                            <div style={{ marginTop: 8, maxHeight: 340, overflowY: 'auto', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+                              {b.callTranscript.split('\n').filter(Boolean).map((line, i) => {
+                                const m = line.match(/^([^:]{2,40}):\s*(.*)$/);
+                                return m ? (
+                                  <div key={i} style={{ fontSize: 12.5, lineHeight: 1.6, margin: '6px 0' }}>
+                                    <span style={{ fontWeight: 700, color: 'var(--text)' }}>{m[1]}</span>
+                                    <span style={{ color: 'var(--text-secondary)' }}> — {m[2]}</span>
+                                  </div>
+                                ) : (
+                                  <div key={i} style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-secondary)', margin: '6px 0' }}>{line}</div>
+                                );
+                              })}
+                            </div>
+                          </details>
+                        )}
                       </div>
-                    )}
-                    {actionText && (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Action items</div>
-                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{actionText}</div>
-                      </div>
-                    )}
-                    {b.callTranscript && (
-                      <details style={{ marginTop: 12 }}>
-                        <summary style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-muted)', cursor: 'pointer' }}>Full transcript</summary>
-                        <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.55, marginTop: 8, maxHeight: 320, overflowY: 'auto', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-                          {b.callTranscript}
-                        </div>
-                      </details>
                     )}
                   </div>
                 );
