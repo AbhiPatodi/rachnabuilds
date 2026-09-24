@@ -12,7 +12,11 @@ interface RouteContext {
 
 async function isAdminSession() {
   const store = await cookies();
-  return !!store.get('admin_session')?.value;
+  const v = store.get('admin_session')?.value;
+  if (!v) return false;
+  const crypto = await import('crypto');
+  const adminHash = crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD || '').digest('hex');
+  return v === adminHash;
 }
 
 function verifyPortalCookie(req: NextRequest, clientSlug: string) {

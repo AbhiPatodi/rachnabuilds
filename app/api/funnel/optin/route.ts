@@ -30,11 +30,11 @@ export async function POST(req: NextRequest) {
         utmCampaign: utmCampaign || null,
         utmContent: utmContent || null,
       },
-      update: {
-        name: name.trim(),
-        phone: phone.trim(),
-        profession: profession?.trim() || null,
-      },
+      // Re-optin with an email that already exists must NOT clobber the stored
+      // contact record — anyone can submit any email here, so overwriting would
+      // let a stranger rewrite a real lead's name/phone. Existing rows keep
+      // their data; the visitor still gets their session restored.
+      update: {},
     });
 
     // See comment in booking/create/route.ts — after() keeps the function

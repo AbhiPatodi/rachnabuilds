@@ -45,10 +45,18 @@ img,svg,video{pointer-events:none!important;-webkit-user-drag:none!important;}
   return result;
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 export async function GET(req: NextRequest, { params }: RouteContext) {
   const { projectId, path: pathSegments } = await params;
+  // The watermark name is attacker-controllable via the query string and the
+  // path feeds a blob URL — escape the one, jail the other.
+  if (!/^[A-Za-z0-9_-]+$/.test(projectId) || pathSegments.some((s) => !/^[A-Za-z0-9 ._-]+$/.test(s) || s.includes('..'))) {
+    return new NextResponse('Not found', { status: 404 });
+  }
   const relativePath = pathSegments.join('/');
-  const clientName = req.nextUrl.searchParams.get('client') ?? 'Client';
+  const clientName = escapeHtml((req.nextUrl.searchParams.get('client') ?? 'Client').slice(0, 80));
 
   const blobBaseUrl = process.env.BLOB_BASE_URL;
   if (!blobBaseUrl) {
@@ -68,7 +76,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
     if (isHtml) {
       const html = await upstream.text();
-      const protected_html = injectProtection(html, decodeURIComponent(clientName));
+      const protected_html = injectProtection(html, clientName);
       return new NextResponse(protected_html, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
