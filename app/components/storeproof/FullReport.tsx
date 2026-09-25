@@ -24,6 +24,8 @@ export interface FullReportPayload {
   checkStats?: { run: number; failures: number; warnings: number; passing: number };
   healthByArea?: { area: string; fail: number; warn: number; total: number; verdict: string }[];
   design?: { notes: { title: string; note: string }[]; shots: Shot[] } | null;
+  /** The merchant's own questions, answered from their store (shown first). */
+  questions?: { q: string; a: string }[];
 }
 
 const SEVERITY_STYLE: Record<string, { bg: string; color: string }> = {
@@ -88,6 +90,11 @@ export default function FullReport({
         .fr-meta b { color:#0B3D2E; }
         .fr-h1 { font-size:26px; color:#0B3D2E; letter-spacing:-0.02em; margin:26px 0 6px; font-weight:800; }
         .fr-intro { color:#475467; font-size:14.5px; max-width:680px; }
+        .fr-qa { background:#fff; border:1px solid #E4E7EC; border-radius:14px; padding:16px 18px; margin-bottom:12px; }
+        .fr-qa h4 { margin:0 0 6px; font-size:15px; color:#0B3D2E; display:flex; gap:10px; }
+        .fr-qa h4 span { background:#0B3D2E; color:#fff; min-width:24px; height:24px; border-radius:7px; font-size:12px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .fr-qa p { margin:0 0 6px; font-size:13.5px; color:#344054; line-height:1.65; }
+        .fr-qa p:last-child { margin-bottom:0; }
         .fr-summary { background:#fff; border:1px solid #E4E7EC; border-left:4px solid #06D6A0; border-radius:12px; padding:16px 20px; margin:20px 0 0; font-size:14px; color:#344054; }
         .fr-h2 { font-size:19px; color:#0B3D2E; margin:34px 0 4px; font-weight:800; }
         .fr-h2sub { color:#667085; font-size:13px; margin:0 0 14px; }
@@ -165,6 +172,19 @@ export default function FullReport({
             <div className="fr-stat good"><b>{stats.passing}</b><span>passing</span></div>
           </div>
         )}
+
+        {payload.questions?.length ? (
+          <div data-track="questions">
+            <h2 className="fr-h2">Your questions, answered</h2>
+            <p className="fr-h2sub">Checked on a phone, on your live store, with examples from your own pages.</p>
+            {payload.questions.map((x, i) => (
+              <div className="fr-qa" key={i}>
+                <h4><span>{i + 1}</span>{x.q}</h4>
+                {x.a.split('\n').filter(Boolean).map((para, j) => <p key={j}>{para}</p>)}
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <h2 className="fr-h2">All {findings.length} findings, ranked by impact</h2>
         <p className="fr-h2sub">Top of the list = costing you the most, fix first.</p>
