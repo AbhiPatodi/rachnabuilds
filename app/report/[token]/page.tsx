@@ -11,7 +11,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
-import { placeWithFlag } from '@/lib/flag';
+import { isPreviewBot, placeWithFlag } from '@/lib/flag';
 import CompetitorAsk from './CompetitorAsk';
 import EngagementPing from './EngagementPing';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
@@ -96,7 +96,8 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
     /Instagram/.test(ua) ? 'Instagram in-app' : /FBAN|FBAV/.test(ua) ? 'Facebook in-app'
     : /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet'
     : /Chrome|CriOS/.test(ua) ? 'Chrome' : /Firefox|FxiOS/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : null;
-  const view = await prisma.storeProofReportView.create({
+  const bot = isPreviewBot(ua);
+  const view = bot ? null : await prisma.storeProofReportView.create({
     data: {
       reportId: report.id,
       device: 'public',
@@ -108,8 +109,8 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
       referrer: h.get('referer')?.slice(0, 200) || null,
     },
   }).catch(() => null);
-  const wasFirstView = !report.firstViewedAt;
-  await prisma.storeProofReport.update({
+  const wasFirstView = !bot && !report.firstViewedAt;
+  if (!bot) await prisma.storeProofReport.update({
     where: { id: report.id },
     data: {
       viewCount: { increment: 1 },

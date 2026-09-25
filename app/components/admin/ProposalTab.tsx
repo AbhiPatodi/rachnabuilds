@@ -140,8 +140,9 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
   };
   const markSent = async (id: string) => {
     setBusy(true);
-    await fetch(`/api/admin/proposals/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'mark_sent' }) });
+    const res = await fetch(`/api/admin/proposals/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'mark_sent' }) }).catch(() => null);
     setBusy(false);
+    if (!res?.ok) { alert(res?.status === 401 ? 'Your admin session expired. Log in again, then click Mark as sent.' : 'Could not mark as sent. Please try again.'); return; }
     await load(); onLeadChange();
   };
   const remove = async (id: string) => {

@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { money, parseContent, visitorContext } from '@/lib/proposal';
-import { placeWithFlag } from '@/lib/flag';
+import { isPreviewBot, placeWithFlag } from '@/lib/flag';
 import ChoosePlan from './ChoosePlan';
 import ProposalPing from './ProposalPing';
 
@@ -33,13 +33,17 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
   const c = parseContent(proposal.content);
   if (!c) notFound();
 
-  const v = visitorContext(await headers());
-  const view = await prisma.proposalView.create({ data: { proposalId: proposal.id, ...v } }).catch(() => null);
-  await prisma.proposal.update({
-    where: { id: proposal.id },
-    data: { viewCount: { increment: 1 }, lastViewedAt: new Date(), ...(proposal.firstViewedAt ? {} : { firstViewedAt: new Date() }) },
-  }).catch(() => {});
-  if (!proposal.firstViewedAt) {
+  const h = await headers();
+  const v = visitorContext(h);
+  const bot = isPreviewBot(h.get('user-agent'));
+  const view = bot ? null : await prisma.proposalView.create({ data: { proposalId: proposal.id, ...v } }).catch(() => null);
+  if (!bot) {
+    await prisma.proposal.update({
+      where: { id: proposal.id },
+      data: { viewCount: { increment: 1 }, lastViewedAt: new Date(), ...(proposal.firstViewedAt ? {} : { firstViewedAt: new Date() }) },
+    }).catch(() => {});
+  }
+  if (!bot && !proposal.firstViewedAt) {
     const where = placeWithFlag(v.city, v.country);
     sendPushToAll('📄 Proposal opened!', `${proposal.lead.name} is reading it now${where ? ` from ${where}` : ''}`, `/admin/funnel-leads/${proposal.leadId}`).catch(() => {});
   }
