@@ -13,7 +13,7 @@ export async function syncLeadFromBooking(leadId: string | null | undefined, boo
   let next: string | null = null;
   let text = '';
   if (bookingStatus === 'completed') {
-    next = 'showed';
+    next = lead.status === 'proposal_sent' ? null : 'showed';
     text = note || 'Call completed';
   } else if (bookingStatus === 'no_show') {
     next = lead.status === 'call_booked' ? 'confirmed' : null;

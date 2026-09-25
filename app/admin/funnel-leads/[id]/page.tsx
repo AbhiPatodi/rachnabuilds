@@ -6,6 +6,7 @@ import type { AuditReportData } from '@/lib/auditBot';
 import type { CallScriptData } from '@/lib/scriptGenerator';
 import AuditReportView from '@/app/components/audit/AuditReportView';
 import CallScriptView from '@/app/components/audit/CallScriptView';
+import ProposalTab from '@/app/components/admin/ProposalTab';
 
 interface AuditReport {
   id: string;
@@ -61,6 +62,7 @@ interface FunnelLead {
   activities: { id: string; type: string; text: string; actor: string | null; createdAt: string }[];
   spReports: { id: string; storeName: string; host?: string; publicToken: string | null; competitorsRequested?: string | null; viewCount: number; lastViewedAt?: string | null; createdAt: string; views: { viewedAt: string; durationSec?: number | null; scrollPct?: number | null; country?: string | null; city?: string | null; os?: string | null; browser?: string | null; screen?: string | null; clicks?: string | null; ip?: string | null; sections?: Record<string, number> | null }[] }[];
   auditJob: { id: string; status: string; host: string; error: string | null; createdAt: string } | null;
+  proposals?: { id: string; title: string; status: string; acceptedTier: string | null; views: { viewedAt: string; city: string | null; country: string | null; os: string | null; browser: string | null; durationSec: number | null; clicks: string | null }[] }[];
 }
 
 interface TimelineEvent { at: string; icon: string; text: string; sub?: string }
@@ -95,6 +97,18 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
       ev.push({
         at: v.viewedAt, icon: '👁',
         text: `Opened their store report${where ? ` from ${where}` : ''}${dev ? ` (${dev})` : ''}${dur ? ` — read ${dur}` : ''}${clicked.includes('whatsapp') ? ' · tapped WhatsApp 💬' : ''}${clicked.includes('book') ? ' · tapped Book 📅' : ''}`,
+      });
+    }
+  }
+  for (const p of lead.proposals || []) {
+    for (const v of p.views) {
+      const where = [v.city, v.country].filter(Boolean).join(', ');
+      const dev = [v.os, v.browser].filter(Boolean).join(' · ');
+      const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
+      const clicked = (v.clicks || '').split(',').filter(Boolean);
+      ev.push({
+        at: v.viewedAt, icon: '📄',
+        text: `Opened the proposal${where ? ` from ${where}` : ''}${dev ? ` (${dev})` : ''}${dur ? ` — read ${dur}` : ''}${clicked.includes('report') ? ' · opened report' : ''}${clicked.some((c) => c.startsWith('choose_')) ? ' · tapped a plan 🎯' : ''}`,
       });
     }
   }
@@ -137,18 +151,19 @@ const LABELS: Record<string, string> = {
   later: 'More than 30 days',
 };
 
-const STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'closed_won', 'closed_lost', 'disqualified'];
+const STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
 const STATUS_META: Record<string, { label: string; color: string }> = {
   new: { label: 'New', color: '#06D6A0' },
   confirmed: { label: 'Confirmed', color: '#38BDF8' },
   call_booked: { label: 'Call Booked', color: '#FBBF24' },
-  showed: { label: 'Showed', color: '#A78BFA' },
+  showed: { label: 'Call Done ✓', color: '#A78BFA' },
+  proposal_sent: { label: 'Proposal Sent', color: '#F472B6' },
   closed_won: { label: 'Closed Won 🎉', color: '#06D6A0' },
   closed_lost: { label: 'Closed Lost', color: '#FF6B6B' },
   disqualified: { label: 'Disqualified', color: '#6B7280' },
 };
 
-type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings';
+type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings' | 'proposal';
 
 // Only leads from the /training VSL funnel have an opt-in → application
 // journey; Meta form, free-audit and cold-email leads arrive complete.
@@ -335,6 +350,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
     { id: 'audit', label: 'Audit Report' },
     { id: 'script', label: 'Call Script' },
     { id: 'bookings', label: `Bookings (${lead.bookings.length})` },
+    { id: 'proposal', label: lead.proposals?.length ? `Proposal (${lead.proposals.length})` : 'Proposal' },
   ];
 
   return (
@@ -827,6 +843,9 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
           )}
         </div>
       )}
+
+      {/* ─── PROPOSAL ─── */}
+      {tab === 'proposal' && <ProposalTab leadId={id} leadName={lead.name} onLeadChange={fetchLead} />}
 
       {/* ─── BOOKINGS ─── */}
       {tab === 'bookings' && (

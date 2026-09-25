@@ -9,9 +9,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   const { token } = await params;
   const report = await prisma.storeProofReport.findUnique({
     where: { publicToken: token },
-    select: { host: true, publicFull: true, pdfData: true },
+    select: { host: true, publicFull: true, pdfData: true, funnelLeadId: true, clientId: true },
   });
-  if (!report || !report.publicFull || !report.pdfData) {
+  if (!report || !report.publicFull || !report.pdfData || (report.funnelLeadId && !report.clientId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
   return new NextResponse(Buffer.from(report.pdfData), {

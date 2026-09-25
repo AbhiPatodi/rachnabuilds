@@ -8,7 +8,7 @@ export const maxDuration = 60;
 
 const HOUR = 60 * 60 * 1000;
 const MAX_AGE_DAYS = 14; // don't resurrect very old dead leads
-const RESOLVED_STATUSES = ['closed_won', 'closed_lost', 'disqualified'];
+const RESOLVED_STATUSES = ['showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');

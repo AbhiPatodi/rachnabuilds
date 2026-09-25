@@ -7,7 +7,7 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-const VALID_STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'closed_won', 'closed_lost', 'disqualified'];
+const VALID_STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
@@ -39,6 +39,12 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     select: { id: true, status: true, host: true, error: true, createdAt: true, startedAt: true },
   });
 
+  const proposals = await prisma.proposal.findMany({
+    where: { leadId: id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, title: true, status: true, acceptedTier: true, views: { orderBy: { viewedAt: 'desc' }, take: 20, select: { viewedAt: true, city: true, country: true, os: true, browser: true, durationSec: true, clicks: true } } },
+  });
+
   const emailLogs = await prisma.funnelEmailLog.findMany({
     where: { email: lead.email.toLowerCase() },
     orderBy: { createdAt: 'desc' },
@@ -57,7 +63,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       )
     : null;
 
-  return NextResponse.json({ ...lead, videoWatch, emailLogs, spReports, auditJob });
+  return NextResponse.json({ ...lead, videoWatch, emailLogs, spReports, auditJob, proposals });
 }
 
 /** Add a manual note to the lead's timeline (PWA quick action). */

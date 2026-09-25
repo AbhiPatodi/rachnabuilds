@@ -57,7 +57,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const { token } = await params;
   const report = await prisma.storeProofReport.findUnique({
     where: { publicToken: token },
-    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, firstViewedAt: true, publicFull: true },
+    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, clientId: true, firstViewedAt: true, publicFull: true },
   });
   if (!report) notFound();
 
@@ -131,11 +131,22 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   if (report.publicFull) {
     let payload: FullReportPayload = {};
     try { payload = JSON.parse(report.findingsJson); } catch { /* render shell */ }
-    const hasPdf = (await prisma.storeProofReport.count({ where: { id: report.id, pdfData: { not: null } } })) > 0;
+    // A prospect (lead, not a client) gets the findings but not the technical
+    // PDF or effort badges — those carry the how-to we sell.
+    const prospect = !!report.funnelLeadId && !report.clientId;
+    const proposalToken = prospect
+      ? (await prisma.proposal.findFirst({ where: { reportToken: token }, orderBy: { createdAt: 'desc' }, select: { token: true } }))?.token ?? null
+      : null;
+    const hasPdf = !prospect && (await prisma.storeProofReport.count({ where: { id: report.id, pdfData: { not: null } } })) > 0;
     return (
       <>
         {view && <EngagementPing token={token} viewId={view.id} />}
-        <FullReport payload={payload} storeName={report.storeName} host={report.host} pdfUrl={hasPdf ? `/report/${token}/pdf` : null} />
+        {proposalToken && (
+          <a href={`/proposal/${proposalToken}`} style={{ position: 'sticky', top: 0, zIndex: 20, display: 'block', background: '#0B3D2E', color: '#fff', textAlign: 'center', padding: '12px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+            ← Back to your proposal and plan options
+          </a>
+        )}
+        <FullReport payload={payload} storeName={report.storeName} host={report.host} pdfUrl={hasPdf ? `/report/${token}/pdf` : null} hideEffort={prospect} />
       </>
     );
   }

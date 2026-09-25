@@ -117,6 +117,7 @@ export default async function DashboardPage() {
         .dash-lead-status.confirmed { background: rgba(56,189,248,.12); color: #38BDF8; border: 1px solid rgba(56,189,248,.25); }
         .dash-lead-status.call_booked { background: rgba(251,191,36,.12); color: #FBBF24; border: 1px solid rgba(251,191,36,.25); }
         .dash-lead-status.showed { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.25); }
+        .dash-lead-status.proposal_sent { background: rgba(244,114,182,.12); color: #f472b6; border: 1px solid rgba(244,114,182,.25); }
         .dash-lead-status.closed_won { background: rgba(6,214,160,.2); color: var(--accent); border: 1px solid rgba(6,214,160,.4); }
         .dash-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
         .dash-notice { background: rgba(6,214,160,.06); border: 1px solid rgba(6,214,160,.2); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
@@ -284,7 +285,7 @@ export default async function DashboardPage() {
                     {lead.storeUrl ? ` · ${lead.storeUrl.replace(/^https?:\/\//, '')}` : ''}
                   </div>
                 </div>
-                <span className={`dash-lead-status ${lead.status}`}>{lead.status.replace('_', ' ')}</span>
+                <span className={`dash-lead-status ${lead.status}`}>{lead.status === 'showed' ? 'call done' : lead.status.replace(/_/g, ' ')}</span>
               </Link>
             ))
           )}

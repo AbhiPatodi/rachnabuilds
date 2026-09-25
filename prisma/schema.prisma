@@ -503,7 +503,7 @@ model FunnelLead {
   readiness     String?   // right_now | within_30_days | later
   // Funnel state
   stage         String    @default("optin")   // optin | applied
-  status        String    @default("new")     // new | confirmed | call_booked | showed | closed_won | closed_lost | disqualified
+  status        String    @default("new")     // new | confirmed | call_booked | showed (call done) | proposal_sent | closed_won | closed_lost | disqualified
   // Attribution
   utmSource     String?
   utmMedium     String?
@@ -519,6 +519,7 @@ model FunnelLead {
   bookings      Booking[]
   auditReports  AuditReport[]
   activities    LeadActivity[]
+  proposals     Proposal[]
 
   @@index([stage])
   @@index([status])
@@ -747,4 +748,49 @@ model MetaLeadEvent {
   createdAt DateTime @default(now())
 
   @@map("meta_lead_events")
+}
+
+// Sales proposal sent to a funnel lead after the call. Public at
+// /proposal/<token>; content is the editable page body (tiers, recap, terms).
+model Proposal {
+  id            String         @id @default(cuid())
+  leadId        String
+  lead          FunnelLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  token         String         @unique
+  title         String
+  content       Json           // { headline, intro, recap[], problems[], tiers[], whyNow, terms[], nextSteps[] }
+  reportToken   String?        // StoreProof report linked from the proposal
+  validUntil    DateTime?
+  status        String         @default("draft") // draft | sent | accepted | declined
+  acceptedTier  String?
+  acceptedNote  String?
+  acceptedAt    DateTime?
+  sentAt        DateTime?
+  viewCount     Int            @default(0)
+  firstViewedAt DateTime?
+  lastViewedAt  DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  views         ProposalView[]
+
+  @@index([leadId])
+  @@map("proposals")
+}
+
+model ProposalView {
+  id          String   @id @default(cuid())
+  proposalId  String
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  viewedAt    DateTime @default(now())
+  ip          String?
+  country     String?
+  city        String?
+  os          String?
+  browser     String?
+  durationSec Int?
+  scrollPct   Int?
+  clicks      String?
+
+  @@index([proposalId])
+  @@map("proposal_views")
 }

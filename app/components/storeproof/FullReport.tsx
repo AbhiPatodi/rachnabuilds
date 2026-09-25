@@ -58,12 +58,14 @@ function fmtS(ms: number | null) {
 }
 
 export default function FullReport({
-  payload, storeName, host, pdfUrl,
+  payload, storeName, host, pdfUrl, hideEffort = false,
 }: {
   payload: FullReportPayload;
   storeName: string;
   host: string;
   pdfUrl?: string | null;
+  /** Sales copy for prospects: no effort/fix-type badges that read as "easy to DIY". */
+  hideEffort?: boolean;
 }) {
   const findings = payload.findings || [];
   const brand = payload.brand || {};
@@ -178,8 +180,8 @@ export default function FullReport({
                     const sv = SEVERITY_STYLE[f.severity.toLowerCase()] || SEVERITY_STYLE.low;
                     return <span className="fr-sev" style={{ background: sv.bg, color: sv.color }}>{f.severity}</span>;
                   })()}
-                  {f.fix_tier && <span className="fr-tag">{FIX_TIER[f.fix_tier.toLowerCase()] || f.fix_tier}</span>}
-                  <span className={`fr-effort ${e.cls}`}>{e.label}</span>
+                  {!hideEffort && f.fix_tier && <span className="fr-tag">{FIX_TIER[f.fix_tier.toLowerCase()] || f.fix_tier}</span>}
+                  {!hideEffort && <span className={`fr-effort ${e.cls}`}>{e.label}</span>}
                 </div>
                 <p className="fr-body">{f.merchant_copy}</p>
                 {(() => {
