@@ -11,6 +11,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
+import { placeWithFlag } from '@/lib/flag';
 import CompetitorAsk from './CompetitorAsk';
 import EngagementPing from './EngagementPing';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
@@ -118,7 +119,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   }).catch(() => {});
   if (wasFirstView) {
     // The lead is looking at their report RIGHT NOW — best follow-up moment.
-    const where = [view?.city, view?.country].filter(Boolean).join(', ');
+    const where = placeWithFlag(view?.city, view?.country);
     const on = [view?.os, view?.browser].filter(Boolean).join(' · ');
     sendPushToAll(
       '👁 Report opened!',

@@ -18,7 +18,7 @@ export async function GET() {
         firstViewedAt: true, lastViewedAt: true, createdAt: true, findingsJson: true,
         competitorsRequested: true, publicFull: true,
         client: { select: { id: true, name: true, slug: true } },
-        views: { orderBy: { viewedAt: 'desc' }, take: 5, select: { viewedAt: true, device: true } },
+        views: { orderBy: { viewedAt: 'desc' }, take: 5, select: { viewedAt: true, device: true, city: true, country: true } },
       },
     }),
     prisma.client.findMany({

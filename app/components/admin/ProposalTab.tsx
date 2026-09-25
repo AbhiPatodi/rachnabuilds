@@ -4,6 +4,7 @@
 // engage with it. The public page is /proposal/<token>.
 import { useCallback, useEffect, useState } from 'react';
 import type { ProposalContent, ProposalTier } from '@/lib/proposal';
+import { placeWithFlag } from '@/lib/flag';
 
 interface PView { id: string; viewedAt: string; country: string | null; city: string | null; os: string | null; browser: string | null; durationSec: number | null; scrollPct: number | null; clicks: string | null; sections?: Record<string, number> | null }
 interface Proposal {
@@ -215,7 +216,7 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
                   {p.views.map((v, idx) => {
                     const visitNo = p.views.length - idx;
                     const secs = Object.entries(v.sections || {}).sort((a, b) => b[1] - a[1]);
-                    const where = [v.city, v.country].filter(Boolean).join(', ');
+                    const where = placeWithFlag(v.city, v.country);
                     const clicks = (v.clicks || '').split(',').filter(Boolean).map((c) => CLICK_LABEL[c] || c);
                     return (
                       <div key={v.id} style={{ fontSize: 12.5, color: 'var(--text-secondary)', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>

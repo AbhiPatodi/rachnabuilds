@@ -7,6 +7,7 @@ import type { CallScriptData } from '@/lib/scriptGenerator';
 import AuditReportView from '@/app/components/audit/AuditReportView';
 import CallScriptView from '@/app/components/audit/CallScriptView';
 import ProposalTab from '@/app/components/admin/ProposalTab';
+import { countryFlag, placeWithFlag } from '@/lib/flag';
 
 interface AuditReport {
   id: string;
@@ -90,7 +91,7 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
   for (const r of lead.spReports || []) {
     ev.push({ at: r.createdAt, icon: '🔍', text: `Store report generated — ${r.storeName}` });
     for (const v of r.views) {
-      const where = [v.city, v.country].filter(Boolean).join(', ');
+      const where = placeWithFlag(v.city, v.country);
       const dev = [v.os, v.browser].filter(Boolean).join(' · ');
       const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
       const clicked = (v.clicks || '').split(',').filter(Boolean);
@@ -103,7 +104,7 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
   for (const p of lead.proposals || []) {
     p.views.forEach((v, idx) => {
       const visitNo = p.views.length - idx;
-      const where = [v.city, v.country].filter(Boolean).join(', ');
+      const where = placeWithFlag(v.city, v.country);
       const dev = [v.os, v.browser].filter(Boolean).join(' · ');
       const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
       const clicked = (v.clicks || '').split(',').filter(Boolean);
@@ -566,9 +567,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <div style={{ marginTop: 14 }}>
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Report activity</div>
                         {(report.views || []).map((v, i, all) => {
-                          const flag = v.country && /^[A-Z]{2}$/.test(v.country)
-                            ? String.fromCodePoint(...[...v.country].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
-                            : '';
+                          const flag = countryFlag(v.country);
                           const where = [v.city, v.country].filter(Boolean).join(', ');
                           const dev = [v.os, v.browser].filter(Boolean).join(' · ');
                           const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;

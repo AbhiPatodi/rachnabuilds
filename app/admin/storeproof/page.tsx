@@ -2,6 +2,7 @@
 
 // Admin: published StoreProof Store Health Reports — assign to portal clients,
 // preview, and watch client engagement (views feed follow-up priority).
+import { placeWithFlag } from '@/lib/flag';
 import { useState, useEffect, useCallback } from 'react';
 
 interface ReportRow {
@@ -21,7 +22,7 @@ interface ReportRow {
   competitorsRequested: string | null;
   publicFull: boolean;
   client: { id: string; name: string; slug: string } | null;
-  views: { viewedAt: string; device: string | null }[];
+  views: { viewedAt: string; device: string | null; city?: string | null; country?: string | null }[];
 }
 
 interface ClientOption { id: string; name: string; slug: string }
@@ -235,10 +236,10 @@ export default function StoreProofAdminPage() {
                 )}
 
                 <span style={{ marginLeft: 'auto', fontSize: 12.5, color: r.viewCount > 0 ? '#06D6A0' : 'var(--text-muted)', fontWeight: r.viewCount > 0 ? 700 : 400 }}
-                  title={r.views.map((v) => new Date(v.viewedAt).toLocaleString('en-IN')).join('\n') || undefined}
+                  title={r.views.map((v) => `${new Date(v.viewedAt).toLocaleString('en-IN')}${v.country ? `  ${placeWithFlag(v.city, v.country)}` : ''}`).join('\n') || undefined}
                 >
                   {r.viewCount > 0
-                    ? `👁 Viewed ${r.viewCount}× · last ${ago(r.lastViewedAt)}`
+                    ? `👁 Viewed ${r.viewCount}× · last ${ago(r.lastViewedAt)}${r.views[0]?.country ? ` · ${placeWithFlag(r.views[0].city, r.views[0].country)}` : ''}`
                     : 'Not viewed yet'}
                 </span>
               </div>

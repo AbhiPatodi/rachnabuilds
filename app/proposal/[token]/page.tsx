@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { money, parseContent, visitorContext } from '@/lib/proposal';
+import { placeWithFlag } from '@/lib/flag';
 import ChoosePlan from './ChoosePlan';
 import ProposalPing from './ProposalPing';
 
@@ -39,7 +40,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
     data: { viewCount: { increment: 1 }, lastViewedAt: new Date(), ...(proposal.firstViewedAt ? {} : { firstViewedAt: new Date() }) },
   }).catch(() => {});
   if (!proposal.firstViewedAt) {
-    const where = [v.city, v.country].filter(Boolean).join(', ');
+    const where = placeWithFlag(v.city, v.country);
     sendPushToAll('📄 Proposal opened!', `${proposal.lead.name} is reading it now${where ? ` from ${where}` : ''}`, `/admin/funnel-leads/${proposal.leadId}`).catch(() => {});
   }
 
