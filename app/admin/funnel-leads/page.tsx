@@ -68,15 +68,17 @@ function sourceLabel(l: FunnelLead) {
 }
 
 // Segments: where the lead actually came from, as tabs with counts.
-type Segment = 'all' | 'meta' | 'website' | 'cold';
+type Segment = 'all' | 'meta' | 'social' | 'website' | 'cold';
 function segmentOf(l: FunnelLead): Exclude<Segment, 'all'> {
   if (l.utmMedium === 'instant-form') return 'meta';
+  if (l.utmMedium === 'ig-comment') return 'social';
   if (l.utmSource === 'cold-email' || l.utmMedium === 'cold-email') return 'cold';
   return 'website'; // site funnels (/training, /free-audit) + organic
 }
 const SEGMENTS: { key: Segment; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'meta', label: 'Meta Ads' },
+  { key: 'social', label: 'Instagram' },
   { key: 'website', label: 'Website' },
   { key: 'cold', label: 'Cold Email' },
 ];

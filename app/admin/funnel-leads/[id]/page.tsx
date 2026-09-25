@@ -71,6 +71,7 @@ interface TimelineEvent { at: string; icon: string; text: string; sub?: string }
 function buildTimeline(lead: FunnelLead): TimelineEvent[] {
   const ev: TimelineEvent[] = [];
   const srcLabel = lead.utmMedium === 'instant-form' ? 'Meta Instant Form'
+    : lead.utmMedium === 'ig-comment' ? 'Instagram comment'
     : lead.utmSource === 'cold-email' ? 'Cold email reply'
     : lead.utmMedium === 'free-audit' ? 'Free audit form'
     : lead.utmSource ? `${lead.utmSource} / ${lead.utmMedium || ''}` : 'Website (organic)';
@@ -170,12 +171,13 @@ type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'boo
 // Only leads from the /training VSL funnel have an opt-in → application
 // journey; Meta form, free-audit and cold-email leads arrive complete.
 function isVslLead(l: { utmMedium: string | null; utmSource: string | null }) {
-  return l.utmMedium !== 'instant-form' && l.utmMedium !== 'free-audit' && l.utmSource !== 'cold-email';
+  return l.utmMedium !== 'instant-form' && l.utmMedium !== 'free-audit' && l.utmMedium !== 'ig-comment' && l.utmSource !== 'cold-email';
 }
 function stageLabel(l: { stage: string; utmMedium: string | null; utmSource: string | null }) {
   if (l.stage === 'applied') return 'Applied (full application)';
   if (l.utmMedium === 'instant-form') return 'Meta form lead';
   if (l.utmMedium === 'free-audit') return 'Free audit request';
+  if (l.utmMedium === 'ig-comment') return 'Instagram comment';
   if (l.utmSource === 'cold-email') return 'Cold email reply';
   return 'VSL opt-in (no application yet)';
 }

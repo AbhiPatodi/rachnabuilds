@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
         createdAt: { lte: new Date(now - 2 * HOUR), gte: maxAge },
         // Meta Instant Form leads are followed up personally on WhatsApp —
         // no automated nudges for them (welcome email only).
-        // VSL nudges are only for /training leads — never Meta form, free-audit or cold-email leads
+        // VSL nudges are only for /training leads — never Meta form, free-audit, Instagram-comment or cold-email leads
         // (null-safe: a bare NOT would also drop organic leads whose utm fields are NULL)
         AND: [
-          { OR: [{ utmMedium: null }, { utmMedium: { notIn: ['instant-form', 'free-audit'] } }] },
+          { OR: [{ utmMedium: null }, { utmMedium: { notIn: ['instant-form', 'free-audit', 'ig-comment'] } }] },
           { OR: [{ utmSource: null }, { utmSource: { not: 'cold-email' } }] },
         ],
       },
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
         // VSL nudges are only for /training leads — never Meta form, free-audit or cold-email leads
         // (null-safe: a bare NOT would also drop organic leads whose utm fields are NULL)
         AND: [
-          { OR: [{ utmMedium: null }, { utmMedium: { notIn: ['instant-form', 'free-audit'] } }] },
+          { OR: [{ utmMedium: null }, { utmMedium: { notIn: ['instant-form', 'free-audit', 'ig-comment'] } }] },
           { OR: [{ utmSource: null }, { utmSource: { not: 'cold-email' } }] },
         ],
         appliedAt: { lte: new Date(now - 3 * HOUR), gte: maxAge },

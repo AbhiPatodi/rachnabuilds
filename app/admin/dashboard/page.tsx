@@ -281,7 +281,7 @@ export default async function DashboardPage() {
                     {lead.email} · {new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>
-                    {lead.utmMedium === 'instant-form' ? 'Meta Instant Form' : lead.utmMedium === 'free-audit' ? 'Free audit request' : lead.utmSource === 'cold-email' ? 'Cold email reply' : 'Website'}
+                    {lead.utmMedium === 'instant-form' ? 'Meta Instant Form' : lead.utmMedium === 'ig-comment' ? 'Instagram comment' : lead.utmMedium === 'free-audit' ? 'Free audit request' : lead.utmSource === 'cold-email' ? 'Cold email reply' : 'Website'}
                     {lead.storeUrl ? ` · ${lead.storeUrl.replace(/^https?:\/\//, '')}` : ''}
                   </div>
                 </div>
