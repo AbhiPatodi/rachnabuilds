@@ -7,15 +7,20 @@ export async function POST(req: NextRequest) {
   // or anyone could register their own device for every admin push.
   if (!(await isAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { endpoint, keys } = await req.json()
+  const { endpoint, keys, label, oldEndpoint } = await req.json()
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 })
   }
+  const name = typeof label === 'string' ? label.slice(0, 80) : null
 
+  // Browsers rotate push endpoints; drop the one this device replaced.
+  if (typeof oldEndpoint === 'string' && oldEndpoint !== endpoint) {
+    await prisma.pushSubscription.deleteMany({ where: { endpoint: oldEndpoint } })
+  }
   await prisma.pushSubscription.upsert({
     where: { endpoint },
-    create: { endpoint, p256dh: keys.p256dh, auth: keys.auth },
-    update: { p256dh: keys.p256dh, auth: keys.auth },
+    create: { endpoint, p256dh: keys.p256dh, auth: keys.auth, label: name, lastSeenAt: new Date() },
+    update: { p256dh: keys.p256dh, auth: keys.auth, lastSeenAt: new Date(), ...(name ? { label: name } : {}) },
   })
 
   return NextResponse.json({ ok: true })

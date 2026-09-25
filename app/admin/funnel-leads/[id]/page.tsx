@@ -101,16 +101,17 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
     }
   }
   for (const p of lead.proposals || []) {
-    for (const v of p.views) {
+    p.views.forEach((v, idx) => {
+      const visitNo = p.views.length - idx;
       const where = [v.city, v.country].filter(Boolean).join(', ');
       const dev = [v.os, v.browser].filter(Boolean).join(' · ');
       const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
       const clicked = (v.clicks || '').split(',').filter(Boolean);
       ev.push({
         at: v.viewedAt, icon: '📄',
-        text: `Opened the proposal${where ? ` from ${where}` : ''}${dev ? ` (${dev})` : ''}${dur ? ` — read ${dur}` : ''}${clicked.includes('report') ? ' · opened report' : ''}${clicked.some((c) => c.startsWith('choose_')) ? ' · tapped a plan 🎯' : ''}`,
+        text: `Opened the proposal${where ? ` from ${where}` : ''}${dev ? ` (${dev})` : ''}${dur ? ` — read ${dur}` : ''}${clicked.includes('report') ? ' · opened report' : ''}${clicked.some((c) => c.startsWith('choose_')) ? ' · tapped a plan 🎯' : ''}${visitNo > 1 ? ` · ↩ visit ${visitNo}` : ''}`,
       });
-    }
+    });
   }
   return ev.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 }

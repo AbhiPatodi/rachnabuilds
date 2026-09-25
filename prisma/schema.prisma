@@ -204,6 +204,8 @@ model PushSubscription {
   endpoint  String   @unique
   p256dh    String
   auth      String
+  label     String?   // "iPhone · Home Screen app", "Mac · Chrome"
+  lastSeenAt DateTime? // last time this device re-confirmed its subscription
   createdAt DateTime @default(now())
 
   @@map("push_subscriptions")
@@ -790,6 +792,7 @@ model ProposalView {
   durationSec Int?
   scrollPct   Int?
   clicks      String?
+  sections    Json?    // seconds spent per section: { plans: 42, problems: 30 }
 
   @@index([proposalId])
   @@map("proposal_views")

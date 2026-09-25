@@ -11,12 +11,27 @@ export default function ProposalPing({ token, viewId }: { token: string; viewId:
     let hiddenSince: number | null = null;
     let maxScroll = 0;
     const clicks = new Set<string>();
+    const sectionSec: Record<string, number> = {};
+    const inView = new Set<string>();
+    const io = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        const key = (en.target as HTMLElement).dataset.track;
+        if (!key) continue;
+        if (en.isIntersecting) inView.add(key); else inView.delete(key);
+      }
+    }, { threshold: 0.35 });
+    document.querySelectorAll<HTMLElement>('[data-track]').forEach((el) => io.observe(el));
+    const dwell = setInterval(() => {
+      if (document.hidden) return;
+      for (const key of inView) sectionSec[key] = (sectionSec[key] || 0) + 1;
+    }, 1000);
     const url = `/api/proposal/${token}/ping`;
     const payload = () => JSON.stringify({
       viewId,
       seconds: Math.round((Date.now() - started - hiddenMs - (hiddenSince ? Date.now() - hiddenSince : 0)) / 1000),
       scrollPct: maxScroll,
       clicks: [...clicks],
+      sections: sectionSec,
     });
     const send = () => { navigator.sendBeacon?.(url, new Blob([payload()], { type: 'application/json' })) || fetch(url, { method: 'POST', body: payload(), keepalive: true }).catch(() => {}); };
     const onScroll = () => {
@@ -39,6 +54,8 @@ export default function ProposalPing({ token, viewId }: { token: string; viewId:
     window.addEventListener('pagehide', send);
     return () => {
       clearInterval(timer);
+      clearInterval(dwell);
+      io.disconnect();
       window.removeEventListener('scroll', onScroll);
       document.removeEventListener('visibilitychange', onVisibility);
       document.removeEventListener('click', onClick, true);

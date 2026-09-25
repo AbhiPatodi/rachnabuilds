@@ -22,9 +22,10 @@ export async function sendPushToAll(title: string, body: string, url = '/admin/d
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify({ title, body, url })
       ).catch(async (err: unknown) => {
-        // Remove stale subscriptions (410 = unsubscribed)
-        if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: number }).statusCode === 410) {
-          await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } })
+        // Remove stale subscriptions (404/410 = expired or unsubscribed)
+        const code = err && typeof err === 'object' && 'statusCode' in err ? (err as { statusCode: number }).statusCode : 0
+        if (code === 404 || code === 410) {
+          await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } })
         }
         throw err
       })

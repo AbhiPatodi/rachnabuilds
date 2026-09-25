@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ProposalContent, ProposalTier } from '@/lib/proposal';
 
-interface PView { id: string; viewedAt: string; country: string | null; city: string | null; os: string | null; browser: string | null; durationSec: number | null; scrollPct: number | null; clicks: string | null }
+interface PView { id: string; viewedAt: string; country: string | null; city: string | null; os: string | null; browser: string | null; durationSec: number | null; scrollPct: number | null; clicks: string | null; sections?: Record<string, number> | null }
 interface Proposal {
   id: string; token: string; title: string; content: ProposalContent; reportToken: string | null;
   validUntil: string | null; status: string; acceptedTier: string | null; acceptedNote: string | null;
@@ -26,6 +26,8 @@ const textToRecap = (s: string) => lines(s).map((l) => { const i = l.indexOf(':'
 // blocks separated by a blank line: first line = title, rest = body
 const probsToText = (p: ProposalContent['problems']) => p.map((x) => `${x.title}\n${x.body}`).join('\n\n');
 const textToProbs = (s: string) => s.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean).map((b) => { const [t, ...rest] = b.split('\n'); return { title: t.trim(), body: rest.join(' ').trim() }; });
+
+const SECTION_LABEL: Record<string, string> = { recap: 'call recap', problems: 'problems', plan_launch: '$799 plan', plan_fix: '$299 plan', why_now: 'why now', terms: 'guarantees' };
 
 function fmtDur(s: number | null) { if (!s) return null; return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`; }
 
@@ -210,7 +212,9 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
               {p.views.length > 0 && (
                 <div style={{ marginTop: 14 }}>
                   <div style={lbl}>Who opened it</div>
-                  {p.views.map((v) => {
+                  {p.views.map((v, idx) => {
+                    const visitNo = p.views.length - idx;
+                    const secs = Object.entries(v.sections || {}).sort((a, b) => b[1] - a[1]);
                     const where = [v.city, v.country].filter(Boolean).join(', ');
                     const clicks = (v.clicks || '').split(',').filter(Boolean).map((c) => CLICK_LABEL[c] || c);
                     return (
@@ -220,6 +224,13 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
                         {fmtDur(v.durationSec) && ` · read ${fmtDur(v.durationSec)}`}{v.scrollPct ? ` · scrolled ${v.scrollPct}%` : ''}
                         {clicks.length > 0 && <span style={{ color: '#06D6A0' }}> · {clicks.join(', ')}</span>}
                         {v.city === 'Indore' && <span style={{ color: 'var(--text-muted)' }}> (probably us)</span>}
+                        {visitNo > 1 && <span style={{ color: '#F472B6', fontWeight: 700 }}> · ↩ visit {visitNo}</span>}
+                        {secs.length > 0 && (
+                          <div style={{ marginTop: 3, fontSize: 12 }}>
+                            Read most: <b style={{ color: 'var(--text)' }}>{SECTION_LABEL[secs[0][0]] || secs[0][0]}</b>
+                            {' · '}{secs.map(([k, s]) => `${SECTION_LABEL[k] || k} ${fmtDur(s)}`).join(' · ')}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

@@ -90,14 +90,22 @@ export default async function NotificationsPage() {
                   flexWrap: 'wrap',
                 }}
               >
-                <span style={{ fontWeight: 600 }}>{platform(d.endpoint)}</span>
+                <span style={{ fontWeight: 600 }}>
+                  {d.label || platform(d.endpoint)}
+                  {d.label && <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}> · {platform(d.endpoint)}</span>}
+                </span>
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                  added {when(d.createdAt)}
+                  added {when(d.createdAt)}{d.lastSeenAt ? ` · last seen ${when(d.lastSeenAt)}` : ' · not seen since the device-check update'}
                 </span>
               </div>
             ))}
           </div>
         )}
+        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '14px 0 0' }}>
+          Missing a phone or laptop? Open the admin on it and tap <strong>Enable Notifications</strong>. Each
+          browser and each person needs their own. On iPhone it only works from the Home Screen app
+          (Safari → Share → Add to Home Screen), not from Safari itself.
+        </p>
         <div style={{ marginTop: 16 }}>
           <SendTestPush disabled={devices.length === 0} />
         </div>

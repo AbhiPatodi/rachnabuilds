@@ -38,3 +38,22 @@ self.addEventListener('notificationclick', function(event) {
 // Cache strategy for PWA
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()))
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()))
+
+// The browser rotated this device's push endpoint: re-subscribe and tell the
+// server, or alerts silently stop arriving on this device.
+self.addEventListener('pushsubscriptionchange', function(event) {
+  const old = event.oldSubscription
+  event.waitUntil(
+    (event.newSubscription
+      ? Promise.resolve(event.newSubscription)
+      : self.registration.pushManager.subscribe(old ? old.options : { userVisibleOnly: true })
+    ).then(function(sub) {
+      return fetch('/api/push/subscribe', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({}, sub.toJSON(), { oldEndpoint: old ? old.endpoint : undefined })),
+      })
+    })
+  )
+})

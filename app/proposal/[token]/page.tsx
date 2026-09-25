@@ -129,16 +129,16 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
         {expired && <div className="pp-expired">This pricing window has passed. Message us and we&apos;ll confirm whether we can still hold it.</div>}
 
         {c.recap.length > 0 && (
-          <>
+          <div data-track="recap">
             <h2 className="pp-h2">What we heard on our call</h2>
             <div className="pp-recap">
               {c.recap.map((r, i) => <div key={i}><small>{r.label}</small><b>{r.value}</b></div>)}
             </div>
-          </>
+          </div>
         )}
 
         {c.problems.length > 0 && (
-          <>
+          <div data-track="problems">
             <h2 className="pp-h2">What&apos;s holding the store back</h2>
             {c.problems.map((p, i) => (
               <div className="pp-prob" key={i}>
@@ -149,12 +149,12 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
             {proposal.reportToken && (
               <a className="pp-reportlink" href={`/report/${proposal.reportToken}`} data-click="report">See the full store report with screenshots →</a>
             )}
-          </>
+          </div>
         )}
 
         <h2 className="pp-h2">How we can work together</h2>
         {[lead, ...others].filter(Boolean).map((t) => (
-          <div key={t.id} className={`pp-tier${t.recommended ? ' rec' : ' small'}`}>
+          <div key={t.id} data-track={`plan_${t.id}`.replace(/[^a-z_]/g, '')} className={`pp-tier${t.recommended ? ' rec' : ' small'}`}>
             {t.recommended && <div className="pp-badge">Recommended</div>}
             <div className="pp-tierhead">
               <h3>{t.name}</h3>
@@ -168,13 +168,13 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
           </div>
         ))}
 
-        {c.whyNow && <div className="pp-why"><b>Why now</b>{c.whyNow}</div>}
+        {c.whyNow && <div className="pp-why" data-track="why_now"><b>Why now</b>{c.whyNow}</div>}
 
         {c.terms.length > 0 && (
-          <>
+          <div data-track="terms">
             <h2 className="pp-h2">What you can count on</h2>
             <ul className="pp-list">{c.terms.map((t, i) => <li key={i}>{t}</li>)}</ul>
-          </>
+          </div>
         )}
 
         {c.nextSteps.length > 0 && (

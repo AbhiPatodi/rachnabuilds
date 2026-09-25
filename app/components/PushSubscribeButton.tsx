@@ -1,8 +1,31 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+type Status = 'unknown' | 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed' | 'error'
+
+// Readable device name for the Notifications page.
+function deviceLabel(): string {
+  const ua = navigator.userAgent
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android'
+    : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Device'
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+    || (navigator as Navigator & { standalone?: boolean }).standalone === true
+  const browser = /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet'
+    : /Chrome|CriOS/.test(ua) ? 'Chrome' : /Firefox|FxiOS/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : 'Browser'
+  return `${os} · ${standalone ? 'Home Screen app' : browser}`
+}
+
+async function saveOnServer(sub: PushSubscription): Promise<boolean> {
+  const res = await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...sub.toJSON(), label: deviceLabel() }),
+  }).catch(() => null)
+  return !!res?.ok
+}
+
 export function PushSubscribeButton() {
-  const [status, setStatus] = useState<'unknown' | 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'>('unknown')
+  const [status, setStatus] = useState<Status>('unknown')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -14,12 +37,13 @@ export function PushSubscribeButton() {
       setStatus('denied')
       return
     }
-    // Register service worker
     navigator.serviceWorker.register('/sw.js').catch(console.error)
-    navigator.serviceWorker.ready.then(reg => {
-      reg.pushManager.getSubscription().then(sub => {
-        setStatus(sub ? 'subscribed' : 'unsubscribed')
-      })
+    navigator.serviceWorker.ready.then(async reg => {
+      const sub = await reg.pushManager.getSubscription()
+      if (!sub) { setStatus('unsubscribed'); return }
+      // Re-confirm with the server on every visit: a device can hold a local
+      // subscription the server never stored or has since dropped.
+      setStatus((await saveOnServer(sub)) ? 'subscribed' : 'error')
     })
   }, [])
 
@@ -27,18 +51,14 @@ export function PushSubscribeButton() {
     setLoading(true)
     try {
       const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
       })
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sub),
-      })
-      setStatus('subscribed')
+      setStatus((await saveOnServer(sub)) ? 'subscribed' : 'error')
     } catch (err) {
       console.error(err)
+      setStatus(Notification.permission === 'denied' ? 'denied' : 'error')
     }
     setLoading(false)
   }
@@ -83,14 +103,15 @@ export function PushSubscribeButton() {
     return note('Checking notification support…', '#94a3b8')
   }
 
+  const on = status === 'subscribed'
   return (
     <button
-      onClick={status === 'subscribed' ? unsubscribe : subscribe}
+      onClick={on ? unsubscribe : subscribe}
       disabled={loading}
       style={{
-        background: status === 'subscribed' ? '#1e293b' : '#06D6A0',
-        color: status === 'subscribed' ? '#94a3b8' : '#0B0F1A',
-        border: '1px solid ' + (status === 'subscribed' ? '#334155' : '#06D6A0'),
+        background: on ? '#1e293b' : status === 'error' ? '#FBBF24' : '#06D6A0',
+        color: on ? '#94a3b8' : '#0B0F1A',
+        border: '1px solid ' + (on ? '#334155' : status === 'error' ? '#FBBF24' : '#06D6A0'),
         borderRadius: 8,
         padding: '8px 16px',
         fontSize: 13,
@@ -99,7 +120,7 @@ export function PushSubscribeButton() {
         transition: 'all 0.2s',
       }}
     >
-      {loading ? '...' : status === 'subscribed' ? 'Notifications On' : 'Enable Notifications'}
+      {loading ? '...' : on ? 'Notifications On' : status === 'error' ? 'Not connected: tap to retry' : 'Enable Notifications'}
     </button>
   )
 }
