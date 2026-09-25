@@ -19,6 +19,7 @@ interface ReportRow {
   createdAt: string;
   topFindings: string[];
   competitorsRequested: string | null;
+  publicFull: boolean;
   client: { id: string; name: string; slug: string } | null;
   views: { viewedAt: string; device: string | null }[];
 }
@@ -66,6 +67,20 @@ export default function StoreProofAdminPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId, clientId: clientId || null }),
+      });
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const togglePublicFull = async (reportId: string, publicFull: boolean) => {
+    setBusy(reportId);
+    try {
+      await fetch('/api/admin/storeproof', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId, publicFull }),
       });
       await load();
     } finally {
@@ -185,8 +200,16 @@ export default function StoreProofAdminPage() {
                     className="admin-btn admin-btn-secondary"
                     style={{ fontSize: 12 }}
                   >
-                    Teaser (what the lead sees) ↗
+                    {r.publicFull ? 'Public full report ↗' : 'Teaser (what the lead sees) ↗'}
                   </a>
+                )}
+
+                {r.publicToken && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}
+                    title="For existing clients: the public link shows the complete report (no blur, no sales CTA) + PDF download">
+                    <input type="checkbox" checked={r.publicFull} disabled={busy === r.id} onChange={(e) => togglePublicFull(r.id, e.target.checked)} />
+                    Share full report
+                  </label>
                 )}
 
                 <select

@@ -16,7 +16,7 @@ export async function GET() {
         id: true, host: true, runStamp: true, storeName: true, status: true,
         publicToken: true, clientId: true, funnelLeadId: true, viewCount: true,
         firstViewedAt: true, lastViewedAt: true, createdAt: true, findingsJson: true,
-        competitorsRequested: true,
+        competitorsRequested: true, publicFull: true,
         client: { select: { id: true, name: true, slug: true } },
         views: { orderBy: { viewedAt: 'desc' }, take: 5, select: { viewedAt: true, device: true } },
       },
@@ -59,6 +59,15 @@ export async function PATCH(req: NextRequest) {
       select: { id: true, status: true },
     });
     return NextResponse.json({ ok: true, job });
+  }
+  // Share the FULL report on its public link (existing clients) — or back to teaser
+  if (body.reportId && typeof body.publicFull === 'boolean') {
+    const r = await prisma.storeProofReport.update({
+      where: { id: String(body.reportId) },
+      data: { publicFull: body.publicFull },
+      select: { id: true, publicFull: true },
+    });
+    return NextResponse.json({ ok: true, report: r });
   }
   const { reportId, clientId } = body;
   if (!reportId) return NextResponse.json({ error: 'reportId required' }, { status: 400 });

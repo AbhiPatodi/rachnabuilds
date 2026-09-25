@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import CompetitorAsk from './CompetitorAsk';
 import EngagementPing from './EngagementPing';
+import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const { token } = await params;
   const report = await prisma.storeProofReport.findUnique({
     where: { publicToken: token },
-    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, firstViewedAt: true },
+    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, firstViewedAt: true, publicFull: true },
   });
   if (!report) notFound();
 
@@ -124,6 +125,19 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
       `${report.storeName} — reading it now${where ? ` from ${where}` : ''}${on ? ` (${on})` : ''}`,
       report.funnelLeadId ? `/admin/funnel-leads/${report.funnelLeadId}` : '/admin/storeproof',
     ).catch(() => {});
+  }
+
+  // Existing clients get the whole report unlocked on the same link (no blur, no sales CTA).
+  if (report.publicFull) {
+    let payload: FullReportPayload = {};
+    try { payload = JSON.parse(report.findingsJson); } catch { /* render shell */ }
+    const hasPdf = (await prisma.storeProofReport.count({ where: { id: report.id, pdfData: { not: null } } })) > 0;
+    return (
+      <>
+        {view && <EngagementPing token={token} viewId={view.id} />}
+        <FullReport payload={payload} storeName={report.storeName} host={report.host} pdfUrl={hasPdf ? `/report/${token}/pdf` : null} />
+      </>
+    );
   }
 
   const bookUrl = report.funnelLeadId
