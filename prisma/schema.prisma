@@ -736,3 +736,14 @@ model RateLimitHit {
   @@index([key, createdAt])
   @@map("rate_limit_hits")
 }
+
+// Every Meta leadgen id we've handled — Meta re-delivers old webhook events
+// (e.g. ones that failed during an outage), and without this memory a
+// re-delivery looked like a brand-new lead (welcome email + "new lead" push).
+model MetaLeadEvent {
+  leadgenId String   @id
+  email     String?
+  createdAt DateTime @default(now())
+
+  @@map("meta_lead_events")
+}

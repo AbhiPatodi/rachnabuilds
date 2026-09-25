@@ -132,8 +132,15 @@ export async function POST(req: NextRequest) {
   const imported: string[] = [];
   const skipped: string[] = [];
 
+  let recorded = 0;
   for (const form of perForm) {
     for (const lead of form.leads) {
+      // Remember every leadgen id Meta has (incl. already-imported and test
+      // rows) so a later webhook re-delivery of any of them is ignored.
+      if (lead.metaId) {
+        await prisma.metaLeadEvent.create({ data: { leadgenId: String(lead.metaId), email: lead.email || null } })
+          .then(() => { recorded++; }, () => {});
+      }
       if (!lead.email || lead.isMetaTest) continue;
       const exists = await prisma.funnelLead.findUnique({ where: { email: lead.email } });
       if (exists) {
@@ -180,6 +187,7 @@ export async function POST(req: NextRequest) {
     notified: notify,
     imported: imported.length,
     skipped: skipped.length,
+    leadgenIdsRecorded: recorded,
     importedEmails: imported,
   });
 }

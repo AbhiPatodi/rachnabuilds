@@ -68,6 +68,13 @@ export async function POST(req: NextRequest) {
       const leadgenId = change.value?.leadgen_id;
       if (!leadgenId) continue;
 
+      // Meta re-delivers events (e.g. ones that failed during an outage) —
+      // an id we've already handled is dropped silently.
+      if (await prisma.metaLeadEvent.findUnique({ where: { leadgenId: String(leadgenId) } })) {
+        results.push({ leadgenId, ok: true, reason: 'duplicate_event' });
+        continue;
+      }
+
       if (!pageToken) {
         results.push({ leadgenId, ok: false, reason: 'no_page_token' });
         continue;
@@ -102,6 +109,19 @@ export async function POST(req: NextRequest) {
           results.push({ leadgenId, ok: false, reason: 'no_email' });
           continue;
         }
+        // Meta's Lead Ads Testing Tool dummies never enter the CRM
+        if (email.includes('@meta.com') || name.startsWith('<test lead')) {
+          await prisma.metaLeadEvent.create({ data: { leadgenId: String(leadgenId), email } }).catch(() => {});
+          results.push({ leadgenId, ok: true, reason: 'meta_test_lead' });
+          continue;
+        }
+        // Record the id up front so a concurrent re-delivery can't double-process.
+        const claimed = await prisma.metaLeadEvent.create({ data: { leadgenId: String(leadgenId), email } }).then(() => true, () => false);
+        if (!claimed) {
+          results.push({ leadgenId, ok: true, reason: 'duplicate_event' });
+          continue;
+        }
+        const existingLead = await prisma.funnelLead.findUnique({ where: { email }, select: { id: true, name: true } });
 
         // Custom qualifying questions (e.g. conversion rate, ad spend) arrive
         // with form-specific keys — store every non-contact answer as
@@ -126,14 +146,26 @@ export async function POST(req: NextRequest) {
             utmContent: lead.ad_name || null,
             ...(hasAnswers ? { formAnswers } : {}),
           },
-          update: { name, ...(phone ? { phone } : {}), ...(hasAnswers ? { formAnswers } : {}) },
+          update: { ...(phone ? { phone } : {}), ...(hasAnswers ? { formAnswers } : {}) },
         });
 
+        if (existingLead) {
+          // Same person, a NEW submission of the form: no welcome email, no
+          // "new lead" alert — log it and flag the repeat (it's an intent signal).
+          await prisma.leadActivity.create({
+            data: { leadId: dbLead.id, type: 'system', text: '🔁 Submitted the Meta Instant Form again' },
+          }).catch(() => {});
+          await sendPushToAll('🔁 Repeat Meta form submission', `${name} (${email}) filled the form again — already in your pipeline`, `/admin/funnel-leads/${dbLead.id}`).catch(() => {});
+          results.push({ leadgenId, ok: true, reason: 'existing_lead_resubmitted' });
+          continue;
+        }
+
         await sendInstantFormWelcome({ id: dbLead.id, name, email }).catch(() => {});
-        await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, '/admin/funnel-leads').catch(() => {});
+        await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, `/admin/funnel-leads/${dbLead.id}`).catch(() => {});
         const waDigits = phone.replace(/[^0-9]/g, '');
         await notifyNewLead({
           source: 'Meta Instant Form (auto-synced)',
+          adminPath: `/admin/funnel-leads/${dbLead.id}`,
           fields: [
             { label: 'Name', value: name },
             { label: 'Email', value: email },

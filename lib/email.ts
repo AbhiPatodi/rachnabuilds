@@ -547,6 +547,9 @@ export async function hasSentKind(email: string, kind: string): Promise<boolean>
 export async function sendInstantFormWelcome(opts: {
   id: string; name: string; email: string;
 }): Promise<{ ok: boolean; reason?: string }> {
+  // One welcome per person, ever — a re-delivered or repeated form submission
+  // must never send it twice.
+  if (await hasSentKind(opts.email, 'instant_welcome')) return { ok: false, reason: 'already_sent' };
   const firstName = opts.name.split(' ')[0];
   const bookUrl = `${SITE_URL}/training/apply?lead=${opts.id}`;
   const subject = `${firstName}, your free store audit request is in ✅`;
