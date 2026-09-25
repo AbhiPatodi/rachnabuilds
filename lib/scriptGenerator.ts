@@ -20,6 +20,16 @@ export interface CallScriptData {
     price: string;
   };
   objectionPrep: { objection: string; response: string }[];
+  /** Optional plain-English walkthrough of each audit issue for the caller. */
+  issueGuide?: {
+    issue: string;
+    plain: string;
+    showHim: string;
+    analogy: string;
+    cost: string;
+    fix: string;
+    ifPushback: string;
+  }[];
 }
 
 const SLOSHED_SYSTEM = `You are the sales-call preparation engine for Rachna Builds (Shopify Conversion Optimization, $1,299 done-for-you offer, 14-day delivery, 2%+ conversion promise).

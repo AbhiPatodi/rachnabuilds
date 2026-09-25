@@ -43,6 +43,23 @@ export default function CallScriptView({ script }: { script: CallScriptData }) {
         {script.tempCheck.map((t, i) => <p key={i} style={S.q}>☐ &ldquo;{t}&rdquo;</p>)}
       </div>
 
+      {script.issueGuide && script.issueGuide.length > 0 && (
+        <div style={S.card}>
+          <div style={S.tag}>Explaining the issues — use during the walkthrough</div>
+          {script.issueGuide.map((g, i) => (
+            <div key={i} style={{ marginTop: i ? 18 : 6, paddingTop: i ? 16 : 0, borderTop: i ? '1px solid #e3e6ea' : 'none' }}>
+              <div style={S.heading}>{i + 1}. {g.issue}</div>
+              <p style={S.talk}><strong>In plain words:</strong> {g.plain}</p>
+              <p style={S.talk}><strong>🖥 Show him:</strong> {g.showHim}</p>
+              <p style={S.talk}><strong>💡 Analogy:</strong> &ldquo;{g.analogy}&rdquo;</p>
+              <p style={S.talk}><strong>💸 What it costs:</strong> {g.cost}</p>
+              <p style={S.talk}><strong>🔧 What we&apos;d do:</strong> {g.fix}</p>
+              <div style={S.note}>🛡 If he pushes back: {g.ifPushback}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ ...S.card, borderColor: '#0E8A6E', borderWidth: 2 }}>
         <div style={S.tag}>The pitch — Eagle&apos;s eye</div>
         <p style={S.talk}>{script.pitch.eaglesEye}</p>
