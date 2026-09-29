@@ -56,10 +56,14 @@ export default function BookingsPage() {
   };
 
   const now = Date.now();
+  // Upcoming reads soonest-first; Past and All read latest-first.
   const filtered = bookings.filter((b) => {
     if (tab === 'upcoming') return new Date(b.startTime).getTime() >= now && b.status === 'confirmed';
     if (tab === 'past') return new Date(b.startTime).getTime() < now || b.status !== 'confirmed';
     return true;
+  }).sort((a, b) => {
+    const d = new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    return tab === 'upcoming' ? d : -d;
   });
 
   if (loading) {
