@@ -60,7 +60,7 @@ export interface NewLead {
 export const addLead = (lead: NewLead) => call<{ id: string }>('/leads', { method: 'POST', body: JSON.stringify({ skip_if_in_workspace: true, skip_if_in_campaign: true, ...lead }) });
 
 export const registerWebhook = (hookUrl: string, eventType: string, campaignId?: string) =>
-  call<{ id: string }>('/webhooks', { method: 'POST', body: JSON.stringify({ hook_url: hookUrl, event_type: eventType, ...(campaignId ? { campaign: campaignId } : {}) }) });
-export const listWebhooks = () => call<{ items: { id: string; hook_url: string; event_type: string }[] }>('/webhooks?limit=50').then((r) => r.items || []);
+  call<{ id: string }>('/webhooks', { method: 'POST', body: JSON.stringify({ target_hook_url: hookUrl, event_type: eventType, ...(campaignId ? { campaign: campaignId } : {}) }) });
+export const listWebhooks = () => call<{ items: { id: string; target_hook_url: string; event_type: string }[] }>('/webhooks?limit=50').then((r) => r.items || []);
 
 export const hasInstantlyKey = () => !!process.env.INSTANTLY_API_KEY;
