@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import ContactIcons from '@/app/components/admin/ContactIcons';
 import LeadsSubNav from '../LeadsSubNav';
 
 interface FunnelLead {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
+  whatsapp?: string | null;
   storeUrl: string | null;
   revenue: string | null;
   readiness: string | null;
@@ -263,6 +266,7 @@ export default function FunnelLeadsPage() {
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.email}</div>
                         </Link>
+                        <div style={{ marginTop: 6 }}><ContactIcons phone={l.phone} whatsapp={l.whatsapp} email={l.email} /></div>
                       </td>
                       <td className="fl-col-source" style={{ fontSize: 12.5 }}>
                         {l.utmSource ? (

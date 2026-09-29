@@ -9,6 +9,7 @@ import CallScriptView from '@/app/components/audit/CallScriptView';
 import ProposalTab from '@/app/components/admin/ProposalTab';
 import LeadPayments from '@/app/components/admin/LeadPayments';
 import { countryFlag, placeWithFlag } from '@/lib/flag';
+import ContactIcons from '@/app/components/admin/ContactIcons';
 
 interface AuditReport {
   id: string;
@@ -374,7 +375,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
 
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">{lead.name}</h1>
+          <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>{lead.name} <ContactIcons phone={lead.phone} whatsapp={lead.whatsapp} email={lead.email} size="md" /></h1>
           <p className="admin-page-subtitle">{lead.email} · Applied {new Date(lead.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
         </div>
         <select

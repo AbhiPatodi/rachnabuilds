@@ -3,6 +3,7 @@
 // Website content and the client portal moved to a compact row at the bottom.
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import ContactIcons from '@/app/components/admin/ContactIcons';
 import { getMoneySettings, monthSummary, ymOf } from '@/lib/money';
 import { placeWithFlag } from '@/lib/flag';
 
@@ -13,7 +14,7 @@ const ago = (d: Date) => { const h = Math.round((Date.now() - d.getTime()) / 360
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const when = (d: Date) => d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
-type Todo = { tone: 'bad' | 'warn' | 'good' | 'info'; icon: string; text: string; sub?: string; href: string; at: number };
+type Todo = { tone: 'bad' | 'warn' | 'good' | 'info'; icon: string; text: string; sub?: string; href: string; at: number; contact?: { phone?: string | null; whatsapp?: string | null; email?: string | null } };
 
 export default async function DashboardPage() {
   const now = new Date();
@@ -21,7 +22,7 @@ export default async function DashboardPage() {
   const [leads, recentViews, proposals, pendingPayments, bookings, jobs, activities, money, settings, prospectStages, prospectVerify, content, coldReplies] = await Promise.all([
     prisma.funnelLead.findMany({
       where: { status: { notIn: ['closed_won', 'closed_lost', 'disqualified'] } },
-      select: { id: true, name: true, status: true, createdAt: true, utmSource: true, utmMedium: true, storeUrl: true, activities: { where: { type: 'note' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true, text: true } } },
+      select: { id: true, name: true, email: true, phone: true, whatsapp: true, status: true, createdAt: true, utmSource: true, utmMedium: true, storeUrl: true, activities: { where: { type: 'note' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true, text: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.storeProofReportView.findMany({
@@ -48,9 +49,9 @@ export default async function DashboardPage() {
     const last = l.activities[0]?.createdAt ?? null;
     const isCold = l.utmSource === 'cold-email';
     if (!last && l.status === 'new' && Date.now() - l.createdAt.getTime() > 12 * 3600_000) {
-      todos.push({ tone: isCold ? 'bad' : 'warn', icon: isCold ? '✉️' : '👋', text: `${l.name} — ${isCold ? 'replied to cold email, nobody has answered' : 'never contacted'}`, sub: `${l.storeUrl ? l.storeUrl.replace(/^https?:\/\/(www\.)?/, '') + ' · ' : 'no store link yet · '}${ago(l.createdAt)}`, href: `/admin/funnel-leads/${l.id}`, at: isCold ? 0 : 2 });
+      todos.push({ tone: isCold ? 'bad' : 'warn', icon: isCold ? '✉️' : '👋', text: `${l.name} — ${isCold ? 'replied to cold email, nobody has answered' : 'never contacted'}`, sub: `${l.storeUrl ? l.storeUrl.replace(/^https?:\/\/(www\.)?/, '') + ' · ' : 'no store link yet · '}${ago(l.createdAt)}`, href: `/admin/funnel-leads/${l.id}`, at: isCold ? 0 : 2, contact: l });
     } else if (last && ['new', 'confirmed', 'showed'].includes(l.status) && Date.now() - last.getTime() > 4 * DAY) {
-      todos.push({ tone: 'warn', icon: '🔁', text: `${l.name} — follow-up due`, sub: `last message ${ago(last)}${l.activities[0]?.text ? ` · "${l.activities[0].text.slice(0, 40)}"` : ''}`, href: `/admin/funnel-leads/${l.id}`, at: 4 });
+      todos.push({ tone: 'warn', icon: '🔁', text: `${l.name} — follow-up due`, sub: `last message ${ago(last)}${l.activities[0]?.text ? ` · "${l.activities[0].text.slice(0, 40)}"` : ''}`, href: `/admin/funnel-leads/${l.id}`, at: 4, contact: l });
     }
   }
   for (const v of recentViews) {
@@ -134,11 +135,12 @@ export default async function DashboardPage() {
         <div className="admin-card">
           <div className="dash-section-title">Needs you <Link href="/admin/funnel-leads">All leads →</Link></div>
           {todos.length === 0 ? <div className="dash-empty">All caught up. New leads, replies and report opens will appear here.</div> : todos.slice(0, 14).map((t, i) => (
-            <Link key={i} href={t.href} className="todo">
+            <div key={i} className="todo">
               <span className="todo-bar" style={{ background: TONE[t.tone] }} />
               <span style={{ fontSize: 16, lineHeight: '20px' }}>{t.icon}</span>
-              <span><div className="todo-text">{t.text}</div>{t.sub && <div className="todo-sub">{t.sub}</div>}</span>
-            </Link>
+              <Link href={t.href} style={{ textDecoration: 'none', color: 'inherit', minWidth: 0, flex: 1 }}><div className="todo-text">{t.text}</div>{t.sub && <div className="todo-sub">{t.sub}</div>}</Link>
+              {t.contact && <ContactIcons phone={t.contact.phone} whatsapp={t.contact.whatsapp} email={t.contact.email} />}
+            </div>
           ))}
         </div>
         <div className="admin-card">
