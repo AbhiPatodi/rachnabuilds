@@ -88,10 +88,13 @@ export function nextOccurrence(e: ExpenseRow, from = new Date()): Date | null {
 export async function monthSummary(ym: string) {
   const s = await getMoneySettings();
   const { start, end } = monthRange(ym);
-  const [expenses, payments, adDays] = await Promise.all([
+  const [expenses, payments, adDays, topUps, topUpAll, spendAll] = await Promise.all([
     prisma.expense.findMany({ where: { OR: [{ recurring: { not: 'none' } }, { date: { gte: start, lt: end } }] } }),
     prisma.payment.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' }, include: { lead: { select: { name: true, storeUrl: true } } } }),
     prisma.adSpendDay.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'asc' } }),
+    prisma.adTopUp.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' } }),
+    prisma.adTopUp.aggregate({ _sum: { amount: true } }),
+    prisma.adSpendDay.aggregate({ _sum: { spend: true } }),
   ]);
 
   const byCategory: Record<string, number> = {};
@@ -128,6 +131,9 @@ export async function monthSummary(ym: string) {
       days: adDays.map((d) => ({ date: dayKey(d.date), spend: d.spend, leads: d.leads, impressions: d.impressions, clicks: d.clicks })),
       budget: s.adBudgetMonthly, balance: s.metaBalance, balanceAt: s.metaBalanceAt,
       burnPerDay: adDays.length ? adSpend / adDays.filter((d) => d.spend > 0).length || 0 : 0,
+      topUps: topUps.map((t) => ({ id: t.id, date: t.date.toISOString(), amount: t.amount, currency: t.currency, method: t.method, source: t.source, note: t.note })),
+      topUpTotal: topUps.reduce((a, t) => a + t.amount, 0),
+      allTime: { paidIn: topUpAll._sum.amount || 0, spent: spendAll._sum.spend || 0 },
     },
     clientsWon: won,
     costPerClient: won ? expensesInr / won : null,

@@ -12,7 +12,7 @@ interface Summary {
   income: { inr: number; count: number; expectedInr: number; expectedCount: number };
   expenses: { inr: number; byCategory: Record<string, number>; lines: { id: string; title: string; vendor: string | null; category: string; amount: number; currency: string; inr: number; date: string; recurring: string }[] };
   net: number;
-  ads: { spendInr: number; leads: number; costPerLead: number | null; days: { date: string; spend: number; leads: number; impressions: number; clicks: number }[]; budget: number; balance: number | null; balanceAt: string | null; burnPerDay: number };
+  ads: { spendInr: number; leads: number; costPerLead: number | null; days: { date: string; spend: number; leads: number; impressions: number; clicks: number }[]; budget: number; balance: number | null; balanceAt: string | null; burnPerDay: number; topUps: { id: string; date: string; amount: number; currency: string; method: string | null; source: string; note: string | null }[]; topUpTotal: number; allTime: { paidIn: number; spent: number } };
   clientsWon: number;
   costPerClient: number | null;
   payments: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; fee: number | null; status: string; date: string; note: string | null; inr: number }[];
@@ -93,6 +93,9 @@ export default function MoneyPage() {
   const [showP, setShowP] = useState(false);
   const [editE, setEditE] = useState<string | null>(null);
   const [set, setSet] = useState({ fxUsdInr: '', adBudgetMonthly: '', minBalance: '', metaBalance: '' });
+  const [tu, setTu] = useState({ amount: '', date: today(), method: 'UPI', note: '' });
+  const [showTu, setShowTu] = useState(false);
+  const addTopUp = async () => { if (await api('/api/admin/money/topups', 'POST', tu)) { setShowTu(false); setTu({ amount: '', date: today(), method: 'UPI', note: '' }); flash('Top-up added'); } };
   useEffect(() => { if (s) setSet({ fxUsdInr: String(s.settings.fxUsdInr), adBudgetMonthly: String(s.settings.adBudgetMonthly || ''), minBalance: String(s.settings.minBalance), metaBalance: s.settings.metaBalance != null ? String(s.settings.metaBalance) : '' }); }, [s]);
 
   const addExpense = async () => {
@@ -248,6 +251,34 @@ export default function MoneyPage() {
                 </table>
               </div>
             )}
+          </div>
+          <div className="admin-card" style={{ padding: 18, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <h2 className="admin-card-title" style={{ margin: 0 }}>Top-ups · money paid into Meta</h2>
+              <button type="button" className="admin-btn admin-btn-secondary" onClick={() => setShowTu(!showTu)}>＋ Top-up</button>
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', margin: '6px 0 10px' }}>
+              This month {inr(s.ads.topUpTotal)} · all time paid in {inr(s.ads.allTime.paidIn)}, spent {inr(s.ads.allTime.spent)}, so about <b style={{ color: 'var(--text)' }}>{inr(s.ads.allTime.paidIn - s.ads.allTime.spent)}</b> should be left.
+            </div>
+            {showTu && (
+              <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                <div style={grid2}>
+                  <div><label style={lbl}>Amount (₹)</label><input style={inp} type="number" inputMode="numeric" value={tu.amount} onChange={(e) => setTu({ ...tu, amount: e.target.value })} autoFocus /></div>
+                  <div><label style={lbl}>Date</label><input style={inp} type="date" value={tu.date} onChange={(e) => setTu({ ...tu, date: e.target.value })} /></div>
+                  <div><label style={lbl}>Method</label><select style={inp} value={tu.method} onChange={(e) => setTu({ ...tu, method: e.target.value })}><option>UPI</option><option>Card</option><option>Net banking</option></select></div>
+                  <div><label style={lbl}>Note</label><input style={inp} value={tu.note} onChange={(e) => setTu({ ...tu, note: e.target.value })} /></div>
+                </div>
+                <button type="button" className="admin-btn admin-btn-primary" style={{ marginTop: 10 }} disabled={busy || !(Number(tu.amount) > 0)} onClick={addTopUp}>Save top-up</button>
+              </div>
+            )}
+            {s.ads.topUps.length === 0 ? <p style={{ color: 'var(--text-muted)', fontSize: 13.5, margin: 0 }}>No top-ups in {monthLabel(month)}.</p> : s.ads.topUps.map((t) => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, padding: '7px 0', borderTop: '1px solid var(--border)' }}>
+                <b>{inr(t.amount)}</b>
+                <span style={{ color: 'var(--text-muted)' }}>{new Date(t.date).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{t.method ? ` · ${t.method}` : ''}{t.note ? ` · ${t.note}` : ''}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 99, background: 'var(--border)', color: 'var(--text-muted)' }}>{t.source === 'api' ? 'from Meta' : 'manual'}</span>
+                {t.source === 'manual' && <button type="button" className="admin-btn admin-btn-danger" style={{ marginLeft: 'auto', fontSize: 11.5, padding: '3px 9px' }} onClick={() => { if (confirm('Delete this top-up?')) api(`/api/admin/money/topups/${t.id}`, 'DELETE'); }}>✕</button>}
+              </div>
+            ))}
           </div>
           <div className="admin-card" style={{ padding: 18 }}>
             <h2 className="admin-card-title">Settings</h2>

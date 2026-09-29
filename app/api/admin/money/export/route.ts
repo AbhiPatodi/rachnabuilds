@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   for (const p of s.payments) rows.push(['income', p.date, p.clientName, 'client', p.amount, p.currency, Math.round(p.inr), p.method || '', p.status, p.note || ''].map(q).join(','));
   for (const e of s.expenses.lines) rows.push(['expense', e.date, e.title + (e.vendor ? ` (${e.vendor})` : ''), e.category, e.amount, e.currency, Math.round(e.inr), '', e.recurring, ''].map(q).join(','));
   for (const d of s.ads.days) rows.push(['ad_spend', d.date, `Meta ads — ${d.leads} lead(s)`, 'ads', d.spend, 'INR', Math.round(d.spend), '', '', `${d.impressions} impressions, ${d.clicks} clicks`].map(q).join(','));
+  for (const t of s.ads.topUps) rows.push(['ad_topup', t.date.slice(0, 10), `Meta top-up${t.method ? ` via ${t.method}` : ''}`, 'ads', t.amount, t.currency, Math.round(t.amount), t.method || '', t.source, t.note || ''].map(q).join(','));
   return new NextResponse(rows.join('\n'), {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="rachna-builds-money-${ym}.csv"` },
   });

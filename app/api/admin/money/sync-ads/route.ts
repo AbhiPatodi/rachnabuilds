@@ -1,6 +1,6 @@
 // Manual "pull now" from the Money page.
 import { NextResponse } from 'next/server';
-import { hasAdsToken, syncAdSpend, syncBalance, maybeLowBalanceAlert } from '@/lib/metaAds';
+import { hasAdsToken, syncAdSpend, syncBalance, syncTopUps, maybeLowBalanceAlert } from '@/lib/metaAds';
 import { dayKey } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
@@ -11,9 +11,10 @@ export async function POST() {
     const until = dayKey(new Date());
     const since = dayKey(new Date(Date.now() - 34 * 86400_000));
     const days = await syncAdSpend(since, until);
+    const topUps = await syncTopUps(new Date(Date.now() - 400 * 86400_000).toISOString()).catch(() => 0);
     const balance = await syncBalance().catch(() => null);
     const alerted = await maybeLowBalanceAlert(balance);
-    return NextResponse.json({ ok: true, days, balance, alerted });
+    return NextResponse.json({ ok: true, days, topUps, balance, alerted });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }

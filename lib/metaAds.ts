@@ -51,6 +51,43 @@ export async function syncAdSpend(since: string, until: string) {
   return days;
 }
 
+interface ActivityRow { event_type: string; event_time: string; extra_data?: string }
+
+/** Top-ups: Meta logs each prepaid payment as a funding_event_successful activity (amount in paise). */
+export async function syncTopUps(sinceIso: string) {
+  const data = await graph<{ data: ActivityRow[] }>(`act_${AD_ACCOUNT_ID}/activities`, {
+    fields: 'event_type,event_time,extra_data',
+    since: sinceIso,
+    limit: '500',
+  });
+  let added = 0;
+  for (const a of data.data || []) {
+    if (a.event_type !== 'funding_event_successful') continue;
+    let extra: { amount?: number; currency?: string; network_id?: string } = {};
+    try { extra = JSON.parse(a.extra_data || '{}'); } catch { /* ignore */ }
+    if (!extra.amount) continue;
+    const date = new Date(a.event_time);
+    const amount = extra.amount / 100;
+    const externalKey = `${AD_ACCOUNT_ID}:${Math.floor(date.getTime() / 1000)}:${amount}`;
+    const r = await prisma.adTopUp.upsert({
+      where: { externalKey },
+      create: { accountId: AD_ACCOUNT_ID, date, amount, currency: extra.currency || 'INR', method: extra.network_id || null, source: 'api', externalKey },
+      update: {},
+    });
+    if (r.createdAt.getTime() > Date.now() - 60_000) added++;
+  }
+  return added;
+}
+
+/** Balance = everything paid in minus everything spent; used when Meta's display string can't be parsed. */
+export async function computedBalance(): Promise<number> {
+  const [t, s] = await Promise.all([
+    prisma.adTopUp.aggregate({ where: { accountId: AD_ACCOUNT_ID }, _sum: { amount: true } }),
+    prisma.adSpendDay.aggregate({ where: { accountId: AD_ACCOUNT_ID }, _sum: { spend: true } }),
+  ]);
+  return (t._sum.amount || 0) - (s._sum.spend || 0);
+}
+
 /** Prepaid balance: funding_source_details.display_string / balance fields. */
 export async function syncBalance(): Promise<number | null> {
   const acc = await graph<{ balance?: string; funding_source_details?: { display_string?: string }; currency?: string; amount_spent?: string }>(`act_${AD_ACCOUNT_ID}`, {
@@ -60,7 +97,7 @@ export async function syncBalance(): Promise<number | null> {
   // ("Available balance: ₹2,370.00"); `balance` is the unpaid amount for postpaid.
   const ds = acc.funding_source_details?.display_string || '';
   const m = ds.replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
-  const bal = m ? Number(m[1]) : null;
+  const bal = m ? Number(m[1]) : await computedBalance();
   if (bal != null) {
     await setSetting(MONEY_SETTINGS.metaBalance, String(bal));
     await setSetting(MONEY_SETTINGS.metaBalanceAt, new Date().toISOString());

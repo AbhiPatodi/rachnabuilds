@@ -854,3 +854,19 @@ model AdSpendDay {
   @@unique([accountId, date])
   @@map("ad_spend_days")
 }
+
+model AdTopUp {
+  id          String   @id @default(cuid())
+  accountId   String
+  date        DateTime
+  amount      Float
+  currency    String   @default("INR")
+  method      String?  // UPI | card | …
+  source      String   @default("manual") // api | manual
+  externalKey String?  @unique // accountId:epochSeconds:amount — dedupes API pulls
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([accountId, date])
+  @@map("ad_top_ups")
+}
