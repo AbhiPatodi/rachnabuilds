@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { sendAuditReportReady } from '@/lib/email';
 import { sendPushToAll } from '@/lib/webpush';
 import { safeEqual } from '@/lib/auth';
+import { replyToEmail, hasInstantlyKey } from '@/lib/instantly';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -117,6 +118,24 @@ export async function POST(req: NextRequest) {
     // that the report is ready to share.
     await sendPushToAll('⚡ Report ready to share', `${report.storeName} — open the lead to WhatsApp it`, job.funnelLeadId ? `/admin/funnel-leads/${job.funnelLeadId}` : '/admin/storeproof').catch(() => {});
   }
+  // Cold-email reply waiting for this report → answer in the same thread
+  const prospect = await prisma.prospect.findUnique({ where: { email: job.email.toLowerCase() } }).catch(() => null);
+  const cr = (prospect?.coldReply || null) as { emailId?: string; eaccount?: string; subject?: string; sentAt?: string; jobId?: string } | null;
+  if (prospect && cr && !cr.sentAt && cr.emailId && cr.eaccount && hasInstantlyKey()) {
+    const link = `https://rachnabuilds.com/report/${publicToken}`;
+    const first = (job.name || '').split(' ')[0] || 'there';
+    try {
+      await replyToEmail(cr.emailId, cr.eaccount, `Re: ${(cr.subject || '').replace(/^re:\s*/i, '') || 'your store'}`,
+        `Here you go, ${first}: ${link}\n\nThat's the full check-up of ${report.storeName}, done on a phone the way your customers see it. The first findings are open; the rest unlock if you want to go through them together.\n\nIf anything's unclear, just reply here.\n\nRachna`);
+      await prisma.prospect.update({ where: { id: prospect.id }, data: { coldReply: { ...cr, sentAt: new Date().toISOString() }, reportId: report.id, stage: 'replied' } });
+      if (job.funnelLeadId) await prisma.leadActivity.create({ data: { leadId: job.funnelLeadId, type: 'system', text: `🤖 Report link sent in the cold-email thread (${link})` } }).catch(() => {});
+      await sendPushToAll('✅ Report sent to cold-email lead', `${report.storeName} → ${job.email}`, job.funnelLeadId ? `/admin/funnel-leads/${job.funnelLeadId}` : '/admin/outreach').catch(() => {});
+    } catch (e) {
+      if (job.funnelLeadId) await prisma.leadActivity.create({ data: { leadId: job.funnelLeadId, type: 'system', text: `⚠️ Could not auto-send the report in the thread: ${(e as Error).message.slice(0, 140)} — send ${link} manually` } }).catch(() => {});
+      await sendPushToAll('⚠️ Send report manually', `${report.storeName} — auto-reply failed`, job.funnelLeadId ? `/admin/funnel-leads/${job.funnelLeadId}` : '/admin/outreach').catch(() => {});
+    }
+  }
+
   if (job.funnelLeadId) {
     await prisma.leadActivity.create({
       data: { leadId: job.funnelLeadId, type: 'system', text: `Store audit completed — report ready (${report.storeName})` },

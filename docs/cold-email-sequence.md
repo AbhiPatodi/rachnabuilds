@@ -4,7 +4,7 @@ Audience: US/UK/AU/CA Shopify store owners from the Vela list (tier A+/A), perso
 Sender: Rachna Jain from rachna@ / rachna.jain@ / r.jain@ on getrachnabuilds.com, hellorachnabuilds.com, teamrachnabuilds.com.
 Rules: plain text, no links in email 1, no images, one idea per email, every email opens with something true about *their* store (`{{finding}}` comes from the scan). Sequence stops on any reply. CAN-SPAM footer with a real address and an opt-out line.
 
-Variables: `{{firstName}}`, `{{storeName}}`, `{{finding}}` (one sentence, specific), `{{reportUrl}}` (their pre-built blurred report).
+Variables: `{{firstName}}`, `{{storeName}}`, `{{finding}}` (one sentence, specific). No report link in any email: the full audit runs only when someone replies "yes", and the link is sent automatically in the same thread when it's ready (~15–20 min).
 
 ---
 
@@ -12,11 +12,11 @@ Variables: `{{firstName}}`, `{{storeName}}`, `{{finding}}` (one sentence, specif
 
 Hi {{firstName}},
 
-I ran {{storeName}} through the check-up I do for Shopify stores before I take them on, and one thing stood out: {{finding}}
+I had a quick look at {{storeName}} on my phone, the way your customers see it, and one thing stood out: {{finding}}
 
 It's usually the kind of thing that quietly costs a store orders every day without anyone noticing, because the store still "works".
 
-I put the whole check-up into a short report for you. It's already done, so if you'd like it, reply "send it" and it'll be in your inbox within a minute. No call, no pitch.
+If you'd like, I'll run the full check-up I do for my Shopify clients (speed, tracking, trust, mobile friction, about 60 checks) and send you the report. Reply "yes" and you'll have it within the hour. No call, no pitch.
 
 Rachna
 Rachna Builds · Shopify conversion specialist
@@ -29,11 +29,9 @@ If you'd rather not hear from me, reply "no" and I won't write again.
 
 Hi {{firstName}},
 
-In case it's easier than replying, here's the report: {{reportUrl}}
+Just in case my note got buried: the offer of the free check-up for {{storeName}} stands, one word back and I'll run it.
 
-The first two findings are open; the rest unlock if you want to go through them together.
-
-For context: a similar fix on a skincare store we worked on this month took the product page from 10.7 seconds to 4.7 on mobile, and the checkout went from 68 to 84 on Google's own test. Same kind of issue as yours.
+For context on why I flagged it: a similar issue on a skincare store we worked on this month, once fixed, took the product page from 10.7 seconds to 4.7 on mobile, and Google's own score from 68 to 84. Those numbers are real, not rounded.
 
 Rachna
 
@@ -45,7 +43,7 @@ Hi {{firstName}},
 
 I'll close {{storeName}}'s file for now so I'm not cluttering your inbox.
 
-The report stays live at the link above if the timing's better later, and if you ever want a second pair of eyes on the store, just reply to this thread.
+If the timing's better later, this thread will still work: reply "yes" whenever and I'll run the check-up then.
 
 Wishing you a strong Q4,
 Rachna
@@ -55,5 +53,5 @@ Rachna
 ### Notes for Rachna
 - The "similar fix" numbers in email 2 are Nuwa's real before/after (PDP LCP 10.7s→4.7s, PSI 68→84). Don't change them to round numbers; real ones read as real.
 - Email 1 deliberately has no link. We'll A/B a link-in-email-1 version on 200 leads after the domains are 4–6 weeks old.
-- Reply handling: "send it"/"yes" gets the link automatically in the same thread; questions and objections come to you (answer within the hour in working hours); "no" or unsubscribe stops everything for that person.
+- Reply handling: "yes"/"send it" queues the full StoreProof audit of their real domain; the Mac worker runs it (~15 min) and the CRM replies in the same thread with the link. Questions and objections come to you (answer within the hour in working hours); "no" or unsubscribe stops everything for that person.
 - Daily volume at launch: 20–25 per inbox (9 inboxes ≈ 200/day). Bounce > 2% or complaint > 0.3% = pause.

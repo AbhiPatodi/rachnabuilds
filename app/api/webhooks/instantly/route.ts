@@ -9,7 +9,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/auth';
 import { sendPushToAll } from '@/lib/webpush';
-import { emailsForLead, replyToEmail, hasInstantlyKey } from '@/lib/instantly';
+import { emailsForLead, hasInstantlyKey } from '@/lib/instantly';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +21,21 @@ interface Payload {
   email_account?: string; eaccount?: string; reply_text?: string; reply_text_snippet?: string; reply_subject?: string;
   firstName?: string; first_name?: string; lastName?: string; unibox_url?: string; email_id?: string; uuid?: string;
   [k: string]: unknown;
+}
+
+/** Vela stores *.myshopify.com; follow the redirect to the real storefront. */
+async function resolveStore(input: string): Promise<{ url: string; host: string } | null> {
+  if (!input) return null;
+  const url = /^https?:\/\//.test(input) ? input : `https://${input}`;
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 12000);
+    const r = await fetch(url, { redirect: 'follow', signal: ctl.signal, headers: { 'user-agent': 'Mozilla/5.0' } });
+    clearTimeout(t);
+    const host = new URL(r.url).host.replace(/^www\./, '');
+    return { url: `https://${host}`, host };
+  } catch {
+    try { const host = new URL(url).host.replace(/^www\./, ''); return { url: `https://${host}`, host }; } catch { return null; }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -70,42 +85,32 @@ export async function POST(req: NextRequest) {
   }).catch(() => {});
   if (prospect) await prisma.prospect.update({ where: { id: prospect.id }, data: { stage: negative ? 'suppressed' : 'replied', promotedLeadId: lead.id } });
 
-  // Report link: the prospect's pre-built teaser, if the scan made one
-  let reportUrl: string | null = null;
-  if (prospect?.reportId) {
-    const r = await prisma.storeProofReport.findUnique({ where: { id: prospect.reportId }, select: { publicToken: true } });
-    if (r?.publicToken) reportUrl = `https://rachnabuilds.com/report/${r.publicToken}`;
-  }
-
-  let autoReplied = false;
-  if (positive && reportUrl && hasInstantlyKey()) {
-    try {
-      const eaccount = String(p.email_account || p.eaccount || '');
-      let replyId = String(p.email_id || p.uuid || '');
-      if (!replyId || !eaccount) {
-        const mails = await emailsForLead(email, p.campaign_id);
-        const last = mails.find((m) => m.ue_type === 2) || mails[0];
-        if (last) replyId = last.id;
-      }
-      if (replyId && eaccount) {
-        const first = name.split(' ')[0];
-        await replyToEmail(replyId, eaccount, `Re: ${String(p.reply_subject || '').replace(/^re:\s*/i, '') || 'your store'}`,
-          `Here you go, ${first}: ${reportUrl}\n\nIt's the full check-up of your store, with the two biggest issues open and the rest ready when you are. If anything's unclear just reply here and I'll explain.\n\nRachna`);
-        autoReplied = true;
-        await prisma.leadActivity.create({ data: { id: 'act_' + randomBytes(10).toString('hex'), leadId: lead.id, type: 'system', text: `🤖 Auto-sent their report link in the thread (${reportUrl})` } }).catch(() => {});
-      }
-    } catch (e) {
-      await prisma.leadActivity.create({ data: { id: 'act_' + randomBytes(10).toString('hex'), leadId: lead.id, type: 'system', text: `⚠️ Auto-reply failed: ${(e as Error).message.slice(0, 160)}` } }).catch(() => {});
+  // Interested → queue the FULL audit for their real store; the link goes back
+  // in this thread when the worker finishes (see /api/storeproof/jobs complete).
+  let queued = false;
+  if (positive && !negative) {
+    const eaccount = String(p.email_account || p.eaccount || '');
+    let replyId = String(p.email_id || p.uuid || '');
+    if ((!replyId || !eaccount) && hasInstantlyKey()) {
+      try { const mails = await emailsForLead(email, p.campaign_id); const last = mails.find((m) => m.ue_type === 2) || mails[0]; if (last) replyId = replyId || last.id; } catch { /* keep going */ }
+    }
+    const store = await resolveStore(prospect?.websiteUrl || (prospect?.domain ? `https://${prospect.domain}` : lead.storeUrl || ''));
+    if (store) {
+      const job = await prisma.storeProofJob.create({ data: { storeUrl: store.url, host: store.host, name, email, funnelLeadId: lead.id, emailLead: false } });
+      if (prospect) await prisma.prospect.update({ where: { id: prospect.id }, data: { coldReply: { emailId: replyId, eaccount, subject: String(p.reply_subject || ''), at: new Date().toISOString(), jobId: job.id, campaignId: p.campaign_id || null } } });
+      if (!lead.storeUrl) await prisma.funnelLead.update({ where: { id: lead.id }, data: { storeUrl: store.url } }).catch(() => {});
+      await prisma.leadActivity.create({ data: { id: 'act_' + randomBytes(10).toString('hex'), leadId: lead.id, type: 'system', text: `⚡ Wants the report — full audit queued for ${store.host}; link will be sent in the email thread when ready` } }).catch(() => {});
+      queued = true;
     }
   }
 
   sendPushToAll(
-    negative ? '🚫 Cold-email opt-out' : positive ? (autoReplied ? '✅ Cold-email reply — report sent' : '🔥 Cold-email reply (wants report)') : '💬 Cold-email reply',
-    `${name}${prospect?.storeName ? ` · ${prospect.storeName}` : ''}${text ? `: ${text.slice(0, 90)}` : ''}${autoReplied ? '' : negative ? '' : ' — reply within the hour'}`,
+    negative ? '🚫 Cold-email opt-out' : positive ? (queued ? '🔥 Wants the report — audit running' : '🔥 Cold-email reply (wants report)') : '💬 Cold-email reply',
+    `${name}${prospect?.storeName ? ` · ${prospect.storeName}` : ''}${text ? `: ${text.slice(0, 90)}` : ''}${queued || negative ? '' : ' — reply within the hour'}`,
     `/admin/funnel-leads/${lead.id}`,
   ).catch(() => {});
 
-  return NextResponse.json({ ok: true, leadId: lead.id, positive, negative, autoReplied, reportUrl: !!reportUrl });
+  return NextResponse.json({ ok: true, leadId: lead.id, positive, negative, queued });
 }
 
 export async function GET() {

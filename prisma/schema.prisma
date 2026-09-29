@@ -707,6 +707,7 @@ model Prospect {
   reportId      String?   // StoreProofReport for their pre-built blurred report
   stage         String    @default("new") // new | queued | contacted | replied | promoted | suppressed
   promotedLeadId String?  // funnel_leads id once they reply
+  coldReply     Json?     // { emailId, eaccount, subject, at, jobId, sentAt } — where to send the report link when the audit finishes
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
