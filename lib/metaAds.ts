@@ -84,7 +84,8 @@ export async function computedBalance(): Promise<number> {
     prisma.adTopUp.aggregate({ where: { accountId: AD_ACCOUNT_ID }, _sum: { amount: true } }),
     prisma.adSpendDay.aggregate({ where: { accountId: AD_ACCOUNT_ID }, _sum: { spend: true } }),
   ]);
-  return (t._sum.amount || 0) - (s._sum.spend || 0);
+  const { gstPct } = await getMoneySettings();
+  return (t._sum.amount || 0) - (s._sum.spend || 0) * (1 + gstPct / 100);
 }
 
 /** Prepaid balance: funding_source_details.display_string / balance fields. */

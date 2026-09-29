@@ -8,11 +8,11 @@ type Tab = 'overview' | 'ads' | 'expenses' | 'income' | 'months';
 
 interface Summary {
   month: string;
-  settings: { fxUsdInr: number; adBudgetMonthly: number; minBalance: number; metaBalance: number | null; metaBalanceAt: string | null };
+  settings: { fxUsdInr: number; adBudgetMonthly: number; minBalance: number; metaBalance: number | null; metaBalanceAt: string | null; gstPct: number };
   income: { inr: number; count: number; expectedInr: number; expectedCount: number };
   expenses: { inr: number; byCategory: Record<string, number>; lines: { id: string; title: string; vendor: string | null; category: string; amount: number; currency: string; inr: number; date: string; recurring: string }[] };
   net: number;
-  ads: { spendInr: number; leads: number; costPerLead: number | null; days: { date: string; spend: number; leads: number; impressions: number; clicks: number }[]; budget: number; balance: number | null; balanceAt: string | null; burnPerDay: number; topUps: { id: string; date: string; amount: number; currency: string; method: string | null; source: string; note: string | null }[]; topUpTotal: number; allTime: { paidIn: number; spent: number } };
+  ads: { spendInr: number; spendNetInr: number; gstPct: number; leads: number; costPerLead: number | null; days: { date: string; spend: number; leads: number; impressions: number; clicks: number }[]; budget: number; balance: number | null; balanceAt: string | null; burnPerDay: number; topUps: { id: string; date: string; amount: number; currency: string; method: string | null; source: string; note: string | null }[]; topUpTotal: number; allTime: { paidIn: number; spent: number } };
   clientsWon: number;
   costPerClient: number | null;
   payments: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; fee: number | null; status: string; date: string; note: string | null; inr: number }[];
@@ -92,11 +92,11 @@ export default function MoneyPage() {
   const [showE, setShowE] = useState(false);
   const [showP, setShowP] = useState(false);
   const [editE, setEditE] = useState<string | null>(null);
-  const [set, setSet] = useState({ fxUsdInr: '', adBudgetMonthly: '', minBalance: '', metaBalance: '' });
+  const [set, setSet] = useState({ fxUsdInr: '', adBudgetMonthly: '', minBalance: '', metaBalance: '', gstPct: '' });
   const [tu, setTu] = useState({ amount: '', date: today(), method: 'UPI', note: '' });
   const [showTu, setShowTu] = useState(false);
   const addTopUp = async () => { if (await api('/api/admin/money/topups', 'POST', tu)) { setShowTu(false); setTu({ amount: '', date: today(), method: 'UPI', note: '' }); flash('Top-up added'); } };
-  useEffect(() => { if (s) setSet({ fxUsdInr: String(s.settings.fxUsdInr), adBudgetMonthly: String(s.settings.adBudgetMonthly || ''), minBalance: String(s.settings.minBalance), metaBalance: s.settings.metaBalance != null ? String(s.settings.metaBalance) : '' }); }, [s]);
+  useEffect(() => { if (s) setSet({ fxUsdInr: String(s.settings.fxUsdInr), adBudgetMonthly: String(s.settings.adBudgetMonthly || ''), minBalance: String(s.settings.minBalance), metaBalance: s.settings.metaBalance != null ? String(s.settings.metaBalance) : '', gstPct: String(s.settings.gstPct) }); }, [s]);
 
   const addExpense = async () => {
     if (await api(editE ? `/api/admin/money/expenses/${editE}` : '/api/admin/money/expenses', editE ? 'PATCH' : 'POST', { ...ef, amount: Number(ef.amount) })) {
@@ -108,7 +108,7 @@ export default function MoneyPage() {
       setShowP(false); setPf({ clientName: '', amount: '', currency: 'USD', method: 'paypal', fee: '', status: 'received', date: today(), note: '' }); flash('Payment recorded');
     }
   };
-  const saveSettings = async () => { if (await api('/api/admin/money/settings', 'PATCH', { fxUsdInr: Number(set.fxUsdInr), adBudgetMonthly: Number(set.adBudgetMonthly) || 0, minBalance: Number(set.minBalance) || 0, ...(set.metaBalance !== '' ? { metaBalance: Number(set.metaBalance) } : {}) })) flash('Settings saved'); };
+  const saveSettings = async () => { if (await api('/api/admin/money/settings', 'PATCH', { fxUsdInr: Number(set.fxUsdInr), adBudgetMonthly: Number(set.adBudgetMonthly) || 0, minBalance: Number(set.minBalance) || 0, gstPct: Number(set.gstPct) || 0, ...(set.metaBalance !== '' ? { metaBalance: Number(set.metaBalance) } : {}) })) flash('Settings saved'); };
   const syncAds = async () => { if (await api('/api/admin/money/sync-ads', 'POST')) flash('Meta spend refreshed'); };
 
   if (!s) return <div className="admin-content"><div style={{ color: 'var(--text-secondary)', fontSize: 14, padding: 40, textAlign: 'center' }}>Loading money…</div></div>;
@@ -189,7 +189,7 @@ export default function MoneyPage() {
         <>
           <div className="admin-stats">
             <Stat label="Money in" value={inr(s.income.inr)} sub={`${s.income.count} payment${s.income.count === 1 ? '' : 's'}${s.income.expectedInr ? ` · ${inr(s.income.expectedInr)} still due` : ''}`} tone="good" />
-            <Stat label="Money out" value={inr(s.expenses.inr)} sub={`ads ${inr(s.ads.spendInr)} · tools & rest ${inr(s.expenses.inr - s.ads.spendInr)}`} tone="bad" />
+            <Stat label="Money out" value={inr(s.expenses.inr)} sub={`ads ${inr(s.ads.spendInr)} incl. ${s.ads.gstPct}% GST · tools & rest ${inr(s.expenses.inr - s.ads.spendInr)}`} tone="bad" />
             <Stat label="Net this month" value={`${s.net < 0 ? '−' : ''}${inr(Math.abs(s.net))}`} tone={s.net >= 0 ? 'good' : 'bad'} />
           </div>
           <div className="admin-stats">
@@ -231,13 +231,13 @@ export default function MoneyPage() {
             </div>
           )}
           <div className="admin-stats">
-            <Stat label="Spent this month" value={inr(s.ads.spendInr)} sub={s.settings.adBudgetMonthly ? `${Math.round((s.ads.spendInr / s.settings.adBudgetMonthly) * 100)}% of ${inr(s.settings.adBudgetMonthly)} budget` : 'no monthly budget set'} tone={s.settings.adBudgetMonthly && s.ads.spendInr > s.settings.adBudgetMonthly ? 'bad' : undefined} />
+            <Stat label="Spent this month" value={inr(s.ads.spendInr)} sub={`${inr(s.ads.spendNetInr)} ad spend + ${s.ads.gstPct}% GST` + (s.settings.adBudgetMonthly ? ` · ${Math.round((s.ads.spendInr / s.settings.adBudgetMonthly) * 100)}% of budget` : '')} tone={s.settings.adBudgetMonthly && s.ads.spendInr > s.settings.adBudgetMonthly ? 'bad' : undefined} />
             <Stat label="Leads" value={String(s.ads.leads)} sub={s.ads.costPerLead != null ? `${inr(s.ads.costPerLead)} each` : undefined} />
             <Stat label="Balance" value={bal == null ? '—' : inr(bal)} sub={s.ads.balanceAt ? `as of ${new Date(s.ads.balanceAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : undefined} tone={balTone} />
           </div>
           <div className="admin-card" style={{ padding: 18, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <h2 className="admin-card-title" style={{ margin: 0 }}>Spend per day · green = days with leads</h2>
+              <h2 className="admin-card-title" style={{ margin: 0 }}>Spend per day (incl. GST) · green = days with leads</h2>
               <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={syncAds}>↻ Refresh from Meta</button>
             </div>
             {s.ads.days.length ? <Bars days={s.ads.days} budgetPerDay={s.settings.adBudgetMonthly ? s.settings.adBudgetMonthly / 30 : 0} /> : <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>No spend recorded for this month.</p>}
@@ -285,6 +285,7 @@ export default function MoneyPage() {
             <div style={grid2}>
               <div><label style={lbl}>USD → INR rate</label><input style={inp} type="number" inputMode="decimal" value={set.fxUsdInr} onChange={(e) => setSet({ ...set, fxUsdInr: e.target.value })} /></div>
               <div><label style={lbl}>Monthly ad budget (₹)</label><input style={inp} type="number" inputMode="numeric" value={set.adBudgetMonthly} onChange={(e) => setSet({ ...set, adBudgetMonthly: e.target.value })} placeholder="30000" /></div>
+              <div><label style={lbl}>GST on ad spend (%)</label><input style={inp} type="number" inputMode="numeric" value={set.gstPct} onChange={(e) => setSet({ ...set, gstPct: e.target.value })} /></div>
               <div><label style={lbl}>Warn when balance under (₹)</label><input style={inp} type="number" inputMode="numeric" value={set.minBalance} onChange={(e) => setSet({ ...set, minBalance: e.target.value })} /></div>
               <div><label style={lbl}>Balance now (₹, manual)</label><input style={inp} type="number" inputMode="numeric" value={set.metaBalance} onChange={(e) => setSet({ ...set, metaBalance: e.target.value })} placeholder="type it after a top-up" /></div>
             </div>

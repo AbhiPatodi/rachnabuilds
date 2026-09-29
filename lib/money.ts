@@ -9,6 +9,7 @@ export const MONEY_SETTINGS = {
   metaBalance: 'money_meta_balance',   // last known prepaid balance, INR
   metaBalanceAt: 'money_meta_balance_at',
   lowBalanceAlertOn: 'money_low_balance_alert_day', // YYYY-MM-DD of last push
+  gstPct: 'money_ads_gst_pct',        // GST charged on Indian ad spend (default 18)
 } as const;
 
 export const CATEGORIES = ['ads', 'tools', 'infra', 'contractors', 'other'] as const;
@@ -26,6 +27,7 @@ export async function getMoneySettings() {
     minBalance: Number(m[MONEY_SETTINGS.minBalance]) || 1500,
     metaBalance: m[MONEY_SETTINGS.metaBalance] != null ? Number(m[MONEY_SETTINGS.metaBalance]) : null,
     metaBalanceAt: m[MONEY_SETTINGS.metaBalanceAt] || null,
+    gstPct: m[MONEY_SETTINGS.gstPct] != null ? Number(m[MONEY_SETTINGS.gstPct]) : 18,
   };
 }
 
@@ -106,7 +108,10 @@ export async function monthSummary(ym: string) {
       expenseLines.push({ id: e.id, title: e.title, vendor: e.vendor, category: e.category, amount: e.amount, currency: e.currency, inr, date: dayKey(d), recurring: e.recurring });
     }
   }
-  const adSpend = adDays.reduce((a, d) => a + toInr(d.spend, d.currency, s.fxUsdInr), 0);
+  // Meta bills Indian accounts spend + GST; the balance drops by the gross amount, so that's the real cost.
+  const gst = 1 + s.gstPct / 100;
+  const adSpendNet = adDays.reduce((a, d) => a + toInr(d.spend, d.currency, s.fxUsdInr), 0);
+  const adSpend = adSpendNet * gst;
   const adLeads = adDays.reduce((a, d) => a + d.leads, 0);
   // Ads are tracked from Meta directly; don't double count a manual "ads" expense.
   const expensesInr = Object.entries(byCategory).filter(([k]) => k !== 'ads').reduce((a, [, v]) => a + v, 0) + adSpend;
@@ -126,14 +131,14 @@ export async function monthSummary(ym: string) {
     expenses: { inr: expensesInr, byCategory, lines: expenseLines.sort((a, b) => b.date.localeCompare(a.date)) },
     net: incomeInr - expensesInr,
     ads: {
-      spendInr: adSpend, leads: adLeads,
+      spendInr: adSpend, spendNetInr: adSpendNet, gstPct: s.gstPct, leads: adLeads,
       costPerLead: adLeads ? adSpend / adLeads : null,
-      days: adDays.map((d) => ({ date: dayKey(d.date), spend: d.spend, leads: d.leads, impressions: d.impressions, clicks: d.clicks })),
+      days: adDays.map((d) => ({ date: dayKey(d.date), spend: d.spend * gst, leads: d.leads, impressions: d.impressions, clicks: d.clicks })),
       budget: s.adBudgetMonthly, balance: s.metaBalance, balanceAt: s.metaBalanceAt,
       burnPerDay: adDays.length ? adSpend / adDays.filter((d) => d.spend > 0).length || 0 : 0,
       topUps: topUps.map((t) => ({ id: t.id, date: t.date.toISOString(), amount: t.amount, currency: t.currency, method: t.method, source: t.source, note: t.note })),
       topUpTotal: topUps.reduce((a, t) => a + t.amount, 0),
-      allTime: { paidIn: topUpAll._sum.amount || 0, spent: spendAll._sum.spend || 0 },
+      allTime: { paidIn: topUpAll._sum.amount || 0, spent: (spendAll._sum.spend || 0) * gst },
     },
     clientsWon: won,
     costPerClient: won ? expensesInr / won : null,
