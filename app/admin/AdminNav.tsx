@@ -98,6 +98,16 @@ export default function AdminNav() {
       </Link>
 
       <Link
+        href="/admin/outreach"
+        className={pathname.startsWith('/admin/outreach') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+        </svg>
+        Cold Email
+      </Link>
+
+      <Link
         href="/admin/storeproof"
         className={pathname.startsWith('/admin/storeproof') ? 'active' : ''}
       >
