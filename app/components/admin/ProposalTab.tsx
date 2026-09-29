@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ProposalContent, ProposalTier } from '@/lib/proposal';
 import { placeWithFlag } from '@/lib/flag';
+import { WhatsAppIcon } from '@/app/components/admin/ContactIcons';
 
 interface PView { id: string; viewedAt: string; country: string | null; city: string | null; os: string | null; browser: string | null; durationSec: number | null; scrollPct: number | null; clicks: string | null; sections?: Record<string, number> | null }
 interface Proposal {
@@ -201,7 +202,7 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
                 <a href={`/proposal/${p.token}`} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }}>Preview ↗</a>
                 <button type="button" className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} onClick={() => copy(`l${p.id}`, url)}>{copied === `l${p.id}` ? '✓ Copied' : '🔗 Copy link'}</button>
-                <button type="button" className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} onClick={() => copy(`w${p.id}`, waMsg)}>{copied === `w${p.id}` ? '✓ Copied' : '💬 Copy WhatsApp message'}</button>
+                <button type="button" className="admin-btn admin-btn-secondary" onClick={() => copy(`w${p.id}`, waMsg)} style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }}>{copied === `w${p.id}` ? '✓ Copied' : <><WhatsAppIcon s={14} /> Copy WhatsApp message</>}</button>
                 {reportUrl && <a href={reportUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }}>Report ↗</a>}
                 <button type="button" className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} onClick={() => setEditing(editing === p.id ? null : p.id)}>{editing === p.id ? 'Close editor' : '✏️ Edit'}</button>
                 {p.status === 'draft' && (

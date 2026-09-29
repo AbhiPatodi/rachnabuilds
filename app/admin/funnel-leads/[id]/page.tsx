@@ -9,7 +9,7 @@ import CallScriptView from '@/app/components/audit/CallScriptView';
 import ProposalTab from '@/app/components/admin/ProposalTab';
 import LeadPayments from '@/app/components/admin/LeadPayments';
 import { countryFlag, placeWithFlag } from '@/lib/flag';
-import ContactIcons from '@/app/components/admin/ContactIcons';
+import ContactIcons, { WhatsAppIcon, MessagesIcon, smsHref } from '@/app/components/admin/ContactIcons';
 
 interface AuditReport {
   id: string;
@@ -214,14 +214,6 @@ function CallMd({ text }: { text: string }) {
     }
   });
   return <div>{out}</div>;
-}
-
-/** iMessage/SMS deep link — opens Messages on iPhone/Mac with the number (and text) pre-filled.
- *  US leads rarely answer WhatsApp from a +91 number; a blue-bubble text is the second door. */
-function smsHref(phone: string, text?: string) {
-  const digits = phone.replace(/[^0-9+]/g, '');
-  const num = digits.startsWith('+') ? digits : `+${digits}`;
-  return text ? `sms:${num}&body=${text}` : `sms:${num}`;
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -480,13 +472,13 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <>
                         <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={upcoming.meetLink} target="_blank" rel="noopener noreferrer">Open Meet ↗</a>
                         {waDigits2 && (
-                          <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }} href={`https://wa.me/${waDigits2}?text=${waCallMsg}`} target="_blank" rel="noopener noreferrer">
-                            💬 Send Meet link on WhatsApp
+                          <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={`https://wa.me/${waDigits2}?text=${waCallMsg}`} target="_blank" rel="noopener noreferrer">
+                            <WhatsAppIcon s={15} /> Send Meet link on WhatsApp
                           </a>
                         )}
                         {waDigits2 && (
-                          <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={smsHref(waDigits2, waCallMsg)}>
-                            📱 iMessage
+                          <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={smsHref(waDigits2, waCallMsg)}>
+                            <MessagesIcon s={15} /> iMessage
                           </a>
                         )}
                       </>
@@ -567,14 +559,14 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                     </div>
                     <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                       {waDigits && (
-                        <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5 }}
+                        <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }}
                           href={`https://wa.me/${waDigits}?text=${waMsg}`} target="_blank" rel="noopener noreferrer">
-                          💬 Share on WhatsApp
+                          <WhatsAppIcon s={15} /> Share on WhatsApp
                         </a>
                       )}
                       {waDigits && (
-                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={smsHref(waDigits, waMsg)}>
-                          📱 iMessage
+                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={smsHref(waDigits, waMsg)}>
+                          <MessagesIcon s={15} /> iMessage
                         </a>
                       )}
                       <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={link} target="_blank" rel="noopener noreferrer">Teaser ↗</a>
