@@ -138,11 +138,13 @@ function infoBox(rows: Array<{ label: string; value: string }>): string {
       </td>
       <td style="padding:10px 16px;border-bottom:1px solid #F1F5F9;vertical-align:top;">
         <span style="font-size:14px;color:#1E293B;font-weight:500;">${
-          /^https:\/\/[^\s"<>]+$/.test(r.value)
-            ? `<a href="${esc(r.value)}" style="color:#06D6A0;font-weight:700;">${esc(r.value.replace('https://', ''))} ↗</a>`
+          /^https:\/\/wa\.me\//.test(r.value)
+            ? `<a href="${esc(r.value)}" style="display:inline-block;padding:9px 14px 9px 10px;border:1px solid #E2E8F0;border-radius:8px;color:#1E293B;font-weight:700;text-decoration:none;"><img src="${SITE_URL}/email/whatsapp.png" width="18" height="18" alt="" style="vertical-align:-4px;margin-right:8px;border:0;">Open WhatsApp</a>`
             : /^sms:[^\s"<>]+$/.test(r.value)
-              ? `<a href="${esc(r.value)}" style="color:#06D6A0;font-weight:700;">Open in Messages (iMessage / SMS) ↗</a>`
-              : esc(r.value)
+              ? `<a href="${esc(r.value)}" style="display:inline-block;padding:9px 14px 9px 10px;border:1px solid #E2E8F0;border-radius:8px;color:#1E293B;font-weight:700;text-decoration:none;"><img src="${SITE_URL}/email/imessage.png" width="18" height="18" alt="" style="vertical-align:-4px;margin-right:8px;border:0;">Open iMessage</a>`
+              : /^https:\/\/[^\s"<>]+$/.test(r.value)
+                ? `<a href="${esc(r.value)}" style="color:#06D6A0;font-weight:700;">${esc(r.value.replace('https://', ''))} ↗</a>`
+                : esc(r.value)
         }</span>
       </td>
     </tr>`).join('');
