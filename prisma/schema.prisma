@@ -522,6 +522,7 @@ model FunnelLead {
   auditReports  AuditReport[]
   activities    LeadActivity[]
   proposals     Proposal[]
+  payments      Payment[]
 
   @@index([stage])
   @@index([status])
@@ -796,4 +797,60 @@ model ProposalView {
 
   @@index([proposalId])
   @@map("proposal_views")
+}
+
+// ─── Money: expenses, income, ad spend ───────────────────────────────────
+
+model Expense {
+  id        String    @id @default(cuid())
+  title     String
+  vendor    String?
+  category  String    @default("tools") // ads | tools | infra | contractors | other
+  amount    Float
+  currency  String    @default("INR")   // INR | USD
+  date      DateTime                    // when it was (or will be) charged
+  recurring String    @default("none")  // none | monthly | yearly
+  active    Boolean   @default(true)    // recurring: still subscribed
+  note      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([date])
+  @@map("expenses")
+}
+
+model Payment {
+  id         String     @id @default(cuid())
+  leadId     String?
+  lead       FunnelLead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  clientName String
+  amount     Float
+  currency   String     @default("USD")
+  method     String?    // paypal | upi | bank | razorpay | cash
+  fee        Float?     // processor fee in the same currency
+  status     String     @default("received") // received | expected
+  date       DateTime   // received date, or due date when expected
+  note       String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([leadId])
+  @@index([date])
+  @@map("payments")
+}
+
+model AdSpendDay {
+  id          String   @id @default(cuid())
+  accountId   String
+  date        DateTime // day, 00:00 UTC
+  spend       Float
+  currency    String   @default("INR")
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  leads       Int      @default(0)
+  source      String   @default("api") // api | manual
+  updatedAt   DateTime @updatedAt
+
+  @@unique([accountId, date])
+  @@map("ad_spend_days")
 }

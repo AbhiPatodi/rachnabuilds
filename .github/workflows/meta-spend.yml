@@ -1,0 +1,20 @@
+name: Meta ad spend sync
+
+# Twice a day (03:30 and 15:30 UTC = 9:00 AM / 9:00 PM IST): store spend and
+# leads per day, refresh the prepaid balance, warn when it's under the line.
+on:
+  schedule:
+    - cron: '30 3,15 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull Meta spend + balance
+        run: |
+          code=$(curl -s -o /tmp/out.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://rachnabuilds.com/api/cron/meta-spend)
+          cat /tmp/out.json
+          [ "$code" = "200" ] || exit 1

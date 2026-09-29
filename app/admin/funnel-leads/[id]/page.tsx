@@ -7,6 +7,7 @@ import type { CallScriptData } from '@/lib/scriptGenerator';
 import AuditReportView from '@/app/components/audit/AuditReportView';
 import CallScriptView from '@/app/components/audit/CallScriptView';
 import ProposalTab from '@/app/components/admin/ProposalTab';
+import LeadPayments from '@/app/components/admin/LeadPayments';
 import { countryFlag, placeWithFlag } from '@/lib/flag';
 
 interface AuditReport {
@@ -659,6 +660,8 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
           </div>
+
+          <LeadPayments leadId={id} leadName={lead.name} onChange={fetchLead} />
 
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Internal notes</h3>

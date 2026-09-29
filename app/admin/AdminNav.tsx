@@ -141,6 +141,16 @@ export default function AdminNav() {
         Notifications
       </Link>
 
+      <Link
+        href="/admin/money"
+        className={pathname.startsWith('/admin/money') ? 'active' : ''}
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        Money
+      </Link>
+
       {/* SETTINGS */}
       <div className="admin-nav-section">Settings</div>
 
