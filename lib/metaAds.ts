@@ -1,7 +1,6 @@
 // Reads daily spend/leads and the prepaid balance for the Meta ad account.
-// Needs a system-user token with ads_read (META_ADS_ACCESS_TOKEN). The CAPI
-// token deliberately isn't used as a fallback: it lacks ads_read and would
-// make the UI claim a connection that always fails.
+// Uses META_ADS_ACCESS_TOKEN, or the CAPI system-user token when that user has
+// been given the ad account (its token carries ads_management/ads_read).
 import { prisma } from './prisma';
 import { MONEY_SETTINGS, setSetting, getMoneySettings, dayKey } from './money';
 import { sendPushToAll } from './webpush';
@@ -10,7 +9,7 @@ const GRAPH = 'https://graph.facebook.com/v21.0';
 export const AD_ACCOUNT_ID = process.env.META_AD_ACCOUNT_ID || '1054469927180158';
 
 function token(): string | null {
-  return process.env.META_ADS_ACCESS_TOKEN || null;
+  return process.env.META_ADS_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN || null;
 }
 
 async function graph<T>(path: string, params: Record<string, string>): Promise<T> {
