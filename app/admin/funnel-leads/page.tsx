@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import ContactIcons from '@/app/components/admin/ContactIcons';
+import AddLeadModal, { MANUAL_SOURCES } from '@/app/components/admin/AddLeadModal';
 import LeadsSubNav from '../LeadsSubNav';
 
 interface FunnelLead {
@@ -71,8 +72,9 @@ function sourceLabel(l: FunnelLead) {
 }
 
 // Segments: where the lead actually came from, as tabs with counts.
-type Segment = 'all' | 'meta' | 'social' | 'website' | 'cold';
+type Segment = 'all' | 'meta' | 'social' | 'website' | 'cold' | 'manual';
 function segmentOf(l: FunnelLead): Exclude<Segment, 'all'> {
+  if (l.utmMedium === 'manual') return 'manual';
   if (l.utmMedium === 'instant-form') return 'meta';
   if (l.utmMedium === 'ig-comment') return 'social';
   if (l.utmSource === 'cold-email' || l.utmMedium === 'cold-email') return 'cold';
@@ -84,7 +86,9 @@ const SEGMENTS: { key: Segment; label: string }[] = [
   { key: 'social', label: 'Instagram' },
   { key: 'website', label: 'Website' },
   { key: 'cold', label: 'Cold Email' },
+  { key: 'manual', label: 'Upwork & direct' },
 ];
+const hideEmail = (e: string) => e.endsWith('@no-email.local');
 
 export default function FunnelLeadsPage() {
   const [leads, setLeads] = useState<FunnelLead[]>([]);
@@ -93,6 +97,7 @@ export default function FunnelLeadsPage() {
   const [stageTab, setStageTab] = useState<StageTab>('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [segment, setSegment] = useState<Segment>('all');
+  const [adding, setAdding] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -145,9 +150,11 @@ export default function FunnelLeadsPage() {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Funnel Leads</h1>
-          <p className="admin-page-subtitle">Every inbound lead — Meta Instant Form, free-audit requests, website applications and cold-email replies</p>
+          <p className="admin-page-subtitle">Every lead — Meta Instant Form, website, cold email, plus Upwork and direct clients added by hand</p>
         </div>
+        <button type="button" className="admin-btn admin-btn-primary" onClick={() => setAdding(true)}>+ Add lead</button>
       </div>
+      {adding && <AddLeadModal onClose={() => setAdding(false)} onAdded={(id) => { window.location.href = `/admin/funnel-leads/${id}`; }} />}
 
       {error && <div className="admin-alert admin-alert-error" style={{ marginBottom: 20 }}>{error}</div>}
 
@@ -257,16 +264,17 @@ export default function FunnelLeadsPage() {
                               background: l.stage === 'applied' ? 'var(--accent-dim)' : 'var(--warn-dim)',
                               color: l.stage === 'applied' ? 'var(--accent)' : 'var(--warn)',
                             }}>
-                              {l.stage === 'applied' ? 'Applied'
+                              {l.utmMedium === 'manual' ? (MANUAL_SOURCES.find((m) => m.key === l.utmSource)?.label || 'Manual')
+                                : l.stage === 'applied' ? 'Applied'
                                 : l.utmMedium === 'instant-form' ? 'Meta form'
                                 : l.utmMedium === 'free-audit' ? 'Audit req.'
                                 : l.utmSource === 'cold-email' ? 'Cold reply'
                                 : 'Opt-in'}
                             </span>
                           </div>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{l.email}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{hideEmail(l.email) ? (l.phone || 'no email') : l.email}</div>
                         </Link>
-                        <div style={{ marginTop: 6 }}><ContactIcons phone={l.phone} whatsapp={l.whatsapp} email={l.email} /></div>
+                        <div style={{ marginTop: 6 }}><ContactIcons phone={l.phone} whatsapp={l.whatsapp} email={hideEmail(l.email) ? null : l.email} /></div>
                       </td>
                       <td className="fl-col-source" style={{ fontSize: 12.5 }}>
                         {l.utmSource ? (
