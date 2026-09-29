@@ -13,6 +13,8 @@ interface Summary {
   expenses: { inr: number; byCategory: Record<string, number>; lines: { id: string; title: string; vendor: string | null; category: string; amount: number; currency: string; inr: number; date: string; recurring: string }[] };
   net: number;
   ads: { spendInr: number; spendNetInr: number; gstPct: number; leads: number; costPerLead: number | null; days: { date: string; spend: number; leads: number; impressions: number; clicks: number }[]; budget: number; balance: number | null; balanceAt: string | null; burnPerDay: number; topUps: { id: string; date: string; amount: number; currency: string; method: string | null; source: string; note: string | null }[]; topUpTotal: number; allTime: { paidIn: number; spent: number } };
+  pending: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; date: string; note: string | null; inr: number; overdue: boolean }[];
+  pendingInr: number;
   clientsWon: number;
   costPerClient: number | null;
   payments: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; fee: number | null; status: string; date: string; note: string | null; inr: number }[];
@@ -148,6 +150,9 @@ export default function MoneyPage() {
         <button type="button" className="admin-btn admin-btn-primary" onClick={() => { setShowP(!showP); setShowE(false); }}>💰 Record payment</button>
         <button type="button" className="admin-btn admin-btn-secondary" onClick={() => { setShowE(!showE); setShowP(false); setEditE(null); }}>＋ Expense</button>
         <a className="admin-btn admin-btn-secondary" href={`/api/admin/money/export?month=${month}`}>⬇ CSV</a>
+        <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={syncAds} title={s.ads.balanceAt ? `Last sync ${new Date(s.ads.balanceAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : 'Meta not connected'}>
+          {busy ? 'Syncing…' : '↻ Sync Meta'}{s.ads.balanceAt && !busy ? <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6, fontSize: 11.5 }}>{new Date(s.ads.balanceAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</span> : null}
+        </button>
       </div>
 
       {showP && (
@@ -188,7 +193,7 @@ export default function MoneyPage() {
       {tab === 'overview' && (
         <>
           <div className="admin-stats">
-            <Stat label="Money in" value={inr(s.income.inr)} sub={`${s.income.count} payment${s.income.count === 1 ? '' : 's'}${s.income.expectedInr ? ` · ${inr(s.income.expectedInr)} still due` : ''}`} tone="good" />
+            <Stat label="Money in" value={inr(s.income.inr)} sub={`${s.income.count} payment${s.income.count === 1 ? '' : 's'}${s.pending.length ? ` · ${inr(s.pendingInr)} pending (${s.pending.length})` : ''}${s.pending.some((p) => p.overdue) ? ` · ${s.pending.filter((p) => p.overdue).length} overdue` : ''}`} tone="good" />
             <Stat label="Money out" value={inr(s.expenses.inr)} sub={`ads ${inr(s.ads.spendInr)} incl. ${s.ads.gstPct}% GST · tools & rest ${inr(s.expenses.inr - s.ads.spendInr)}`} tone="bad" />
             <Stat label="Net this month" value={`${s.net < 0 ? '−' : ''}${inr(Math.abs(s.net))}`} tone={s.net >= 0 ? 'good' : 'bad'} />
           </div>
@@ -317,6 +322,25 @@ export default function MoneyPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'income' && s.pending.length > 0 && (
+        <div className="admin-card" style={{ padding: 18, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+            <h2 className="admin-card-title" style={{ margin: 0 }}>Pending · milestones and second halves</h2>
+            <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{inr(s.pendingInr)} across {s.pending.length}</span>
+          </div>
+          {s.pending.map((p) => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, padding: '9px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 99, background: p.overdue ? 'var(--danger-dim)' : 'var(--warn-dim)', color: p.overdue ? 'var(--danger)' : 'var(--warn)' }}>{p.overdue ? 'overdue' : 'due'}</span>
+              <b>{p.leadId ? <a href={`/admin/funnel-leads/${p.leadId}`} style={{ color: 'var(--text)' }}>{p.clientName}</a> : p.clientName}</b>
+              <b style={{ color: p.overdue ? 'var(--danger)' : 'var(--text)' }}>{money(p.amount, p.currency)}</b>
+              <span style={{ color: 'var(--text-muted)' }}>{dmy(p.date)}{p.note ? ` · ${p.note}` : ''}</span>
+              <button type="button" className="admin-btn admin-btn-primary" style={{ marginLeft: 'auto', fontSize: 12 }} disabled={busy} onClick={() => api(`/api/admin/money/payments/${p.id}`, 'PATCH', { status: 'received', date: today() })}>Mark received</button>
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10 }}>Add a milestone from the lead page: Record payment → status &quot;Expected (due)&quot; with the due date and a note like &quot;Milestone 2, after speed work&quot;.</div>
         </div>
       )}
 

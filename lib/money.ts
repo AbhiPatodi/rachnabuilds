@@ -90,13 +90,14 @@ export function nextOccurrence(e: ExpenseRow, from = new Date()): Date | null {
 export async function monthSummary(ym: string) {
   const s = await getMoneySettings();
   const { start, end } = monthRange(ym);
-  const [expenses, payments, adDays, topUps, topUpAll, spendAll] = await Promise.all([
+  const [expenses, payments, adDays, topUps, topUpAll, spendAll, pendingAll] = await Promise.all([
     prisma.expense.findMany({ where: { OR: [{ recurring: { not: 'none' } }, { date: { gte: start, lt: end } }] } }),
     prisma.payment.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' }, include: { lead: { select: { name: true, storeUrl: true } } } }),
     prisma.adSpendDay.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'asc' } }),
     prisma.adTopUp.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' } }),
     prisma.adTopUp.aggregate({ _sum: { amount: true } }),
     prisma.adSpendDay.aggregate({ _sum: { spend: true } }),
+    prisma.payment.findMany({ where: { status: 'expected' }, orderBy: { date: 'asc' }, take: 100 }),
   ]);
 
   const byCategory: Record<string, number> = {};
@@ -140,6 +141,8 @@ export async function monthSummary(ym: string) {
       topUpTotal: topUps.reduce((a, t) => a + t.amount, 0),
       allTime: { paidIn: topUpAll._sum.amount || 0, spent: (spendAll._sum.spend || 0) * gst },
     },
+    pending: pendingAll.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, date: dayKey(p.date), note: p.note, inr: toInr(p.amount, p.currency, s.fxUsdInr), overdue: p.date < new Date(new Date().toISOString().slice(0, 10)) })),
+    pendingInr: pendingAll.reduce((a, p) => a + toInr(p.amount, p.currency, s.fxUsdInr), 0),
     clientsWon: won,
     costPerClient: won ? expensesInr / won : null,
     payments: payments.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, fee: p.fee, status: p.status, date: dayKey(p.date), note: p.note, inr: toInr(p.amount, p.currency, s.fxUsdInr) })),
