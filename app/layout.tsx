@@ -1,9 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AnalyticsScripts } from "./components/AnalyticsScripts";
 import { TawkChat } from "./components/TawkChat";
 import { ExitIntentPopup } from "./components/ExitIntentPopup";
 import { ThemeProvider } from "./components/ThemeProvider";
+
+// viewport-fit=cover lets env(safe-area-inset-*) resolve in the installed PWA,
+// so the admin bottom bar can sit above the iPhone home indicator.
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0B3D2E" };
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://rachnabuilds.com'),
