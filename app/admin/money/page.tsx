@@ -240,7 +240,7 @@ export default function MoneyPage() {
               <h2 className="admin-card-title" style={{ margin: 0 }}>Spend per day (incl. GST) · green = days with leads</h2>
               <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={syncAds}>↻ Refresh from Meta</button>
             </div>
-            {s.ads.days.length ? <Bars days={s.ads.days} budgetPerDay={s.settings.adBudgetMonthly ? s.settings.adBudgetMonthly / 30 : 0} /> : <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>No spend recorded for this month.</p>}
+            {s.ads.days.length ? <Bars days={s.ads.days} budgetPerDay={s.settings.adBudgetMonthly ? (s.settings.adBudgetMonthly / 30) * (1 + s.ads.gstPct / 100) : 0} /> : <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>No spend recorded for this month.</p>}
             {s.ads.days.length > 0 && (
               <div className="admin-table-wrap" style={{ marginTop: 12 }}>
                 <table className="admin-table">
