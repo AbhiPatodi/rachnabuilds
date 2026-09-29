@@ -419,9 +419,6 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             <Field label="Name" value={lead.name} />
             <Field label="Email" value={<a href={`mailto:${lead.email}`} style={{ color: 'var(--accent)' }}>{lead.email}</a>} />
             <Field label="WhatsApp" value={lead.whatsapp ? <a href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{lead.whatsapp} ↗</a> : lead.phone} />
-            {(lead.whatsapp || lead.phone) && (
-              <Field label="iMessage / SMS" value={<a href={smsHref(lead.whatsapp || lead.phone || '')} style={{ color: 'var(--accent)' }}>Open in Messages ↗</a>} />
-            )}
             <Field label="Role / Profession" value={lead.role || lead.profession} />
             <Field label="Store URL" value={lead.storeUrl ? <a href={lead.storeUrl.startsWith('http') ? lead.storeUrl : `https://${lead.storeUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{lead.storeUrl} ↗</a> : null} />
           </div>
