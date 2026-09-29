@@ -21,17 +21,26 @@ const map = (r) => {
 };
 
 // 1. submit
-let submitted = 0;
+let submitted = 0; const stats = {};
 if (!args['poll-only']) {
   const rows = (await c.query(`select id, email from prospects where tier = any($1) and "verifyStatus" = 'unverified' order by tier, score desc nulls last limit $2`, [tiers, limit])).rows;
   console.log(`submitting ${rows.length} for verification (${rows.length * 0.25} credits)`);
   const q = [...rows]; let credits = null;
-  await Promise.all(Array.from({ length: 5 }, async () => { while (q.length) { const r = q.shift(); try { const j = await api('/email-verification', { method: 'POST', body: JSON.stringify({ email: r.email }) }); credits = j.credits ?? credits; await c.query(`update prospects set "verifyStatus" = 'checking', "updatedAt" = now() where id = $1`, [r.id]); submitted++; } catch (e) { if (!/already|exists/i.test(e.message)) console.warn('submit failed', r.email, e.message.slice(0, 80)); else { await c.query(`update prospects set "verifyStatus" = 'checking' where id = $1`, [r.id]); submitted++; } } } }));
+  // Gentle, sequential: a burst of parallel submits got charged but dropped by Instantly (29 Sep).
+  // The POST usually returns the result straight away; only true 'pending' ones get polled.
+  await Promise.all(Array.from({ length: 2 }, async () => { while (q.length) { const r = q.shift(); try {
+    const j = await api('/email-verification', { method: 'POST', body: JSON.stringify({ email: r.email }) });
+    credits = j.credits ?? credits;
+    const st = map(j);
+    await c.query(`update prospects set "verifyStatus" = $2, "updatedAt" = now() where id = $1`, [r.id, st || 'checking']);
+    if (st) stats[`${j.verification_status}${j.catch_all === true ? '+catchall' : ''}`] = (stats[`${j.verification_status}${j.catch_all === true ? '+catchall' : ''}`] || 0) + 1;
+    submitted++;
+    if (credits != null && credits < 1) { console.log('out of credits, stopping'); q.length = 0; }
+  } catch (e) { console.warn('submit failed', r.email, e.message.slice(0, 80)); } } }));
   console.log('submitted', submitted, 'credits left', credits);
 }
 
-// 2. poll until done (Instantly verifies asynchronously; usually seconds to a few minutes)
-const stats = {};
+// 2. poll the ones that came back 'pending'
 for (let round = 0; round < 40; round++) {
   const pending = (await c.query(`select id, email from prospects where tier = any($1) and "verifyStatus" = 'checking' limit 2000`, [tiers])).rows;
   if (!pending.length) break;
