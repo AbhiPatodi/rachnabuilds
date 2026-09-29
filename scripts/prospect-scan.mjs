@@ -16,7 +16,8 @@ const conc = Number(args.concurrency || 4);
 const PSI = process.env.PAGESPEED_API_KEY;
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
-const c = new pg.Client({ connectionString: process.env.DATABASE_URL }); await c.connect();
+const c = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3, connectionTimeoutMillis: 40000, idleTimeoutMillis: 30000 });
+c.on('error', (e) => console.warn('pg pool error', e.message));
 
 async function get(url, ms = 20000) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
@@ -45,7 +46,9 @@ async function scan(p) {
   let products = [];
   try { products = JSON.parse(prodsRes.text).products || []; } catch { /* blocked */ }
   const currency = (H.match(/"currency":"([A-Z]{3})"/) || H.match(/Shopify\.currency\s*=\s*\{"active":"([A-Z]{3})"/) || [])[1] || 'USD';
-  const first = products.find((x) => x.variants?.[0]?.available !== false) || products[0];
+  // A physical, in-stock product with a title that reads naturally in a sentence
+  const DIGITAL = /gift ?card|e-?book|digital|download|subscription|sample|test product|tip|donation/i;
+  const first = products.find((x) => x.variants?.[0]?.available !== false && !DIGITAL.test(x.title)) || products.find((x) => !DIGITAL.test(x.title)) || products[0];
   const pdpUrl = first ? `${base}/products/${first.handle}` : null;
   const pdp = pdpUrl ? await get(pdpUrl) : null;
   const P = pdp?.text || '';
@@ -65,7 +68,8 @@ async function scan(p) {
 
   const findings = [];
   const name = (p.storeName || host.replace(/\.(com|co|net|org|io|shop|store|au|uk|ca)(\.\w+)?$/, '')).replace(/[-_]/g, ' ');
-  const pt = first ? first.title.replace(/\s+/g, ' ').slice(0, 60) : null;
+  const cleanTitle = (t) => { let x = t.replace(/\s+/g, ' ').split(/\s[|–—-]\s|\s\|/)[0].trim(); if (x.length > 42) x = x.slice(0, 42).replace(/\s+\S*$/, '') + '…'; return x; };
+  const pt = first ? cleanTitle(first.title) : null;
   if (psiRes && psiRes.lcp >= 4000) findings.push({ k: 'speed', sev: psiRes.lcp >= 7000 ? 'high' : 'medium', title: `${pt ? `The ${pt} page` : 'Your product page'} takes ${(psiRes.lcp / 1000).toFixed(1)}s to show its image on a phone`, body: `Google's own mobile test scores it ${psiRes.score}/100 and measures ${(psiRes.lcp / 1000).toFixed(1)} seconds before the main image appears. Google's 'poor' line is 4 seconds; most phone shoppers arriving from an ad or Instagram won't wait that long.` });
   if (!has.metaPixel && !has.ga4) findings.push({ k: 'tracking', sev: 'high', title: 'No Meta pixel and no Google Analytics on the store', body: `We looked at the homepage and the ${pt || 'product'} page and found neither a Meta pixel nor Google Analytics. Nothing is recording who visits, what they view, or where they drop off, so any ad money is spent blind.` });
   else if (!has.metaPixel) findings.push({ k: 'pixel', sev: 'medium', title: 'No Meta pixel, so Facebook and Instagram ads can\'t learn from your visitors', body: `Google Analytics is present, but there's no Meta pixel on the homepage or the ${pt || 'product'} page. Without it, Meta can't build audiences of people who viewed or added to cart.` });
