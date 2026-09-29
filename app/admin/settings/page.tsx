@@ -316,7 +316,7 @@ export default function SettingsPage() {
 
   return (
     <div className="admin-content" style={{ maxWidth: 720 }}>
-      <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 12.5, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+      <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 12.5, background: 'var(--warn-dim)', border: '1px solid var(--warn-line)', color: 'var(--warn)' }}>
         ⚠️ Only the <b>Funnel emails</b> tab changes live behaviour (the reminder/nudge crons read it). The homepage tabs (Stats, Hero, Services, Pricing, Process, Marquee) and the availability status are saved but not read by the live site, whose homepage is hard-coded in <code>app/HomeV2Client.tsx</code>.
       </div>
       <div className="admin-page-header">
@@ -605,9 +605,9 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Service {si + 1}</span>
-                  {svc.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: '#0B0F1A', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
+                  {svc.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: 'var(--on-accent)', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
                 </div>
-                <button type="button" onClick={() => removeService(si)} style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+                <button type="button" onClick={() => removeService(si)} style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-line)', color: 'var(--danger)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
                   Remove
                 </button>
               </div>
@@ -692,9 +692,9 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Tier {ti + 1}</span>
-                  {tier.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: '#0B0F1A', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
+                  {tier.featured && <span style={{ fontSize: 11, background: 'var(--accent)', color: 'var(--on-accent)', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Featured</span>}
                 </div>
-                <button type="button" onClick={() => removeTier(ti)} style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+                <button type="button" onClick={() => removeTier(ti)} style={{ background: 'var(--danger-dim)', border: '1px solid var(--danger-line)', color: 'var(--danger)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
                   Remove
                 </button>
               </div>

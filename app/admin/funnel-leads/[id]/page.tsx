@@ -157,14 +157,14 @@ const LABELS: Record<string, string> = {
 
 const STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  new: { label: 'New', color: '#06D6A0' },
-  confirmed: { label: 'Confirmed', color: '#38BDF8' },
-  call_booked: { label: 'Call Booked', color: '#FBBF24' },
-  showed: { label: 'Call Done ✓', color: '#A78BFA' },
-  proposal_sent: { label: 'Proposal Sent', color: '#F472B6' },
-  closed_won: { label: 'Closed Won 🎉', color: '#06D6A0' },
-  closed_lost: { label: 'Closed Lost', color: '#FF6B6B' },
-  disqualified: { label: 'Disqualified', color: '#6B7280' },
+  new: { label: 'New', color: 'var(--accent)' },
+  confirmed: { label: 'Confirmed', color: 'var(--info)' },
+  call_booked: { label: 'Call Booked', color: 'var(--warn)' },
+  showed: { label: 'Call Done ✓', color: 'var(--purple)' },
+  proposal_sent: { label: 'Proposal Sent', color: 'var(--pink)' },
+  closed_won: { label: 'Closed Won 🎉', color: 'var(--accent)' },
+  closed_lost: { label: 'Closed Lost', color: 'var(--danger)' },
+  disqualified: { label: 'Disqualified', color: 'var(--text-muted)' },
 };
 
 type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings' | 'proposal';
@@ -197,14 +197,14 @@ function CallMd({ text }: { text: string }) {
     const h2 = line.match(/^##\s+(.*)/);
     const bullet = line.match(/^(\s*)-\s+(.*)/);
     if (h2 && !h3) {
-      out.push(<div key={i} style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent, #06D6A0)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 6px' }}>{h2[1]}</div>);
+      out.push(<div key={i} style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent, var(--accent))', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 6px' }}>{h2[1]}</div>);
     } else if (h3) {
       out.push(<div key={i} style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', margin: '12px 0 4px' }}>{h3[1]}</div>);
     } else if (bullet) {
       const depth = Math.min(2, Math.floor(bullet[1].length / 2));
       out.push(
         <div key={i} style={{ display: 'flex', gap: 8, paddingLeft: 6 + depth * 14, margin: '3px 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)' }}>
-          <span style={{ color: 'var(--accent, #06D6A0)', flexShrink: 0 }}>{depth > 0 ? '◦' : '•'}</span>
+          <span style={{ color: 'var(--accent, var(--accent))', flexShrink: 0 }}>{depth > 0 ? '◦' : '•'}</span>
           <span>{bold(bullet[2], `b${i}`)}</span>
         </div>,
       );
@@ -391,7 +391,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       {tab === 'overview' && (
         <div style={{ marginTop: 20 }}>
           {lead.stage !== 'applied' && isVslLead(lead) && (
-            <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, fontSize: 13, color: '#FBBF24', fontWeight: 600 }}>
+            <div style={{ marginBottom: 16, padding: '12px 16px', background: 'var(--warn-dim)', border: '1px solid var(--warn-line)', borderRadius: 8, fontSize: 13, color: 'var(--warn)', fontWeight: 600 }}>
               ✋ Opt-in only — hasn&apos;t submitted the full application yet.
               {lead.videoWatch && lead.videoWatch.duration > 0 && (
                 <> Watched {Math.min(100, Math.round((lead.videoWatch.maxPosition / lead.videoWatch.duration) * 100))}% of the training —
@@ -400,7 +400,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
           {lead.stage === 'applied' && lead.bookings.length === 0 && (
-            <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13, color: '#38BDF8', fontWeight: 600 }}>
+            <div style={{ marginBottom: 16, padding: '12px 16px', background: 'var(--info-dim)', border: '1px solid var(--info-line)', borderRadius: 8, fontSize: 13, color: 'var(--info)', fontWeight: 600 }}>
               📞 Applied but hasn&apos;t booked a call yet — high intent, one email/call away. See the Bookings tab.
             </div>
           )}
@@ -424,7 +424,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               value={
                 lead.videoWatch && lead.videoWatch.duration > 0 ? (
                   <span>
-                    <strong style={{ color: lead.videoWatch.maxPosition / lead.videoWatch.duration >= 0.75 ? '#06D6A0' : '#FBBF24' }}>
+                    <strong style={{ color: lead.videoWatch.maxPosition / lead.videoWatch.duration >= 0.75 ? 'var(--accent)' : 'var(--warn)' }}>
                       {Math.min(100, Math.round((lead.videoWatch.maxPosition / lead.videoWatch.duration) * 100))}%
                     </strong>
                     {' '}— reached {fmtMins(lead.videoWatch.maxPosition)} of {fmtMins(lead.videoWatch.duration)}
@@ -445,7 +445,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                   <Field
                     key={q}
                     label={q.charAt(0).toUpperCase() + q.slice(1)}
-                    value={<strong style={{ color: '#06D6A0' }}>{a.replace(/_/g, ' ')}</strong>}
+                    value={<strong style={{ color: 'var(--accent)' }}>{a.replace(/_/g, ' ')}</strong>}
                   />
                 ))}
               </div>
@@ -540,7 +540,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13.5 }}>✅ Report ready — <b>{report.storeName}</b></span>
-                      <span style={{ fontSize: 12.5, color: report.viewCount > 0 ? '#06D6A0' : 'var(--text-muted)', fontWeight: report.viewCount > 0 ? 700 : 400 }}>
+                      <span style={{ fontSize: 12.5, color: report.viewCount > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: report.viewCount > 0 ? 700 : 400 }}>
                         {report.viewCount > 0 ? `\u{1F441} Viewed ${report.viewCount}\u00d7` : 'Not opened yet'}
                       </span>
                       {(() => {
@@ -562,7 +562,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={`/admin/storeproof/${report.id}`} target="_blank" rel="noopener noreferrer">Full report ↗</a>
                     </div>
                     {report.competitorsRequested && (
-                      <div style={{ marginTop: 12, fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+                      <div style={{ marginTop: 12, fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'var(--warn-dim)', border: '1px solid var(--warn-line)', color: 'var(--warn)' }}>
                         🥊 Wants a comparison vs <b>{report.competitorsRequested.split(',').join(', ')}</b> — high intent. Run the benchmark before the call.
                       </div>
                     )}
@@ -587,8 +587,8 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                                 {dev && <span>{dev}</span>}
                                 {visitNo && visitNo > 1 && <span style={{ background: 'var(--surface-2, #EEF2F0)', borderRadius: 99, padding: '1px 8px', fontSize: 11 }}>↩ visit {visitNo}</span>}
                                 {dur && <span>⏱ {dur}{v.scrollPct ? ` · ${v.scrollPct}%` : ''}</span>}
-                                {clicked.includes('whatsapp') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>💬 tapped WhatsApp</span>}
-                                {clicked.includes('book') && <span style={{ color: '#06D6A0', fontWeight: 700 }}>📅 tapped Book</span>}
+                                {clicked.includes('whatsapp') && <span style={{ color: 'var(--accent)', fontWeight: 700 }}>💬 tapped WhatsApp</span>}
+                                {clicked.includes('book') && <span style={{ color: 'var(--accent)', fontWeight: 700 }}>📅 tapped Book</span>}
                               </div>
                               {topSections.length > 0 && (
                                 <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, paddingLeft: 118 }}>
@@ -615,7 +615,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               return (
                 <div>
                   {job?.status === 'failed' && (
-                    <p style={{ fontSize: 12.5, color: '#FF6B6B', margin: '0 0 10px' }}>Last audit failed: {job.error?.slice(0, 120)} — fix and re-run.</p>
+                    <p style={{ fontSize: 12.5, color: 'var(--danger)', margin: '0 0 10px' }}>Last audit failed: {job.error?.slice(0, 120)} — fix and re-run.</p>
                   )}
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <input
@@ -800,7 +800,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
               <div className="admin-card admin-empty">
                 <div style={{ marginBottom: 8, fontSize: 32 }}>🔍</div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>{job?.status === 'failed' ? 'Last audit failed' : 'No store audit yet'}</div>
-                {job?.status === 'failed' && job.error && <div style={{ color: '#FF6B6B', fontSize: 12.5, marginBottom: 10 }}>{job.error.slice(0, 200)}</div>}
+                {job?.status === 'failed' && job.error && <div style={{ color: 'var(--danger)', fontSize: 12.5, marginBottom: 10 }}>{job.error.slice(0, 200)}</div>}
                 <div style={{ marginBottom: 16 }}>Runs the full StoreProof audit on {lead.storeUrl} (~10–15 min) and produces the teaser + full report.</div>
                 <button type="button" onClick={runAudit} disabled={busy} className="admin-btn admin-btn-primary">
                   {busy ? 'Queuing…' : job?.status === 'failed' ? '↻ Retry store audit' : '🔍 Run store audit'}
@@ -875,7 +875,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{mins} min · {done ? 'call completed' : 'upcoming'}</div>
                       </div>
-                      <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '3px 10px', borderRadius: 99, background: done ? 'rgba(6,214,160,0.12)' : 'rgba(148,163,184,0.12)', color: done ? '#06D6A0' : STATUS_META[b.status]?.color || '#94A3B8' }}>{b.status}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '3px 10px', borderRadius: 99, background: done ? 'var(--accent-dim)' : 'var(--bg-hover)', color: done ? 'var(--accent)' : STATUS_META[b.status]?.color || 'var(--text-muted)' }}>{b.status}</span>
                       {b.recordingUrl && <a href={b.recordingUrl} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-primary" style={{ fontSize: 12 }}>🎥 Watch recording</a>}
                       {b.meetLink && !done && <a href={b.meetLink} target="_blank" rel="noopener noreferrer" className="admin-btn admin-btn-secondary" style={{ fontSize: 12 }}>Join Meet</a>}
                     </div>
@@ -883,8 +883,8 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <div style={{ padding: '4px 18px 16px' }}>
                         {summaryText && <CallMd text={summaryText} />}
                         {actionText && (
-                          <div style={{ marginTop: 16, background: 'rgba(6,214,160,0.06)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 10, padding: '12px 14px' }}>
-                            <div style={{ fontSize: 12, fontWeight: 800, color: '#06D6A0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>✔ Action items</div>
+                          <div style={{ marginTop: 16, background: 'var(--accent-dim)', border: '1px solid var(--ok-line)', borderRadius: 10, padding: '12px 14px' }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>✔ Action items</div>
                             {actionText.split('\n').filter(Boolean).map((a, i) => (
                               <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', margin: '4px 0' }}>
                                 <span style={{ flexShrink: 0 }}>☐</span>

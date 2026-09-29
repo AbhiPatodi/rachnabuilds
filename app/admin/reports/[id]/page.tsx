@@ -513,7 +513,7 @@ export default function ReportManagePage() {
             className="admin-btn admin-btn-ghost"
             onClick={toggleProposalVisible}
             disabled={proposalToggling}
-            style={{ fontSize: 13, borderColor: proposalVisible ? '#06D6A0' : undefined, color: proposalVisible ? '#06D6A0' : undefined }}
+            style={{ fontSize: 13, borderColor: proposalVisible ? 'var(--accent)' : undefined, color: proposalVisible ? 'var(--accent)' : undefined }}
           >
             {proposalToggling ? '...' : proposalVisible ? '✅ Proposal: Visible to client' : '🔒 Proposal: Hidden from client'}
           </button>

@@ -56,7 +56,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Prevent flash: set theme before paint */}
-        <script dangerouslySetInnerHTML={{ __html: `try{const m=localStorage.getItem('rb_theme');document.documentElement.setAttribute('data-theme',m==='light'||m==='dark'?m:'dark');}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{const m=localStorage.getItem('rb_theme');const admin=location.pathname.startsWith('/admin');document.documentElement.setAttribute('data-theme',m==='light'||m==='dark'?m:(admin?'light':'dark'));}catch(e){}` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

@@ -158,13 +158,13 @@ export default function TestimonialsPage() {
 
   function renderStars(n: number) {
     return Array.from({ length: 5 }).map((_, i) => (
-      <span key={i} style={{ color: i < n ? '#FBBF24' : 'var(--border)', fontSize: 14 }}>★</span>
+      <span key={i} style={{ color: i < n ? 'var(--warn)' : 'var(--border)', fontSize: 14 }}>★</span>
     ));
   }
 
   return (
     <div className="admin-content">
-      <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 12.5, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+      <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 12.5, background: 'var(--warn-dim)', border: '1px solid var(--warn-line)', color: 'var(--warn)' }}>
         ⚠️ Not shown on the public site yet — the homepage is hard-coded in <code>app/HomeV2Client.tsx</code>. Edits here are saved but won&apos;t change rachnabuilds.com until this section is wired up.
       </div>
       <div className="admin-page-header">

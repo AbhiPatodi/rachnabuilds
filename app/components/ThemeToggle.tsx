@@ -28,6 +28,15 @@ export function ThemeToggle({ className = 'theme-toggle' }: { className?: string
     light: 'Light mode — click for Dark',
     dark: 'Dark mode — click for Auto',
   };
+  if (className === 'admin-theme-toggle') {
+    const next = theme === 'light' ? 'dark' : 'light';
+    return (
+      <button className={className} onClick={toggle} aria-label={`Switch to ${next} mode`} title={`Switch to ${next} mode`}>
+        {theme === 'light' ? <Moon /> : <Sun />}
+        <span>{theme === 'light' ? 'Dark mode' : 'Light mode'}</span>
+      </button>
+    );
+  }
   return (
     <button className={className} onClick={toggle} aria-label={labels[mode]} title={labels[mode]}>
       {mode === 'auto' ? <Auto /> : theme === 'light' ? <Sun /> : <Moon />}

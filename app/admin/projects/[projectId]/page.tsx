@@ -1297,8 +1297,8 @@ export default function ProjectManagePage() {
             disabled={proposalToggling}
             style={{
               fontSize: 13,
-              borderColor: proposalVisible ? '#06D6A0' : undefined,
-              color: proposalVisible ? '#06D6A0' : undefined,
+              borderColor: proposalVisible ? 'var(--accent)' : undefined,
+              color: proposalVisible ? 'var(--accent)' : undefined,
             }}
           >
             {proposalToggling ? '...' : proposalVisible ? '✅ Proposal: Visible' : '🔒 Proposal: Hidden'}
@@ -1629,14 +1629,14 @@ export default function ProjectManagePage() {
                         <button
                           type="button"
                           onClick={() => setSectionMode('builder')}
-                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: sectionMode === 'builder' ? 'var(--accent)' : 'transparent', color: sectionMode === 'builder' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: sectionMode === 'builder' ? 'var(--accent)' : 'transparent', color: sectionMode === 'builder' ? 'var(--on-accent)' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
                         >
                           📝 Bullet Builder
                         </button>
                         <button
                           type="button"
                           onClick={() => setSectionMode('json')}
-                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: sectionMode === 'json' ? 'var(--accent)' : 'transparent', color: sectionMode === 'json' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: sectionMode === 'json' ? 'var(--accent)' : 'transparent', color: sectionMode === 'json' ? 'var(--on-accent)' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
                         >
                           { } Advanced JSON
                         </button>
@@ -1757,14 +1757,14 @@ export default function ProjectManagePage() {
                             <button
                               type="button"
                               onClick={() => setEditMode('builder')}
-                              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: editMode === 'builder' ? 'var(--accent)' : 'transparent', color: editMode === 'builder' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: editMode === 'builder' ? 'var(--accent)' : 'transparent', color: editMode === 'builder' ? 'var(--on-accent)' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
                             >
                               📝 Bullet Builder
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditMode('json')}
-                              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: editMode === 'json' ? 'var(--accent)' : 'transparent', color: editMode === 'json' ? '#0B0F1A' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
+                              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: editMode === 'json' ? 'var(--accent)' : 'transparent', color: editMode === 'json' ? 'var(--on-accent)' : 'var(--text-muted)', fontWeight: 600, cursor: 'pointer' }}
                             >
                               { } Advanced JSON
                             </button>
@@ -1978,7 +1978,7 @@ export default function ProjectManagePage() {
                             {doc.approvedAt && doc.approvedBy && (
                               <span
                                 title={`Reviewed by ${doc.approvedBy} on ${new Date(doc.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 100, padding: '2px 8px', whiteSpace: 'nowrap' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--ok-line)', borderRadius: 100, padding: '2px 8px', whiteSpace: 'nowrap' }}
                               >
                                 <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                                 Reviewed · {doc.approvedBy}
@@ -2001,7 +2001,7 @@ export default function ProjectManagePage() {
                           {doc.url && !doc.url.startsWith('text://') && (
                             doc.docType === 'prototype' ? (
                               <>
-                                <span style={{ fontSize: 10, color: '#94A3B8', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                                <span style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
                                   🌐 Prototype
                                 </span>
                                 {(() => {
@@ -2158,12 +2158,12 @@ export default function ProjectManagePage() {
                                       {tab && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>→ {tab}</span>}
                                     </span>
                                     {dur != null && dur > 0 && (
-                                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'rgba(6,214,160,0.1)', color: '#06D6A0', border: '1px solid rgba(6,214,160,0.2)', flexShrink: 0 }}>
+                                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--ok-line)', flexShrink: 0 }}>
                                         {formatDuration(dur * 1000)}
                                       </span>
                                     )}
                                     {scroll != null && (
-                                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'rgba(167,139,250,0.1)', color: '#A78BFA', border: '1px solid rgba(167,139,250,0.2)', flexShrink: 0 }}>
+                                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'var(--purple-dim)', color: 'var(--purple)', border: '1px solid var(--purple-dim)', flexShrink: 0 }}>
                                         {scroll}% scroll
                                       </span>
                                     )}
@@ -2243,10 +2243,10 @@ export default function ProjectManagePage() {
                 {contracts.map(c => {
                   const label = c.phaseLabel ? `Phase ${c.phase} — ${c.phaseLabel}` : `Phase ${c.phase}`;
                   if (c.status === 'signed') return (
-                    <div key={c.phase} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, background: 'rgba(6,214,160,0.07)', border: '1px solid rgba(6,214,160,0.25)' }}>
-                      <svg width="16" height="16" fill="none" stroke="#06D6A0" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div key={c.phase} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--ok-line)' }}>
+                      <svg width="16" height="16" fill="none" stroke="var(--accent)" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                       <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#06D6A0' }}>✓ Signed</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>✓ Signed</span>
                         <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>{label}</span>
                         {c.clientSignature && <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>by "{c.clientSignature}"</span>}
                       </div>
@@ -2294,7 +2294,7 @@ export default function ProjectManagePage() {
                       <div key={c.phase} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
                         <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Phase {c.phase}{c.phaseLabel ? ` — ${c.phaseLabel}` : ''}</div>
-                          <div style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: c.status === 'signed' ? 'rgba(6,214,160,0.1)' : 'rgba(148,163,184,0.1)', color: c.status === 'signed' ? '#06D6A0' : 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.status}</div>
+                          <div style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: c.status === 'signed' ? 'var(--accent-dim)' : 'var(--bg-hover)', color: c.status === 'signed' ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.status}</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                           {rows.map((row, idx) => {
@@ -2314,7 +2314,7 @@ export default function ProjectManagePage() {
                                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{row.timing}</div>
                                   </div>
                                   <div className="admin-payment-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
-                                    {row.amount && <div style={{ fontSize: 14, fontWeight: 800, color: isPaid ? '#06D6A0' : 'var(--text-primary)' }}>{row.amount}</div>}
+                                    {row.amount && <div style={{ fontSize: 14, fontWeight: 800, color: isPaid ? 'var(--accent)' : 'var(--text-primary)' }}>{row.amount}</div>}
                                     <button
                                       disabled={paymentSaving === savingKey}
                                       onClick={async () => {
@@ -2327,7 +2327,7 @@ export default function ProjectManagePage() {
                                         setContracts(prev => prev.map(pc => pc.phase === c.phase ? { ...pc, [field]: !isPaid } : pc));
                                         setPaymentSaving(null);
                                       }}
-                                      style={{ padding: '5px 14px', borderRadius: 8, border: `1px solid ${isPaid ? '#06D6A0' : 'var(--border)'}`, background: isPaid ? 'rgba(6,214,160,0.1)' : 'var(--bg-card)', color: isPaid ? '#06D6A0' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                      style={{ padding: '5px 14px', borderRadius: 8, border: `1px solid ${isPaid ? 'var(--accent)' : 'var(--border)'}`, background: isPaid ? 'var(--accent-dim)' : 'var(--bg-card)', color: isPaid ? 'var(--accent)' : 'var(--text-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     >
                                       {paymentSaving === savingKey ? '...' : isPaid ? '✓ Paid' : 'Mark Paid'}
                                     </button>
@@ -2366,7 +2366,7 @@ export default function ProjectManagePage() {
                                       setPaymentLinkSaved(prev => ({ ...prev, [linkKey]: true }));
                                       setTimeout(() => setPaymentLinkSaved(prev => ({ ...prev, [linkKey]: false })), 2000);
                                     }}
-                                    style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${paymentLinkSaved[linkKey] ? '#06D6A0' : 'var(--border)'}`, background: paymentLinkSaved[linkKey] ? 'rgba(6,214,160,0.1)' : 'var(--bg-card)', color: paymentLinkSaved[linkKey] ? '#06D6A0' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    style={{ padding: '5px 12px', borderRadius: 8, border: `1px solid ${paymentLinkSaved[linkKey] ? 'var(--accent)' : 'var(--border)'}`, background: paymentLinkSaved[linkKey] ? 'var(--accent-dim)' : 'var(--bg-card)', color: paymentLinkSaved[linkKey] ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                                   >
                                     {paymentLinkSaving === linkKey ? '...' : paymentLinkSaved[linkKey] ? '✓ Saved!' : '💾 Save Link'}
                                   </button>
@@ -2436,7 +2436,7 @@ export default function ProjectManagePage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
               {milestones.map((m, idx) => {
-                const statusColor = { pending: '#94A3B8', in_progress: '#F59E0B', completed: '#06D6A0', blocked: '#FF6B6B' }[m.status] ?? '#94A3B8';
+                const statusColor = { pending: 'var(--text-muted)', in_progress: '#F59E0B', completed: 'var(--accent)', blocked: 'var(--danger)' }[m.status] ?? 'var(--text-muted)';
                 const statusLabel = { pending: '⏳ Pending', in_progress: '🔄 In Progress', completed: '✅ Completed', blocked: '🚫 Blocked' }[m.status] ?? m.status;
                 const isEditing = editingMilestoneId === m.id;
                 return (
@@ -2657,8 +2657,8 @@ export default function ProjectManagePage() {
                         {isAdmin ? 'Admin' : project.client.name} · {new Date(m.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(m.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                       <div style={{
-                        background: isAdmin ? '#06D6A0' : 'var(--bg-elevated)',
-                        color: isAdmin ? '#0B0F1A' : 'var(--text)',
+                        background: isAdmin ? 'var(--accent)' : 'var(--bg-elevated)',
+                        color: isAdmin ? 'var(--on-accent)' : 'var(--text)',
                         borderRadius: isAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                         padding: '10px 14px',
                         fontSize: 14,
@@ -2679,12 +2679,12 @@ export default function ProjectManagePage() {
                               marginTop: m.text ? 8 : 0,
                               padding: '4px 10px',
                               borderRadius: 20,
-                              background: isAdmin ? 'rgba(0,0,0,0.15)' : 'rgba(6,214,160,0.12)',
-                              color: isAdmin ? '#0B0F1A' : '#06D6A0',
+                              background: isAdmin ? 'rgba(0,0,0,0.15)' : 'var(--accent-dim)',
+                              color: isAdmin ? 'var(--on-accent)' : 'var(--accent)',
                               fontSize: 12,
                               fontWeight: 600,
                               textDecoration: 'none',
-                              border: isAdmin ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(6,214,160,0.3)',
+                              border: isAdmin ? '1px solid rgba(0,0,0,0.2)' : '1px solid var(--ok-line)',
                             }}
                           >
                             📎 {m.attachmentName || 'Attachment'}
@@ -2701,8 +2701,8 @@ export default function ProjectManagePage() {
             <div style={{ flexShrink: 0, borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Attachment preview */}
               {msgAttachFile && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.3)', borderRadius: 20, alignSelf: 'flex-start', fontSize: 12 }}>
-                  <span style={{ color: '#06D6A0', fontWeight: 600 }}>📎 {msgAttachFile.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'var(--accent-dim)', border: '1px solid var(--ok-line)', borderRadius: 20, alignSelf: 'flex-start', fontSize: 12 }}>
+                  <span style={{ color: 'var(--accent)', fontWeight: 600 }}>📎 {msgAttachFile.name}</span>
                   <button
                     onClick={() => { setMsgAttachFile(null); setMsgAttachError(''); if (msgFileInputRef.current) msgFileInputRef.current.value = ''; }}
                     style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
@@ -2711,7 +2711,7 @@ export default function ProjectManagePage() {
                 </div>
               )}
               {msgAttachError && (
-                <div style={{ fontSize: 12, color: '#FF6B6B' }}>{msgAttachError}</div>
+                <div style={{ fontSize: 12, color: 'var(--danger)' }}>{msgAttachError}</div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <textarea
@@ -2830,7 +2830,7 @@ export default function ProjectManagePage() {
         <div
           className="share-overlay"
           onClick={() => setShowShareModal(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div
             className="share-modal"
@@ -2893,7 +2893,7 @@ export default function ProjectManagePage() {
                     {pwSaving ? '…' : pwSaved ? '✓' : 'Save'}
                   </button>
                 </div>
-                <div style={{ fontSize: 11, color: pwSaved ? '#06D6A0' : 'var(--text-muted)', marginTop: 5, minHeight: 16 }}>
+                <div style={{ fontSize: 11, color: pwSaved ? 'var(--accent)' : 'var(--text-muted)', marginTop: 5, minHeight: 16 }}>
                   {pwSaving ? 'Saving…' : pwSaved ? '✓ Password saved — portal login updated' : sharePassword.length > 0 && sharePassword.length < 6 ? 'Min 6 characters' : ''}
                 </div>
               </div>

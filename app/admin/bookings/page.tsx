@@ -15,10 +15,10 @@ interface Booking {
 }
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  confirmed: { label: 'Confirmed', color: '#06D6A0' },
-  cancelled: { label: 'Cancelled', color: '#FF6B6B' },
-  completed: { label: 'Completed', color: '#A78BFA' },
-  no_show: { label: 'No-show', color: '#FBBF24' },
+  confirmed: { label: 'Confirmed', color: 'var(--accent)' },
+  cancelled: { label: 'Cancelled', color: 'var(--danger)' },
+  completed: { label: 'Completed', color: 'var(--purple)' },
+  no_show: { label: 'No-show', color: 'var(--warn)' },
 };
 
 export default function BookingsPage() {
@@ -148,7 +148,7 @@ export default function BookingsPage() {
                       No-show
                     </button>
                     <button type="button" disabled={busyId === b.id} onClick={() => updateStatus(b.id, 'cancelled')}
-                      style={{ marginLeft: 'auto', background: 'none', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 8, padding: '7px 12px', fontSize: 12, cursor: 'pointer' }}>
+                      style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--danger-line)', color: 'var(--danger)', borderRadius: 8, padding: '7px 12px', fontSize: 12, cursor: 'pointer' }}>
                       Cancel
                     </button>
                   </>

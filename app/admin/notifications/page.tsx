@@ -59,7 +59,7 @@ export default async function NotificationsPage() {
         </div>
         <div className="admin-stat-card">
           <div className="admin-stat-label">With Failures</div>
-          <div className="admin-stat-value" style={{ color: failedCount ? '#ef4444' : undefined }}>
+          <div className="admin-stat-value" style={{ color: failedCount ? 'var(--danger)' : undefined }}>
             {failedCount}
           </div>
         </div>
@@ -140,17 +140,17 @@ export default async function NotificationsPage() {
                         {l.body}
                       </div>
                       {l.error && (
-                        <div style={{ fontSize: 11.5, color: '#ef4444', marginTop: 4 }}>
+                        <div style={{ fontSize: 11.5, color: 'var(--danger)', marginTop: 4 }}>
                           {l.error}
                         </div>
                       )}
                     </td>
                     <td className="nl-col-delivery" style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>
-                      <span style={{ color: l.delivered ? '#06D6A0' : 'var(--text-muted)' }}>
+                      <span style={{ color: l.delivered ? 'var(--accent)' : 'var(--text-muted)' }}>
                         {l.delivered}/{l.devices}
                       </span>
                       {l.failed > 0 && (
-                        <span style={{ color: '#ef4444' }}> · {l.failed} failed</span>
+                        <span style={{ color: 'var(--danger)' }}> · {l.failed} failed</span>
                       )}
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>

@@ -46,7 +46,7 @@ export default function LeadPayments({ leadId, leadName, onChange }: { leadId: s
         <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Payments</h3>
         {Object.entries(byCur).map(([c, b]) => (
           <span key={c} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-            <b style={{ color: 'var(--accent)' }}>{money(b.got, c)}</b> received{b.due > 0 && <> · <b style={{ color: '#FBBF24' }}>{money(b.due, c)}</b> due</>}
+            <b style={{ color: 'var(--accent)' }}>{money(b.got, c)}</b> received{b.due > 0 && <> · <b style={{ color: 'var(--warn)' }}>{money(b.due, c)}</b> due</>}
           </span>
         ))}
         <button type="button" className="admin-btn admin-btn-primary" style={{ marginLeft: 'auto', fontSize: 12.5 }} onClick={() => setOpen(!open)}>💰 Record payment</button>
@@ -68,7 +68,7 @@ export default function LeadPayments({ leadId, leadName, onChange }: { leadId: s
 
       {rows.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Nothing recorded yet.</div> : rows.map((p) => (
         <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, padding: '7px 0', borderTop: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 99, background: p.status === 'received' ? 'rgba(6,214,160,0.12)' : 'rgba(251,191,36,0.12)', color: p.status === 'received' ? 'var(--accent)' : '#FBBF24' }}>{p.status}</span>
+          <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 99, background: p.status === 'received' ? 'var(--accent-dim)' : 'var(--warn-dim)', color: p.status === 'received' ? 'var(--accent)' : 'var(--warn)' }}>{p.status}</span>
           <b>{money(p.amount, p.currency)}</b>
           <span style={{ color: 'var(--text-muted)' }}>{p.method || ''} · {dmy(p.date)}{p.note ? ` · ${p.note}` : ''}</span>
           {p.status === 'expected' && <button type="button" className="admin-btn admin-btn-secondary" style={{ marginLeft: 'auto', fontSize: 11.5, padding: '3px 9px' }} disabled={busy} onClick={() => markReceived(p.id)}>Mark received</button>}

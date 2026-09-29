@@ -7,7 +7,9 @@ export type Theme = 'light' | 'dark';
 const STORAGE_KEY = 'rb_theme';
 
 export function autoTheme(): Theme {
-  return 'dark'; // brand default: dark forest green (user can still toggle light)
+  // Marketing site defaults to the dark forest brand; the admin defaults to light.
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) return 'light';
+  return 'dark';
 }
 
 interface ThemeCtx { theme: Theme; mode: ThemeMode; toggle: () => void; }
@@ -40,12 +42,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [mode, apply]);
 
   const toggle = useCallback(() => {
-    // cycle: auto → light → dark → auto
-    const next: ThemeMode = mode === 'auto' ? 'light' : mode === 'light' ? 'dark' : 'auto';
+    // Admin: plain light ↔ dark. Marketing site keeps the auto → light → dark cycle.
+    const inAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+    const next: ThemeMode = inAdmin ? (theme === 'light' ? 'dark' : 'light')
+      : mode === 'auto' ? 'light' : mode === 'light' ? 'dark' : 'auto';
     setMode(next);
     localStorage.setItem(STORAGE_KEY, next);
     apply(next);
-  }, [mode, apply]);
+  }, [mode, theme, apply]);
 
   return <ThemeCtx.Provider value={{ theme, mode, toggle }}>{children}</ThemeCtx.Provider>;
 }

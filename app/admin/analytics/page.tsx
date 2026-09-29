@@ -49,9 +49,9 @@ function timeAgo(dateStr: string) {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active: '#06D6A0',
-  completed: '#A78BFA',
-  draft: '#94A3B8',
+  active: 'var(--accent)',
+  completed: 'var(--purple)',
+  draft: 'var(--text-muted)',
 };
 
 interface GaSnapshot {
@@ -276,7 +276,7 @@ export default function AnalyticsPage() {
               padding: '4px 12px',
               borderRadius: 100,
               border: `1.5px solid ${sortKey === opt.key ? 'var(--accent)' : 'var(--border)'}`,
-              background: sortKey === opt.key ? 'rgba(6,214,160,0.08)' : 'transparent',
+              background: sortKey === opt.key ? 'var(--accent-dim)' : 'transparent',
               color: sortKey === opt.key ? 'var(--accent)' : 'var(--text-secondary)',
               fontSize: 12,
               fontWeight: 600,
@@ -351,8 +351,8 @@ export default function AnalyticsPage() {
                           display: 'inline-block',
                           fontSize: 11,
                           fontWeight: 600,
-                          color: STATUS_COLORS[proj.status] ?? '#94A3B8',
-                          background: `${STATUS_COLORS[proj.status] ?? '#94A3B8'}18`,
+                          color: STATUS_COLORS[proj.status] ?? 'var(--text-muted)',
+                          background: `${STATUS_COLORS[proj.status] ?? 'var(--text-muted)'}18`,
                           borderRadius: 100,
                           padding: '2px 10px',
                           textTransform: 'capitalize',

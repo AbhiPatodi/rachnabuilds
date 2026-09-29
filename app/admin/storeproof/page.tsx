@@ -134,10 +134,10 @@ export default function StoreProofAdminPage() {
           </p>
           {jobs.map((j) => (
             <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
-              <span style={{ fontWeight: 700, minWidth: 64, color: j.status === 'failed' ? '#FF6B6B' : j.status === 'running' ? '#38BDF8' : '#FBBF24' }}>{j.status}</span>
+              <span style={{ fontWeight: 700, minWidth: 64, color: j.status === 'failed' ? 'var(--danger)' : j.status === 'running' ? 'var(--info)' : 'var(--warn)' }}>{j.status}</span>
               <span style={{ fontWeight: 600 }}>{j.host}</span>
               <span style={{ color: 'var(--text-muted)' }}>{j.name} · {ago(j.createdAt)}{j.attempts > 1 ? ` · ${j.attempts} attempts` : ''}</span>
-              {j.error && <span style={{ color: '#FF6B6B', fontSize: 12, flexBasis: '100%' }}>{j.error.slice(0, 180)}</span>}
+              {j.error && <span style={{ color: 'var(--danger)', fontSize: 12, flexBasis: '100%' }}>{j.error.slice(0, 180)}</span>}
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
                 {j.funnelLeadId && <a className="admin-btn admin-btn-secondary" style={{ fontSize: 11.5 }} href={`/admin/funnel-leads/${j.funnelLeadId}`}>Lead →</a>}
                 {j.status === 'failed' && (
@@ -164,15 +164,15 @@ export default function StoreProofAdminPage() {
                 <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{r.host} · run {r.runStamp}</span>
                 <span style={{
                   marginLeft: 'auto', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100,
-                  background: r.clientId ? 'rgba(6,214,160,0.12)' : 'rgba(251,191,36,0.12)',
-                  color: r.clientId ? '#06D6A0' : '#FBBF24',
+                  background: r.clientId ? 'var(--accent-dim)' : 'var(--warn-dim)',
+                  color: r.clientId ? 'var(--accent)' : 'var(--warn)',
                 }}>
                   {r.clientId ? `Assigned → ${r.client?.name}` : 'Unassigned'}
                 </span>
               </div>
 
               {r.competitorsRequested && (
-                <div style={{ marginTop: 10, fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', color: '#FBBF24' }}>
+                <div style={{ marginTop: 10, fontSize: 12.5, padding: '8px 12px', borderRadius: 8, background: 'var(--warn-dim)', border: '1px solid var(--warn-line)', color: 'var(--warn)' }}>
                   🥊 Lead asked to be compared against: <b>{r.competitorsRequested.split(',').join(', ')}</b>
                   {' '}— add them to the store&apos;s competitors in StoreProof and re-run the benchmark before the call.
                 </div>
@@ -235,7 +235,7 @@ export default function StoreProofAdminPage() {
                   </a>
                 )}
 
-                <span style={{ marginLeft: 'auto', fontSize: 12.5, color: r.viewCount > 0 ? '#06D6A0' : 'var(--text-muted)', fontWeight: r.viewCount > 0 ? 700 : 400 }}
+                <span style={{ marginLeft: 'auto', fontSize: 12.5, color: r.viewCount > 0 ? 'var(--accent)' : 'var(--text-muted)', fontWeight: r.viewCount > 0 ? 700 : 400 }}
                   title={r.views.map((v) => `${new Date(v.viewedAt).toLocaleString('en-IN')}${v.country ? `  ${placeWithFlag(v.city, v.country)}` : ''}`).join('\n') || undefined}
                 >
                   {r.viewCount > 0

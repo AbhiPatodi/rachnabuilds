@@ -4,10 +4,10 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  active:    { label: 'Active',    color: '#06D6A0', bg: 'rgba(6,214,160,0.12)'   },
+  active:    { label: 'Active',    color: 'var(--accent)', bg: 'var(--accent-dim)'   },
   prospect:  { label: 'Prospect',  color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'  },
-  completed: { label: 'Completed', color: '#A78BFA', bg: 'rgba(167,139,250,0.12)' },
-  inactive:  { label: 'Inactive',  color: '#FF6B6B', bg: 'rgba(255,107,107,0.12)' },
+  completed: { label: 'Completed', color: 'var(--purple)', bg: 'var(--purple-dim)' },
+  inactive:  { label: 'Inactive',  color: 'var(--danger)', bg: 'var(--danger-dim)' },
 };
 
 export default async function DashboardPage() {
@@ -111,22 +111,22 @@ export default async function DashboardPage() {
         .dash-lead-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
         .dash-lead-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
         .dash-lead-status { font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; margin-left: auto; flex-shrink: 0; }
-        .dash-lead-status.new { background: rgba(6,214,160,.12); color: var(--accent); border: 1px solid rgba(6,214,160,.25); }
-        .dash-lead-status.contacted { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.25); }
+        .dash-lead-status.new { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--ok-line); }
+        .dash-lead-status.contacted { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple-dim); }
         .dash-lead-status.closed, .dash-lead-status.closed_lost, .dash-lead-status.disqualified { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border); }
-        .dash-lead-status.confirmed { background: rgba(56,189,248,.12); color: #38BDF8; border: 1px solid rgba(56,189,248,.25); }
-        .dash-lead-status.call_booked { background: rgba(251,191,36,.12); color: #FBBF24; border: 1px solid rgba(251,191,36,.25); }
-        .dash-lead-status.showed { background: rgba(167,139,250,.12); color: #a78bfa; border: 1px solid rgba(167,139,250,.25); }
-        .dash-lead-status.proposal_sent { background: rgba(244,114,182,.12); color: #f472b6; border: 1px solid rgba(244,114,182,.25); }
-        .dash-lead-status.closed_won { background: rgba(6,214,160,.2); color: var(--accent); border: 1px solid rgba(6,214,160,.4); }
+        .dash-lead-status.confirmed { background: var(--info-dim); color: var(--info); border: 1px solid var(--info-line); }
+        .dash-lead-status.call_booked { background: var(--warn-dim); color: var(--warn); border: 1px solid var(--warn-line); }
+        .dash-lead-status.showed { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple-dim); }
+        .dash-lead-status.proposal_sent { background: var(--pink-dim); color: #f472b6; border: 1px solid var(--pink-dim); }
+        .dash-lead-status.closed_won { background: var(--ok-line); color: var(--accent); border: 1px solid var(--ok-line); }
         .dash-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
-        .dash-notice { background: rgba(6,214,160,.06); border: 1px solid rgba(6,214,160,.2); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .dash-notice { background: var(--accent-dim); border: 1px solid var(--ok-line); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .dash-notice strong { color: var(--accent); }
-        .dash-notice.signed { background: rgba(167,139,250,.06); border-color: rgba(167,139,250,.25); }
-        .dash-notice.signed strong { color: #a78bfa; }
+        .dash-notice.signed { background: var(--purple-dim); border-color: var(--purple-dim); }
+        .dash-notice.signed strong { color: var(--purple); }
         .signed-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
         .signed-row:last-child { border-bottom: none; }
-        .signed-badge { width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; flex-shrink: 0; }
+        .signed-badge { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
         .signed-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
         .signed-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
         .signed-time { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
@@ -155,9 +155,9 @@ export default async function DashboardPage() {
         const isRecent = hoursAgo !== null && hoursAgo < 48;
         return isRecent ? (
           <div className="dash-notice signed">
-            <svg width="14" height="14" fill="none" stroke="#a78bfa" viewBox="0 0 24 24" strokeWidth={2}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <svg width="14" height="14" fill="none" stroke="var(--purple)" viewBox="0 0 24 24" strokeWidth={2}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span><strong>{newest.project.client.name}</strong> just signed the contract for <strong>{newest.project.name}</strong> — {hoursAgo === 0 ? 'just now' : `${hoursAgo}h ago`}</span>
-            <Link href={`/admin/projects/${newest.projectId}`} style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: '#a78bfa', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
+            <Link href={`/admin/projects/${newest.projectId}`} style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: 'var(--purple)', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
           </div>
         ) : null;
       })()}

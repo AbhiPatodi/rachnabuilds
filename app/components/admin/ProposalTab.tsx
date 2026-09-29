@@ -14,7 +14,7 @@ interface Proposal {
   views: PView[];
 }
 
-const STATUS_COLOR: Record<string, string> = { draft: '#94A3B8', sent: '#F472B6', accepted: '#06D6A0', declined: '#FF6B6B' };
+const STATUS_COLOR: Record<string, string> = { draft: 'var(--text-muted)', sent: 'var(--pink)', accepted: 'var(--accent)', declined: 'var(--danger)' };
 const CLICK_LABEL: Record<string, string> = { report: 'opened report 🔍', whatsapp: 'tapped WhatsApp 💬', pdf: 'PDF', choose_launch: 'tapped Launch-Ready 🎯', choose_fix: 'tapped Fix Sprint' };
 
 const inp: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 11px', color: 'var(--text)', fontSize: 13.5, fontFamily: 'inherit' };
@@ -191,7 +191,7 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
               </div>
 
               {tier && (
-                <div style={{ marginTop: 12, background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.35)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5 }}>
+                <div style={{ marginTop: 12, background: 'var(--accent-dim)', border: '1px solid var(--ok-line)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5 }}>
                   ✅ <b>Chose {tier.name} (${tier.price})</b>{p.acceptedAt && ` on ${new Date(p.acceptedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}`}
                   {p.acceptedNote && <div style={{ marginTop: 4, color: 'var(--text-secondary)' }}>&quot;{p.acceptedNote}&quot;</div>}
                   <div style={{ marginTop: 4, color: 'var(--text-secondary)' }}>Next: send payment details on WhatsApp, then set the lead to Closed Won once paid.</div>
@@ -224,9 +224,9 @@ export default function ProposalTab({ leadId, leadName, onLeadChange }: { leadId
                         <b style={{ color: 'var(--text)' }}>{new Date(v.viewedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</b>
                         {where && ` · ${where}`}{(v.os || v.browser) && ` · ${[v.os, v.browser].filter(Boolean).join(' · ')}`}
                         {fmtDur(v.durationSec) && ` · read ${fmtDur(v.durationSec)}`}{v.scrollPct ? ` · scrolled ${v.scrollPct}%` : ''}
-                        {clicks.length > 0 && <span style={{ color: '#06D6A0' }}> · {clicks.join(', ')}</span>}
+                        {clicks.length > 0 && <span style={{ color: 'var(--accent)' }}> · {clicks.join(', ')}</span>}
                         {v.city === 'Indore' && <span style={{ color: 'var(--text-muted)' }}> (probably us)</span>}
-                        {visitNo > 1 && <span style={{ color: '#F472B6', fontWeight: 700 }}> · ↩ visit {visitNo}</span>}
+                        {visitNo > 1 && <span style={{ color: 'var(--pink)', fontWeight: 700 }}> · ↩ visit {visitNo}</span>}
                         {secs.length > 0 && (
                           <div style={{ marginTop: 3, fontSize: 12 }}>
                             Read most: <b style={{ color: 'var(--text)' }}>{SECTION_LABEL[secs[0][0]] || secs[0][0]}</b>

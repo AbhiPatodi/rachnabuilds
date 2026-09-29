@@ -26,12 +26,12 @@ export default function SendTestPush({ disabled }: { disabled?: boolean }) {
         {state === 'sending' ? 'Sending…' : 'Send Test Notification'}
       </button>
       {state === 'sent' && (
-        <span style={{ fontSize: 13, color: '#06D6A0' }}>
+        <span style={{ fontSize: 13, color: 'var(--accent)' }}>
           Sent — check your device (and this list).
         </span>
       )}
       {state === 'error' && (
-        <span style={{ fontSize: 13, color: '#ef4444' }}>Failed to send.</span>
+        <span style={{ fontSize: 13, color: 'var(--danger)' }}>Failed to send.</span>
       )}
       {disabled && (
         <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>

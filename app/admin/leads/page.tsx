@@ -19,10 +19,10 @@ interface Lead {
 type FilterTab = 'all' | 'new' | 'contacted' | 'converted' | 'archived';
 
 const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }> = {
-  new: { label: 'New', color: '#06D6A0', bg: 'rgba(6,214,160,0.12)' },
+  new: { label: 'New', color: 'var(--accent)', bg: 'var(--accent-dim)' },
   contacted: { label: 'Contacted', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
-  converted: { label: 'Converted', color: '#A78BFA', bg: 'rgba(167,139,250,0.12)' },
-  archived: { label: 'Archived', color: '#6B7280', bg: 'rgba(107,114,128,0.12)' },
+  converted: { label: 'Converted', color: 'var(--purple)', bg: 'var(--purple-dim)' },
+  archived: { label: 'Archived', color: 'var(--text-muted)', bg: 'rgba(107,114,128,0.12)' },
 };
 
 const NEXT_STATUS: Record<string, string | null> = {
@@ -144,7 +144,7 @@ export default function LeadsPage() {
         </div>
         <div className="admin-stat-card">
           <div className="admin-stat-label">Converted</div>
-          <div className="admin-stat-value" style={{ color: 'var(--purple, #A78BFA)' }}>{counts.converted}</div>
+          <div className="admin-stat-value" style={{ color: 'var(--purple, var(--purple))' }}>{counts.converted}</div>
         </div>
       </div>
 

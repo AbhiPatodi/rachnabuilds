@@ -36,7 +36,7 @@ const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing:
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 };
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: 'good' | 'bad' | 'warn' }) {
-  const color = tone === 'good' ? 'var(--accent)' : tone === 'bad' ? '#FF6B6B' : tone === 'warn' ? '#FBBF24' : undefined;
+  const color = tone === 'good' ? 'var(--accent)' : tone === 'bad' ? 'var(--danger)' : tone === 'warn' ? 'var(--warn)' : undefined;
   return (
     <div className="admin-stat-card">
       <div className="admin-stat-label">{label}</div>
@@ -53,7 +53,7 @@ function Bars({ days, budgetPerDay }: { days: Summary['ads']['days']; budgetPerD
       {days.map((d) => (
         <div key={d.date} title={`${dmy(d.date)}: ${inr(d.spend)}, ${d.leads} lead${d.leads === 1 ? '' : 's'}`} style={{ flex: '1 0 12px', minWidth: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
           {d.leads > 0 && <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)' }}>{d.leads}</span>}
-          <div style={{ width: '100%', height: `${(d.spend / max) * 90}px`, background: d.leads > 0 ? 'var(--accent)' : 'rgba(148,163,184,0.45)', borderRadius: 3, border: budgetPerDay && d.spend > budgetPerDay * 1.2 ? '1px solid #FF6B6B' : 'none' }} />
+          <div style={{ width: '100%', height: `${(d.spend / max) * 90}px`, background: d.leads > 0 ? 'var(--accent)' : 'var(--bg-hover)', borderRadius: 3, border: budgetPerDay && d.spend > budgetPerDay * 1.2 ? '1px solid var(--danger)' : 'none' }} />
         </div>
       ))}
     </div>
@@ -206,7 +206,7 @@ export default function MoneyPage() {
               {catRows.length === 0 ? <p style={{ color: 'var(--text-muted)', fontSize: 13.5, margin: 0 }}>Nothing yet this month.</p> : catRows.map(([k, v]) => (
                 <div key={k} style={{ margin: '8px 0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span>{CAT[k] || k}</span><b>{inr(v)}</b></div>
-                  <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, marginTop: 4 }}><div style={{ width: `${(v / s.expenses.inr) * 100}%`, height: '100%', background: k === 'ads' ? '#F472B6' : 'var(--accent)', borderRadius: 3 }} /></div>
+                  <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, marginTop: 4 }}><div style={{ width: `${(v / s.expenses.inr) * 100}%`, height: '100%', background: k === 'ads' ? 'var(--pink)' : 'var(--accent)', borderRadius: 3 }} /></div>
                 </div>
               ))}
             </div>
@@ -331,7 +331,7 @@ export default function MoneyPage() {
                     <td><b>{money(p.amount, p.currency)}</b>{p.fee ? <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>fee {money(p.fee, p.currency)}</div> : null}</td>
                     <td>{inr(p.inr)}</td>
                     <td style={{ fontSize: 13 }}>{p.method || '—'}</td>
-                    <td><span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: p.status === 'received' ? 'rgba(6,214,160,0.12)' : 'rgba(251,191,36,0.12)', color: p.status === 'received' ? 'var(--accent)' : '#FBBF24' }}>{p.status}</span></td>
+                    <td><span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: p.status === 'received' ? 'var(--accent-dim)' : 'var(--warn-dim)', color: p.status === 'received' ? 'var(--accent)' : 'var(--warn)' }}>{p.status}</span></td>
                     <td style={{ fontSize: 13 }}>{dmy(p.date)}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {p.status === 'expected' && <button type="button" className="admin-btn admin-btn-primary" style={{ fontSize: 12, marginRight: 4 }} onClick={() => api(`/api/admin/money/payments/${p.id}`, 'PATCH', { status: 'received', date: today() })}>Mark received</button>}
@@ -354,7 +354,7 @@ export default function MoneyPage() {
                 <tr key={h.month} style={{ fontWeight: h.month === month ? 700 : 400 }}>
                   <td><button type="button" onClick={() => setMonth(h.month)} style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', fontWeight: 'inherit', fontFamily: 'inherit', fontSize: 'inherit', padding: 0 }}>{shortMonth(h.month)} {h.month.slice(0, 4)}</button></td>
                   <td style={{ color: 'var(--accent)' }}>{inr(h.income)}</td><td>{inr(h.expenses)}</td>
-                  <td style={{ color: h.net >= 0 ? 'var(--accent)' : '#FF6B6B' }}>{h.net < 0 ? '−' : ''}{inr(Math.abs(h.net))}</td>
+                  <td style={{ color: h.net >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{h.net < 0 ? '−' : ''}{inr(Math.abs(h.net))}</td>
                   <td>{inr(h.adSpend)}</td><td>{h.leads}</td><td>{h.leads ? inr(h.adSpend / h.leads) : '—'}</td>
                 </tr>
               ))}</tbody>

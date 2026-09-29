@@ -41,6 +41,45 @@
   --accent-glow: rgba(6,214,160,.25);
   --heading: 'Space Grotesk', -apple-system, sans-serif;
   --body: 'Inter', -apple-system, sans-serif;
+  /* semantic colours used by badges, chips, alerts (dark values) */
+  --text-primary: var(--text);
+  --on-accent: #0B0F1A;
+  --ok: #06D6A0;        --ok-dim: rgba(6,214,160,.12);      --ok-line: rgba(6,214,160,.3);
+  --warn: #FBBF24;      --warn-dim: rgba(251,191,36,.12);   --warn-line: rgba(251,191,36,.3);
+  --danger: #FF6B6B;    --danger-dim: rgba(255,107,107,.12); --danger-line: rgba(255,107,107,.3);
+  --info: #38BDF8;      --info-dim: rgba(56,189,248,.12);   --info-line: rgba(56,189,248,.3);
+  --purple: #A78BFA;    --purple-dim: rgba(167,139,250,.12);
+  --pink: #F472B6;      --pink-dim: rgba(244,114,182,.12);
+  --overlay: rgba(0,0,0,.6);
+  --shadow: 0 24px 64px rgba(0,0,0,.6);
+  --shadow-sm: 0 4px 18px rgba(0,0,0,.3);
+}
+/* Admin light palette: warm off-white, dark ink, deeper green so text stays readable on white */
+[data-theme="light"] .admin-layout, [data-theme="light"] .admin-login-page, .admin-layout[data-theme="light"] {
+  --bg: #F6F7F5;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F0F2EF;
+  --bg-hover: #E8EBE7;
+  --text: #16211B;
+  --text-secondary: #4B5A52;
+  --text-muted: #7A877F;
+  --border: rgba(22,33,27,.09);
+  --border-hover: rgba(22,33,27,.18);
+  --accent: #0B8F6C;
+  --accent-dim: rgba(11,143,108,.10);
+  --accent-glow: rgba(11,143,108,.18);
+  --text-primary: var(--text);
+  --on-accent: #FFFFFF;
+  --ok: #0B8F6C;        --ok-dim: rgba(11,143,108,.10);     --ok-line: rgba(11,143,108,.35);
+  --warn: #B45309;      --warn-dim: rgba(217,143,10,.12);   --warn-line: rgba(217,143,10,.4);
+  --danger: #C62828;    --danger-dim: rgba(198,40,40,.08);  --danger-line: rgba(198,40,40,.3);
+  --info: #0369A1;      --info-dim: rgba(3,105,161,.08);    --info-line: rgba(3,105,161,.3);
+  --purple: #6D4AE6;    --purple-dim: rgba(109,74,230,.10);
+  --pink: #C0267A;      --pink-dim: rgba(192,38,122,.10);
+  --coral: #C62828;     --coral-dim: rgba(198,40,40,.08);
+  --overlay: rgba(22,33,27,.45);
+  --shadow: 0 24px 64px rgba(22,33,27,.18);
+  --shadow-sm: 0 4px 18px rgba(22,33,27,.08);
 }
 .portal-root[data-theme="light"] {
   --bg: #FAFAF8;

@@ -51,14 +51,14 @@ const LABELS: Record<string, string> = {
 };
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
-  new: { label: 'New', color: '#06D6A0' },
-  confirmed: { label: 'Confirmed', color: '#38BDF8' },
-  call_booked: { label: 'Call Booked', color: '#FBBF24' },
-  showed: { label: 'Call Done ✓', color: '#A78BFA' },
-  proposal_sent: { label: 'Proposal Sent', color: '#F472B6' },
-  closed_won: { label: 'Closed Won 🎉', color: '#06D6A0' },
-  closed_lost: { label: 'Closed Lost', color: '#FF6B6B' },
-  disqualified: { label: 'Disqualified', color: '#6B7280' },
+  new: { label: 'New', color: 'var(--accent)' },
+  confirmed: { label: 'Confirmed', color: 'var(--info)' },
+  call_booked: { label: 'Call Booked', color: 'var(--warn)' },
+  showed: { label: 'Call Done ✓', color: 'var(--purple)' },
+  proposal_sent: { label: 'Proposal Sent', color: 'var(--pink)' },
+  closed_won: { label: 'Closed Won 🎉', color: 'var(--accent)' },
+  closed_lost: { label: 'Closed Lost', color: 'var(--danger)' },
+  disqualified: { label: 'Disqualified', color: 'var(--text-muted)' },
 };
 
 type StageTab = 'all' | 'applied' | 'optin';
@@ -159,7 +159,7 @@ export default function FunnelLeadsPage() {
         </div>
         <div className="admin-stat-card">
           <div className="admin-stat-label">Not applied yet</div>
-          <div className="admin-stat-value" style={{ color: '#FBBF24' }}>{leads.length - applied.length}</div>
+          <div className="admin-stat-value" style={{ color: 'var(--warn)' }}>{leads.length - applied.length}</div>
         </div>
       </div>
 
@@ -175,7 +175,7 @@ export default function FunnelLeadsPage() {
               style={{
                 padding: '7px 14px', borderRadius: 100, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
                 border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                background: active ? 'rgba(6,214,160,0.12)' : 'var(--bg-elevated)',
+                background: active ? 'var(--accent-dim)' : 'var(--bg-elevated)',
                 color: active ? 'var(--accent)' : 'var(--text-secondary)',
               }}
             >
@@ -251,8 +251,8 @@ export default function FunnelLeadsPage() {
                             <span style={{
                               marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                               padding: '2px 8px', borderRadius: 100,
-                              background: l.stage === 'applied' ? 'rgba(6,214,160,0.12)' : 'rgba(251,191,36,0.12)',
-                              color: l.stage === 'applied' ? '#06D6A0' : '#FBBF24',
+                              background: l.stage === 'applied' ? 'var(--accent-dim)' : 'var(--warn-dim)',
+                              color: l.stage === 'applied' ? 'var(--accent)' : 'var(--warn)',
                             }}>
                               {l.stage === 'applied' ? 'Applied'
                                 : l.utmMedium === 'instant-form' ? 'Meta form'
@@ -276,7 +276,7 @@ export default function FunnelLeadsPage() {
                         {(() => {
                           const a = instantFormAnswers(l);
                           return a && (
-                            <div title="Answers from the Meta Instant Form" style={{ marginTop: 3, fontSize: 11.5, fontWeight: 600, color: '#06D6A0', whiteSpace: 'nowrap' }}>
+                            <div title="Answers from the Meta Instant Form" style={{ marginTop: 3, fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap' }}>
                               {a}
                             </div>
                           );
@@ -290,7 +290,7 @@ export default function FunnelLeadsPage() {
                           return pct !== null && (
                             <span
                               title={`Watched ${Math.floor(l.videoWatch!.secondsWatched / 60)}m ${l.videoWatch!.secondsWatched % 60}s of the VSL — reached ${pct}%`}
-                              style={{ marginRight: 6, fontWeight: 700, color: pct >= 75 ? '#06D6A0' : pct >= 25 ? '#FBBF24' : 'var(--text-muted)' }}
+                              style={{ marginRight: 6, fontWeight: 700, color: pct >= 75 ? 'var(--accent)' : pct >= 25 ? 'var(--warn)' : 'var(--text-muted)' }}
                             >
                               📺{pct}%
                             </span>

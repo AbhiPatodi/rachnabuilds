@@ -17,16 +17,16 @@ const CLIENT_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#8B95A8',
-  active: '#06D6A0',
-  completed: '#A78BFA',
+  active: 'var(--accent)',
+  completed: 'var(--purple)',
 };
 
 const OVERALL_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  active:    { label: 'Active',    color: '#06D6A0', bg: 'rgba(6,214,160,0.12)'    },
+  active:    { label: 'Active',    color: 'var(--accent)', bg: 'var(--accent-dim)'    },
   prospect:  { label: 'Prospect',  color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'   },
-  completed: { label: 'Completed', color: '#A78BFA', bg: 'rgba(167,139,250,0.12)'  },
+  completed: { label: 'Completed', color: 'var(--purple)', bg: 'var(--purple-dim)'  },
   draft:     { label: 'Draft',     color: '#8B95A8', bg: 'rgba(139,149,168,0.12)'  },
-  inactive:  { label: 'Inactive',  color: '#FF6B6B', bg: 'rgba(255,107,107,0.12)'  },
+  inactive:  { label: 'Inactive',  color: 'var(--danger)', bg: 'var(--danger-dim)'  },
 };
 
 type FilterKey = 'all' | 'active' | 'prospect' | 'completed' | 'inactive';
@@ -175,7 +175,7 @@ export default function ClientsPage() {
                 padding: '6px 14px',
                 borderRadius: 8,
                 border: isActive ? `1px solid ${cfg?.color ?? 'var(--accent)'}` : '1px solid var(--border)',
-                background: isActive ? (cfg?.bg ?? 'rgba(6,214,160,0.12)') : 'var(--bg-card)',
+                background: isActive ? (cfg?.bg ?? 'var(--accent-dim)') : 'var(--bg-card)',
                 color: isActive ? (cfg?.color ?? 'var(--accent)') : 'var(--text-secondary)',
                 fontSize: 13, fontWeight: isActive ? 700 : 400,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
@@ -186,7 +186,7 @@ export default function ClientsPage() {
               {counts[f.key] > 0 && (
                 <span style={{
                   background: isActive ? (cfg?.color ?? 'var(--accent)') : 'var(--bg-elevated)',
-                  color: isActive ? '#0B0F1A' : 'var(--text-muted)',
+                  color: isActive ? 'var(--on-accent)' : 'var(--text-muted)',
                   borderRadius: 100, padding: '1px 7px', fontSize: 11, fontWeight: 700,
                 }}>
                   {counts[f.key]}
@@ -287,7 +287,7 @@ export default function ClientsPage() {
                           position: 'absolute', top: '110%', right: 0, zIndex: 50,
                           background: 'var(--bg-card)', border: '1px solid var(--border)',
                           borderRadius: 10, overflow: 'hidden', minWidth: 140,
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                          boxShadow: 'var(--shadow-sm)',
                         }}>
                           {(['prospect', 'active', 'completed', 'inactive'] as const).map(s => {
                             const cfg = OVERALL_STATUS_CONFIG[s];
@@ -377,7 +377,7 @@ export default function ClientsPage() {
                                 transition: 'border-color 0.15s',
                               }}
                               onClick={() => router.push(`/admin/projects/${p.id}`)}
-                              onMouseEnter={e => (e.currentTarget.style.borderColor = '#06D6A0')}
+                              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
                               onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                             >
                               {/* Status dot */}
@@ -389,7 +389,7 @@ export default function ClientsPage() {
                               {/* Type badge */}
                               <span style={{
                                 fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
-                                color: '#06D6A0', background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)',
+                                color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--ok-line)',
                                 borderRadius: 6, padding: '2px 7px', flexShrink: 0,
                               }}>
                                 {CLIENT_TYPE_LABELS[p.clientType] || p.clientType}
@@ -397,7 +397,7 @@ export default function ClientsPage() {
 
 
                               {/* Open arrow */}
-                              <svg width="14" height="14" fill="none" stroke="#06D6A0" strokeWidth={2} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                              <svg width="14" height="14" fill="none" stroke="var(--accent)" strokeWidth={2} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
                               </svg>
                             </div>

@@ -24,10 +24,10 @@ interface ProspectRow {
   score: number | null;
 }
 
-const TIER_COLORS: Record<string, string> = { 'A+': '#06D6A0', A: '#38BDF8', B: '#FBBF24', C: '#6B7280' };
+const TIER_COLORS: Record<string, string> = { 'A+': 'var(--accent)', A: 'var(--info)', B: 'var(--warn)', C: 'var(--text-muted)' };
 const STAGE_COLORS: Record<string, string> = {
-  new: '#6B7280', queued: '#38BDF8', contacted: '#FBBF24',
-  replied: '#06D6A0', promoted: '#A78BFA', suppressed: '#FF6B6B',
+  new: 'var(--text-muted)', queued: 'var(--info)', contacted: 'var(--warn)',
+  replied: 'var(--accent)', promoted: 'var(--purple)', suppressed: 'var(--danger)',
 };
 
 export default function ProspectsPage() {

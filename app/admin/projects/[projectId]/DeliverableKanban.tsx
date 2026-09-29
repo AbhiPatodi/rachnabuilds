@@ -86,16 +86,16 @@ interface Props {
 // ─── Column config ─────────────────────────────────────────────────────────
 
 const COLUMNS = [
-  { id: 'backlog',           label: 'Backlog',           color: '#94A3B8', bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.25)' },
+  { id: 'backlog',           label: 'Backlog',           color: 'var(--text-muted)', bg: 'var(--bg-hover)',  border: 'var(--bg-hover)' },
   { id: 'in_progress',       label: 'In Progress',       color: '#60A5FA', bg: 'rgba(96,165,250,0.1)',   border: 'rgba(96,165,250,0.25)'  },
-  { id: 'under_review',      label: 'Ready for Review',  color: '#FBBF24', bg: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.25)'  },
+  { id: 'under_review',      label: 'Ready for Review',  color: 'var(--warn)', bg: 'var(--warn-dim)',   border: 'var(--warn-line)'  },
   { id: 'changes_requested', label: 'Changes Requested', color: '#F87171', bg: 'rgba(248,113,113,0.1)',  border: 'rgba(248,113,113,0.25)' },
-  { id: 'completed',         label: 'Approved',          color: '#06D6A0', bg: 'rgba(6,214,160,0.1)',    border: 'rgba(6,214,160,0.25)'   },
+  { id: 'completed',         label: 'Approved',          color: 'var(--accent)', bg: 'var(--accent-dim)',    border: 'var(--ok-line)'   },
 ];
 const STATUS_ORDER = COLUMNS.map(c => c.id);
 
 const BUG_STATUS_LABEL: Record<string, string> = { open: 'Open', in_progress: 'In Progress', resolved: 'Fixed', reopened: 'Reopened', wont_fix: "Won't Fix" };
-const BUG_STATUS_COLOR: Record<string, string> = { open: '#F87171', in_progress: '#FBBF24', resolved: '#06D6A0', reopened: '#FBBF24', wont_fix: '#64748B' };
+const BUG_STATUS_COLOR: Record<string, string> = { open: '#F87171', in_progress: 'var(--warn)', resolved: 'var(--accent)', reopened: 'var(--warn)', wont_fix: '#64748B' };
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
@@ -187,7 +187,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
 
   const allColumns = useMemo(() => {
     const cols: typeof COLUMNS = [...COLUMNS];
-    const add = (id: string, label: string, color = '#A78BFA') => {
+    const add = (id: string, label: string, color = 'var(--purple)') => {
       if (!cols.some((c) => c.id === id)) cols.push({ id, label, color, bg: `${color}1A`, border: `${color}40` });
     };
     for (const c of extraCols) if (c?.id) add(c.id, c.label || c.id, c.color);
@@ -535,7 +535,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
       { label: `👤 ${clientName}`, name: clientName },
     ];
     return (
-      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 200, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', minWidth: 160, overflow: 'hidden', marginTop: 4 }}>
+      <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 200, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'var(--shadow-sm)', minWidth: 160, overflow: 'hidden', marginTop: 4 }}>
         {suggestions.map(s => (
           <button key={s.name} onMouseDown={e => { e.preventDefault(); onPick(s.name); setMentionOpen(null); }}
             style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13, fontWeight: 600, color: 'var(--text)', background: 'transparent', border: 'none', cursor: 'pointer' }}
@@ -553,7 +553,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
     const ms = milestones.find(m => m.id === selectedTask.milestoneId);
     return (
       <div
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
         onClick={() => setSelectedTask(null)}
       >
         <div
@@ -611,7 +611,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {selectedTask.previewUrl && (
                     <a href={selectedTask.previewUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', width: 'fit-content' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', width: 'fit-content' }}>
                       🔗 View Preview
                     </a>
                   )}
@@ -625,13 +625,13 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                         />
                         <button
                           onClick={() => downloadFile(selectedTask.attachmentUrl!, selectedTask.attachmentName || 'image.jpg')}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, fontSize: 11, color: 'var(--purple)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>
                           ⬇ Download {selectedTask.attachmentName || 'image'}
                         </button>
                       </div>
                     ) : (
                       <a href={selectedTask.attachmentUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,0.12)', color: '#A78BFA', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid rgba(167,139,250,0.3)', width: 'fit-content' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--purple-dim)', color: 'var(--purple)', fontWeight: 600, fontSize: 13, padding: '7px 14px', borderRadius: 8, textDecoration: 'none', border: '1px solid var(--purple-dim)', width: 'fit-content' }}>
                         📎 {selectedTask.attachmentName || 'Attachment'}
                       </a>
                     )
@@ -740,7 +740,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                               ) : (
                                 <span style={{ fontSize: 16 }}>📄</span>
                               )}
-                              <button onClick={() => downloadFile(s.attachmentUrl!, s.attachmentName || 'file')} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, textAlign: 'left' }}>
+                              <button onClick={() => downloadFile(s.attachmentUrl!, s.attachmentName || 'file')} style={{ fontSize: 11, color: 'var(--purple)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0, textAlign: 'left' }}>
                                 {s.attachmentName || 'Attachment'} ⬇
                               </button>
                               <button onClick={() => removeSubTaskFile(selectedTask.id, s.id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
@@ -824,7 +824,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                       isImage(f.attachmentUrl) ? (
                         <div>
                           <img src={f.attachmentUrl} alt={f.attachmentName || 'Attachment'} style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', display: 'block' }} />
-                          <button onClick={() => downloadFile(f.attachmentUrl!, f.attachmentName || 'image.jpg')} style={{ fontSize: 11, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '4px 0 0', display: 'block' }}>⬇ Download</button>
+                          <button onClick={() => downloadFile(f.attachmentUrl!, f.attachmentName || 'image.jpg')} style={{ fontSize: 11, color: 'var(--purple)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '4px 0 0', display: 'block' }}>⬇ Download</button>
                         </div>
                       ) : (
                         <a href={f.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent)' }}>📎 {f.attachmentName || 'Attachment'}</a>
@@ -834,7 +834,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                     {f.replies.length > 0 && (
                       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {f.replies.map(r => (
-                          <div key={r.id} style={{ padding: '7px 10px', background: r.addedBy === 'admin' ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)', borderRadius: 8 }}>
+                          <div key={r.id} style={{ padding: '7px 10px', background: r.addedBy === 'admin' ? 'var(--accent-dim)' : 'var(--bg-elevated)', borderRadius: 8 }}>
                             <div style={{ fontSize: 10, fontWeight: 700, color: r.addedBy === 'admin' ? 'var(--accent)' : 'var(--text-muted)', marginBottom: 2 }}>
                               {r.addedBy === 'admin' ? '🛠 You' : '👤 Client'}
                             </div>
@@ -843,7 +843,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                               isImage(r.attachmentUrl) ? (
                                 <div style={{ marginTop: 4 }}>
                                   <img src={r.attachmentUrl} alt={r.attachmentName || 'Attachment'} style={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', display: 'block' }} />
-                                  <button onClick={() => downloadFile(r.attachmentUrl!, r.attachmentName || 'image.jpg')} style={{ fontSize: 10, color: '#A78BFA', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '3px 0 0', display: 'block' }}>⬇ Download</button>
+                                  <button onClick={() => downloadFile(r.attachmentUrl!, r.attachmentName || 'image.jpg')} style={{ fontSize: 10, color: 'var(--purple)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '3px 0 0', display: 'block' }}>⬇ Download</button>
                                 </div>
                               ) : (
                                 <a href={r.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)' }}>📎 {r.attachmentName}</a>
@@ -921,13 +921,13 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>📦 Build Links</span>
         {buildLinks.map(link => (
-          <div key={link.id} style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.25)', borderRadius: 8, overflow: 'hidden' }}>
+          <div key={link.id} style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'var(--accent-dim)', border: '1px solid var(--ok-line)', borderRadius: 8, overflow: 'hidden' }}>
             <a href={link.url} target="_blank" rel="noopener noreferrer"
-              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#06D6A0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
               🔗 {link.label}
             </a>
             <button onClick={() => removeBuildLink(link.id)}
-              style={{ padding: '5px 8px', background: 'transparent', border: 'none', borderLeft: '1px solid rgba(6,214,160,0.2)', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>
+              style={{ padding: '5px 8px', background: 'transparent', border: 'none', borderLeft: '1px solid var(--ok-line)', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
         ))}
         {showAddLink ? (
@@ -1016,7 +1016,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
                         <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', lineHeight: 1.4 }}>{task.title}</div>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: task.addedBy === 'client' ? '#A78BFA' : 'var(--accent)', background: task.addedBy === 'client' ? 'rgba(167,139,250,0.1)' : 'rgba(6,214,160,0.1)', border: `1px solid ${task.addedBy === 'client' ? 'rgba(167,139,250,0.3)' : 'rgba(6,214,160,0.3)'}`, borderRadius: 6, padding: '2px 6px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: task.addedBy === 'client' ? 'var(--purple)' : 'var(--accent)', background: task.addedBy === 'client' ? 'var(--purple-dim)' : 'var(--accent-dim)', border: `1px solid ${task.addedBy === 'client' ? 'var(--purple-dim)' : 'var(--ok-line)'}`, borderRadius: 6, padding: '2px 6px', flexShrink: 0, whiteSpace: 'nowrap' }}>
                           {task.addedBy === 'client' ? '👤 Client' : '🛠 Admin'}
                         </span>
                       </div>
@@ -1037,7 +1037,7 @@ export default function DeliverableKanban({ projectId, milestones, clientSlug, c
                           {task.attachmentUrl && (
                             <a href={task.attachmentUrl} target="_blank" rel="noopener noreferrer"
                               onClick={e => e.stopPropagation()}
-                              style={{ fontSize: 11, color: '#A78BFA', fontWeight: 600, textDecoration: 'none' }}>
+                              style={{ fontSize: 11, color: 'var(--purple)', fontWeight: 600, textDecoration: 'none' }}>
                               📎 {task.attachmentName || 'File'}
                             </a>
                           )}

@@ -267,7 +267,7 @@ export default function ClientDetailPage() {
           <button
             className="admin-btn admin-btn-icon"
             onClick={() => setShowDeleteConfirm(true)}
-            style={{ fontSize: 13, borderColor: 'rgba(255,107,107,0.4)', color: '#FF6B6B' }}
+            style={{ fontSize: 13, borderColor: 'var(--danger-line)', color: 'var(--danger)' }}
           >
             Delete Client
           </button>
@@ -473,7 +473,7 @@ export default function ClientDetailPage() {
                 <label className="admin-label">New Password</label>
                 <input className="admin-input" type="text" placeholder="Enter new password (min 6 chars)" value={resetPw} onChange={e => setResetPw(e.target.value)} />
               </div>
-              {resetMsg && <div style={{ fontSize: 13, color: resetMsg.startsWith('✓') ? '#06D6A0' : '#FF6B6B' }}>{resetMsg}</div>}
+              {resetMsg && <div style={{ fontSize: 13, color: resetMsg.startsWith('✓') ? 'var(--accent)' : 'var(--danger)' }}>{resetMsg}</div>}
               <div>
                 <button className="admin-btn admin-btn-primary" onClick={handleResetPassword} disabled={resetSaving || resetPw.length < 6} style={{ fontSize: 13 }}>
                   {resetSaving ? 'Saving…' : 'Reset Password'}
@@ -486,11 +486,11 @@ export default function ClientDetailPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 16, width: '100%', maxWidth: 420, padding: 28 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#FF6B6B', marginBottom: 8 }}>Delete Client?</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--danger-line)', borderRadius: 16, width: '100%', maxWidth: 420, padding: 28 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger)', marginBottom: 8 }}>Delete Client?</div>
             <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
-              This will permanently delete <strong style={{ color: 'var(--text)' }}>{client.name}</strong> and all their projects, sections, documents, contracts, and messages. <strong style={{ color: '#FF6B6B' }}>This cannot be undone.</strong>
+              This will permanently delete <strong style={{ color: 'var(--text)' }}>{client.name}</strong> and all their projects, sections, documents, contracts, and messages. <strong style={{ color: 'var(--danger)' }}>This cannot be undone.</strong>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -503,7 +503,7 @@ export default function ClientDetailPage() {
               <button
                 onClick={handleDeleteClient}
                 disabled={deleting}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: '#FF6B6B', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: 'var(--danger)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}
               >
                 {deleting ? 'Deleting…' : 'Yes, Delete Client'}
               </button>

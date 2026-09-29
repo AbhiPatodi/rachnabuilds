@@ -150,7 +150,7 @@ function CalendarSettings() {
       </div>
 
       {connectedParam && (
-        <div className="admin-alert" style={{ marginBottom: 20, background: 'rgba(6,214,160,0.1)', color: 'var(--accent)', border: '1px solid rgba(6,214,160,0.25)' }}>
+        <div className="admin-alert" style={{ marginBottom: 20, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--ok-line)' }}>
           Connected as {connectedParam} ✓
         </div>
       )}
@@ -176,7 +176,7 @@ function CalendarSettings() {
               type="button"
               onClick={disconnect}
               disabled={disconnecting}
-              style={{ background: 'none', border: '1px solid rgba(255,107,107,0.3)', color: '#FF6B6B', borderRadius: 8, padding: '10px 18px', fontSize: 13, cursor: 'pointer' }}
+              style={{ background: 'none', border: '1px solid var(--danger-line)', color: 'var(--danger)', borderRadius: 8, padding: '10px 18px', fontSize: 13, cursor: 'pointer' }}
             >
               {disconnecting ? 'Disconnecting...' : 'Disconnect'}
             </button>

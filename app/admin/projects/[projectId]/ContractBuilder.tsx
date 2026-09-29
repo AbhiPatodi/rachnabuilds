@@ -124,8 +124,8 @@ function openPrintWindow(
         pm?.paypalLink ? `<tr><td><strong>PayPal</strong></td><td><a href="${esc(pm.paypalLink)}">${esc(pm.paypalLink)}</a></td></tr>` : '',
         pm?.bankDetails ? `<tr><td><strong>Bank Details</strong></td><td style="white-space:pre-line">${esc(pm.bankDetails)}</td></tr>` : '',
       ].filter(Boolean).join('');
-      const pmBlock = pmRows ? `<h3 style="margin:20px 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;">How to Pay</h3><table>${pmRows}</table>` : '';
-      const qrBlock = pm?.qrCodeUrl ? `<div style="margin-top:12px"><p style="font-size:12px;color:#64748b;margin-bottom:6px">Scan QR to pay:</p><img src="${esc(pm.qrCodeUrl)}" style="width:140px;height:140px;border-radius:8px;border:1px solid #e2e8f0" /></div>` : '';
+      const pmBlock = pmRows ? `<h3 style="margin:20px 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">How to Pay</h3><table>${pmRows}</table>` : '';
+      const qrBlock = pm?.qrCodeUrl ? `<div style="margin-top:12px"><p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Scan QR to pay:</p><img src="${esc(pm.qrCodeUrl)}" style="width:140px;height:140px;border-radius:8px;border:1px solid #e2e8f0" /></div>` : '';
       return `<div class="section"><h2>${num}. ${esc(s.title)}</h2><div class="fee-box"><div class="fee-label">Total Fee</div><div class="fee-amount">${esc(s.totalFee)}</div></div><table><thead><tr><th>Payment</th><th>Amount</th><th>Due</th></tr></thead><tbody>${scheduleRows}</tbody></table>${s.latePenalty ? `<p class="note">Late payment: ${esc(s.latePenalty)}</p>` : ''}${pmBlock}${qrBlock}</div>`;
     }
     if (s.type === 'text') {
@@ -142,19 +142,19 @@ function openPrintWindow(
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #1A1A2E; line-height: 1.7; padding: 48px; max-width: 920px; margin: 0 auto; background: #fff; }
 
-.header { border-bottom: 3px solid #06D6A0; padding-bottom: 24px; margin-bottom: 36px; display: flex; justify-content: space-between; align-items: flex-start; }
+.header { border-bottom: 3px solid var(--accent); padding-bottom: 24px; margin-bottom: 36px; display: flex; justify-content: space-between; align-items: flex-start; }
 .header-left h1 { font-size: 20px; font-weight: 800; color: #0B0F1A; letter-spacing: -0.01em; margin-bottom: 4px; }
-.header-left .subtitle { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #06D6A0; font-weight: 600; margin-bottom: 16px; }
+.header-left .subtitle { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 600; margin-bottom: 16px; }
 .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 32px; font-size: 12px; }
 .header-meta .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: #8B95A8; }
 .header-meta .meta-value { font-weight: 600; color: #1A1A2E; }
-.header-right .rb-logo { font-size: 28px; font-weight: 800; color: #06D6A0; letter-spacing: -0.03em; }
+.header-right .rb-logo { font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: -0.03em; }
 .header-right .rb-tagline { font-size: 10px; color: #8B95A8; text-align: right; margin-top: 4px; }
 
-.phase-badge { display: inline-block; background: #0B0F1A; color: #06D6A0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border-radius: 100px; margin-bottom: 24px; }
+.phase-badge { display: inline-block; background: #0B0F1A; color: var(--accent); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border-radius: 100px; margin-bottom: 24px; }
 
 .section { margin-bottom: 28px; page-break-inside: avoid; }
-h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #1A1A2E; border-bottom: 1.5px solid #06D6A0; padding-bottom: 5px; margin-bottom: 12px; }
+h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #1A1A2E; border-bottom: 1.5px solid var(--accent); padding-bottom: 5px; margin-bottom: 12px; }
 ul { padding-left: 20px; }
 ul li { margin-bottom: 4px; color: #4A5568; }
 
@@ -163,7 +163,7 @@ th { background: #0B0F1A; color: #fff; padding: 8px 12px; text-align: left; font
 td { padding: 8px 12px; border-bottom: 1px solid #E8ECF0; color: #4A5568; }
 tr:last-child td { border-bottom: none; }
 
-.fee-box { background: #F0FBF7; border: 2px solid #06D6A0; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
+.fee-box { background: #F0FBF7; border: 2px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
 .fee-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #4A5568; }
 .fee-amount { font-size: 26px; font-weight: 800; color: #0B0F1A; margin-top: 4px; }
 
@@ -582,7 +582,7 @@ export default function ContractBuilder({
   };
 
   const TYPE_BADGE: Record<string, string> = { bullets: 'List', timeline: 'Timeline', payment: 'Payment', text: 'Text' };
-  const TYPE_COLOR: Record<string, string> = { bullets: '#06D6A0', timeline: '#A78BFA', payment: '#F59E0B', text: '#64748B' };
+  const TYPE_COLOR: Record<string, string> = { bullets: 'var(--accent)', timeline: 'var(--purple)', payment: '#F59E0B', text: '#64748B' };
 
   // ── Empty state (no phases yet) ─────────────────────────────────────────────
   if (contracts.length === 0) {
@@ -595,7 +595,7 @@ export default function ContractBuilder({
         </div>
         <button
           onClick={() => setShowAddPhase(true)}
-          style={{ padding: '10px 24px', borderRadius: 10, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
+          style={{ padding: '10px 24px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
         >
           + Create Phase 1
         </button>
@@ -612,7 +612,7 @@ export default function ContractBuilder({
             />
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleAddPhase} disabled={addingPhase}
-                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: addingPhase ? 0.7 : 1 }}>
+                style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: addingPhase ? 0.7 : 1 }}>
                 {addingPhase ? 'Creating…' : 'Create Phase 1'}
               </button>
               <button onClick={() => { setShowAddPhase(false); setNewPhaseLabel(''); }}
@@ -638,9 +638,9 @@ export default function ContractBuilder({
             style={{
               padding: '6px 16px',
               borderRadius: 8,
-              border: activePhase === p.phase ? '1.5px solid #06D6A0' : '1px solid var(--border)',
-              background: activePhase === p.phase ? 'rgba(6,214,160,0.08)' : 'var(--bg-elevated)',
-              color: activePhase === p.phase ? '#06D6A0' : 'var(--text-secondary)',
+              border: activePhase === p.phase ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+              background: activePhase === p.phase ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+              color: activePhase === p.phase ? 'var(--accent)' : 'var(--text-secondary)',
               fontWeight: 600,
               fontSize: 13,
               cursor: 'pointer',
@@ -655,8 +655,8 @@ export default function ContractBuilder({
               fontWeight: 700,
               padding: '2px 7px',
               borderRadius: 100,
-              background: p.status === 'signed' ? 'rgba(6,214,160,0.15)' : p.status === 'sent' ? 'rgba(245,158,11,0.15)' : 'rgba(139,149,168,0.15)',
-              color: p.status === 'signed' ? '#06D6A0' : p.status === 'sent' ? '#F59E0B' : '#8B95A8',
+              background: p.status === 'signed' ? 'var(--accent-dim)' : p.status === 'sent' ? 'rgba(245,158,11,0.15)' : 'rgba(139,149,168,0.15)',
+              color: p.status === 'signed' ? 'var(--accent)' : p.status === 'sent' ? '#F59E0B' : '#8B95A8',
             }}>
               {p.status === 'signed' ? '✓ Signed' : p.status === 'sent' ? 'Sent' : 'Draft'}
             </span>
@@ -690,7 +690,7 @@ export default function ContractBuilder({
             />
           </div>
           <button onClick={handleAddPhase} disabled={addingPhase}
-            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: addingPhase ? 0.7 : 1, marginBottom: 1 }}>
+            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: addingPhase ? 0.7 : 1, marginBottom: 1 }}>
             {addingPhase ? 'Creating…' : 'Confirm'}
           </button>
           <button onClick={() => { setShowAddPhase(false); setNewPhaseLabel(''); }}
@@ -721,7 +721,7 @@ export default function ContractBuilder({
             <div style={{ display: 'flex', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {(['build', 'preview'] as const).map(m => (
                 <button key={m} onClick={() => setMode(m)}
-                  style={{ padding: '7px 18px', border: 'none', background: mode === m ? '#06D6A0' : 'transparent', color: mode === m ? '#0B0F1A' : 'var(--text-secondary)', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}>
+                  style={{ padding: '7px 18px', border: 'none', background: mode === m ? 'var(--accent)' : 'transparent', color: mode === m ? 'var(--on-accent)' : 'var(--text-secondary)', fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}>
                   {m === 'build' ? '✏️ Build' : '👁 Preview'}
                 </button>
               ))}
@@ -730,8 +730,8 @@ export default function ContractBuilder({
               {/* Status badge */}
               <span style={{
                 padding: '4px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700,
-                background: activeContract.status === 'signed' ? 'rgba(6,214,160,0.12)' : activeContract.status === 'sent' ? 'rgba(167,139,250,0.12)' : 'rgba(100,116,139,0.12)',
-                color: activeContract.status === 'signed' ? '#06D6A0' : activeContract.status === 'sent' ? '#A78BFA' : '#64748B',
+                background: activeContract.status === 'signed' ? 'var(--accent-dim)' : activeContract.status === 'sent' ? 'var(--purple-dim)' : 'rgba(100,116,139,0.12)',
+                color: activeContract.status === 'signed' ? 'var(--accent)' : activeContract.status === 'sent' ? 'var(--purple)' : '#64748B',
                 border: `1px solid ${activeContract.status === 'signed' ? '#06D6A040' : activeContract.status === 'sent' ? '#A78BFA40' : '#64748B40'}`,
               }}>
                 {activeContract.status === 'signed' ? '✓ Signed' : activeContract.status === 'sent' ? '📨 Sent to Client' : '📝 Draft'}
@@ -747,11 +747,11 @@ export default function ContractBuilder({
                 🖨 Print / PDF
               </button>
               <button onClick={handleSave} disabled={saving}
-                style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: '#06D6A0', color: '#0B0F1A', fontSize: 13, cursor: 'pointer', fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
+                style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontSize: 13, cursor: 'pointer', fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Draft'}
               </button>
               <button onClick={handleSend} disabled={sending}
-                style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeContract.status === 'signed' ? '#64748B' : '#A78BFA', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 700, opacity: sending ? 0.7 : 1 }}>
+                style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: activeContract.status === 'signed' ? '#64748B' : 'var(--purple)', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 700, opacity: sending ? 0.7 : 1 }}>
                 {sending ? 'Sending…' : activeContract.status === 'draft' ? '📨 Send to Client' : '🔁 Resend to Client'}
               </button>
             </div>
@@ -784,7 +784,7 @@ export default function ContractBuilder({
                       {TYPE_BADGE[section.type]}
                     </span>
                     <button onClick={() => deleteSection(section.id)}
-                      style={{ background: 'none', border: 'none', color: '#FF6B6B', cursor: 'pointer', fontSize: 16, padding: '2px 4px', opacity: 0.7 }} title="Remove section">
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 16, padding: '2px 4px', opacity: 0.7 }} title="Remove section">
                       🗑
                     </button>
                   </div>
