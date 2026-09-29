@@ -1,374 +1,166 @@
+// Admin home: what needs attention today, this month's numbers, and the
+// latest activity — leads, calls, proposals, payments, ads, cold email.
+// Website content and the client portal moved to a compact row at the bottom.
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { getMoneySettings, monthSummary, ymOf } from '@/lib/money';
+import { placeWithFlag } from '@/lib/flag';
 
 export const dynamic = 'force-dynamic';
 
-const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  active:    { label: 'Active',    color: 'var(--accent)', bg: 'var(--accent-dim)'   },
-  prospect:  { label: 'Prospect',  color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'  },
-  completed: { label: 'Completed', color: 'var(--purple)', bg: 'var(--purple-dim)' },
-  inactive:  { label: 'Inactive',  color: 'var(--danger)', bg: 'var(--danger-dim)' },
-};
+const DAY = 86400_000;
+const ago = (d: Date) => { const h = Math.round((Date.now() - d.getTime()) / 3600_000); return h < 1 ? 'just now' : h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`; };
+const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+const when = (d: Date) => d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+
+type Todo = { tone: 'bad' | 'warn' | 'good' | 'info'; icon: string; text: string; sub?: string; href: string; at: number };
 
 export default async function DashboardPage() {
-  const [
-    portfolioCount,
-    testimonialCount,
-    faqCount,
-    blogCount,
-    publishedBlogCount,
-    socialCount,
-    recentLeads,
-    newLeadsCount,
-    recentSigned,
-    recentClients,
-    clientCount,
-    activeClientCount,
-  ] = await Promise.all([
-    prisma.project.count({ where: { isVisible: true } }),
-    prisma.testimonial.count({ where: { isVisible: true } }),
-    prisma.faq.count({ where: { isVisible: true } }),
-    prisma.blogPost.count(),
-    prisma.blogPost.count({ where: { isPublished: true } }),
-    prisma.socialLink.count({ where: { isVisible: true } }),
-    // The pipeline (funnel_leads) is where real leads land — Meta, free audit, website.
+  const now = new Date();
+  const ym = ymOf(now);
+  const [leads, recentViews, proposals, pendingPayments, bookings, jobs, activities, money, settings, prospectStages, prospectVerify, content, coldReplies] = await Promise.all([
     prisma.funnelLead.findMany({
-      orderBy: { createdAt: 'desc' }, take: 5,
-      select: { id: true, name: true, email: true, status: true, createdAt: true, utmMedium: true, utmSource: true, storeUrl: true },
+      where: { status: { notIn: ['closed_won', 'closed_lost', 'disqualified'] } },
+      select: { id: true, name: true, status: true, createdAt: true, utmSource: true, utmMedium: true, storeUrl: true, activities: { where: { type: 'note' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true, text: true } } },
+      orderBy: { createdAt: 'desc' },
     }),
-    Promise.all([
-      prisma.funnelLead.count({ where: { status: 'new' } }),
-      prisma.contactLead.count({ where: { status: 'new' } }),
-      prisma.portalLead.count({ where: { status: 'new' } }),
-    ]).then(([a, b, c]) => a + b + c),
-    prisma.projectContract.findMany({
-      where: { status: 'signed' },
-      orderBy: { signedAt: 'desc' },
-      take: 5,
-      include: { project: { include: { client: true } } },
+    prisma.storeProofReportView.findMany({
+      where: { viewedAt: { gte: new Date(Date.now() - 2 * DAY) }, NOT: { city: 'Indore' }, report: { funnelLeadId: { not: null } } },
+      select: { viewedAt: true, city: true, country: true, durationSec: true, report: { select: { storeName: true, funnelLeadId: true } } },
+      orderBy: { viewedAt: 'desc' }, take: 10,
     }),
-    prisma.client.findMany({
-      orderBy: { updatedAt: 'desc' },
-      take: 6,
-      include: {
-        _count: { select: { projects: true } },
-        projects: {
-          orderBy: { updatedAt: 'desc' },
-          take: 1,
-          select: { id: true, updatedAt: true, name: true, status: true, contracts: { select: { status: true } } },
-        },
-      },
-    }),
-    prisma.client.count(),
-    prisma.client.count({ where: { isActive: true } }),
+    prisma.proposal.findMany({ where: { status: 'sent' }, select: { id: true, leadId: true, validUntil: true, viewCount: true, lead: { select: { name: true } } } }),
+    prisma.payment.findMany({ where: { status: 'expected', date: { lte: new Date(Date.now() + 7 * DAY) } }, orderBy: { date: 'asc' }, select: { id: true, clientName: true, amount: true, currency: true, date: true, leadId: true } }),
+    prisma.booking.findMany({ where: { status: 'confirmed', startTime: { gte: new Date(Date.now() - 2 * 3600_000), lte: new Date(Date.now() + 3 * DAY) } }, orderBy: { startTime: 'asc' }, select: { id: true, name: true, startTime: true, meetLink: true, funnelLeadId: true } }),
+    prisma.storeProofJob.findMany({ where: { OR: [{ status: { in: ['queued', 'running'] } }, { status: 'failed', updatedAt: { gte: new Date(Date.now() - DAY) } }] }, select: { id: true, host: true, status: true, funnelLeadId: true, updatedAt: true, error: true } }),
+    prisma.leadActivity.findMany({ orderBy: { createdAt: 'desc' }, take: 14, select: { id: true, text: true, type: true, createdAt: true, lead: { select: { id: true, name: true } } } }),
+    monthSummary(ym),
+    getMoneySettings(),
+    prisma.prospect.groupBy({ by: ['stage'], _count: true }),
+    prisma.prospect.groupBy({ by: ['verifyStatus'], where: { tier: { in: ['A+', 'A'] } }, _count: true }),
+    Promise.all([prisma.project.count({ where: { isVisible: true } }), prisma.blogPost.count({ where: { isPublished: true } }), prisma.testimonial.count({ where: { isVisible: true } }), prisma.client.count({ where: { isActive: true } }), prisma.contactLead.count({ where: { status: 'new' } })]),
+    prisma.funnelLead.count({ where: { utmSource: 'cold-email', status: 'new', activities: { none: { type: 'note' } } } }),
   ]);
 
-  // Derive overallStatus for each recent client (same logic as API)
-  const clientsWithStatus = recentClients.map(c => {
-    const profile = c.clientProfile as Record<string, unknown> | null;
-    const manualStatus = profile?.overallStatus as string | undefined;
-    let overallStatus: string;
-    if (manualStatus) {
-      overallStatus = manualStatus;
-    } else if (!c.isActive) {
-      overallStatus = 'inactive';
-    } else {
-      const hasSignedContract = c.projects.some(p => p.contracts.some(con => con.status === 'signed'));
-      const allCompleted = c.projects.length > 0 && c.projects.every(p => p.status === 'completed');
-      overallStatus = allCompleted ? 'completed' : hasSignedContract ? 'active' : 'prospect';
+  // ── Needs you today ──
+  const todos: Todo[] = [];
+  for (const l of leads) {
+    const last = l.activities[0]?.createdAt ?? null;
+    const isCold = l.utmSource === 'cold-email';
+    if (!last && l.status === 'new' && Date.now() - l.createdAt.getTime() > 12 * 3600_000) {
+      todos.push({ tone: isCold ? 'bad' : 'warn', icon: isCold ? '✉️' : '👋', text: `${l.name} — ${isCold ? 'replied to cold email, nobody has answered' : 'never contacted'}`, sub: `${l.storeUrl ? l.storeUrl.replace(/^https?:\/\/(www\.)?/, '') + ' · ' : 'no store link yet · '}${ago(l.createdAt)}`, href: `/admin/funnel-leads/${l.id}`, at: isCold ? 0 : 2 });
+    } else if (last && ['new', 'confirmed', 'showed'].includes(l.status) && Date.now() - last.getTime() > 4 * DAY) {
+      todos.push({ tone: 'warn', icon: '🔁', text: `${l.name} — follow-up due`, sub: `last message ${ago(last)}${l.activities[0]?.text ? ` · "${l.activities[0].text.slice(0, 40)}"` : ''}`, href: `/admin/funnel-leads/${l.id}`, at: 4 });
     }
-    return { ...c, overallStatus };
-  });
+  }
+  for (const v of recentViews) {
+    if (!v.report.funnelLeadId) continue;
+    todos.push({ tone: 'good', icon: '👁', text: `${v.report.storeName} opened their report${v.durationSec ? ` (read ${v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m` : `${v.durationSec}s`})` : ''}`, sub: `${placeWithFlag(v.city, v.country)} · ${ago(v.viewedAt)} — good moment to message`, href: `/admin/funnel-leads/${v.report.funnelLeadId}`, at: 1 });
+  }
+  for (const p of proposals) {
+    if (!p.validUntil) continue;
+    const days = Math.ceil((p.validUntil.getTime() - Date.now()) / DAY);
+    if (days <= 3) todos.push({ tone: days < 0 ? 'info' : 'warn', icon: '📄', text: `${p.lead.name} — proposal pricing ${days < 0 ? 'has expired' : days === 0 ? 'expires today' : `expires in ${days} day${days === 1 ? '' : 's'}`}`, sub: `${p.viewCount} open${p.viewCount === 1 ? '' : 's'}`, href: `/admin/funnel-leads/${p.leadId}`, at: 3 });
+  }
+  for (const p of pendingPayments) {
+    const overdue = p.date.getTime() < Date.now() - DAY;
+    todos.push({ tone: overdue ? 'bad' : 'info', icon: '💰', text: `${p.clientName} — ${p.currency === 'USD' ? '$' : '₹'}${p.amount} ${overdue ? 'overdue' : 'due'} ${p.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`, href: p.leadId ? `/admin/funnel-leads/${p.leadId}` : '/admin/money?tab=income', at: overdue ? 1 : 5 });
+  }
+  for (const b of bookings) todos.push({ tone: 'good', icon: '📞', text: `Call with ${b.name} — ${when(b.startTime)}`, sub: b.meetLink || undefined, href: b.funnelLeadId ? `/admin/funnel-leads/${b.funnelLeadId}` : '/admin/bookings', at: 0 });
+  for (const j of jobs) todos.push({ tone: j.status === 'failed' ? 'bad' : 'info', icon: j.status === 'failed' ? '⚠️' : '⏳', text: `Audit ${j.status} — ${j.host}`, sub: j.error ? j.error.slice(0, 80) : `${ago(j.updatedAt)}${j.status === 'queued' ? ' · is the Mac worker running?' : ''}`, href: j.funnelLeadId ? `/admin/funnel-leads/${j.funnelLeadId}` : '/admin/storeproof', at: j.status === 'failed' ? 1 : 6 });
+  if (settings.metaBalance != null && settings.metaBalance < settings.minBalance) todos.push({ tone: 'bad', icon: '📉', text: `Meta ad balance ${inr(settings.metaBalance)} — under your ${inr(settings.minBalance)} line`, sub: 'top up or the ads stop', href: '/admin/money?tab=ads', at: 0 });
+  todos.sort((a, b) => a.at - b.at);
+
+  // ── This month ──
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const [leadsMonth, callsMonth, proposalsMonth, wonMonth] = await Promise.all([
+    prisma.funnelLead.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma.booking.count({ where: { createdAt: { gte: monthStart }, status: { in: ['confirmed', 'completed'] } } }),
+    prisma.proposal.count({ where: { sentAt: { gte: monthStart } } }),
+    prisma.funnelLead.count({ where: { status: 'closed_won', updatedAt: { gte: monthStart } } }),
+  ]);
+  const stage = Object.fromEntries(prospectStages.map((r) => [r.stage, r._count]));
+  const verify = Object.fromEntries(prospectVerify.map((r) => [r.verifyStatus, r._count]));
+  const [portfolioCount, blogCount, testimonialCount, activeClients, contactNew] = content;
+  const TONE: Record<Todo['tone'], string> = { bad: 'var(--danger)', warn: 'var(--warn)', good: 'var(--accent)', info: 'var(--info)' };
 
   return (
     <div className="admin-content">
       <style>{`
-        .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+        .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
         @media (max-width: 1100px) { .dash-grid { grid-template-columns: repeat(2, 1fr); } }
-        .dash-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-        .dash-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
-        .dash-stat-value { font-size: 32px; font-weight: 700; font-family: var(--heading); line-height: 1; color: var(--text); }
+        .dash-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; text-decoration: none; display: block; }
+        .dash-stat:hover { border-color: var(--border-hover); }
+        .dash-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+        .dash-stat-value { font-size: 28px; font-weight: 700; font-family: var(--heading); line-height: 1; color: var(--text); }
         .dash-stat-value.accent { color: var(--accent); }
-        .dash-stat-value.coral { color: var(--coral); }
-        .dash-stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
-        .dash-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 28px; }
-        @media (max-width: 1100px) { .dash-row { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 700px) { .dash-row { grid-template-columns: 1fr; } }
-        .dash-section-title { font-family: var(--heading); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+        .dash-stat-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; }
+        .dash-row { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 900px) { .dash-row { grid-template-columns: 1fr; } }
+        .dash-section-title { font-family: var(--heading); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
         .dash-section-title a { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; }
-        .dash-section-title a:hover { text-decoration: underline; }
-        .dash-quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        @media (max-width: 700px) { .dash-quick-grid { grid-template-columns: repeat(2, 1fr); } }
-        .dash-quick-link { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; transition: all .2s; }
-        .dash-quick-link:hover { border-color: var(--accent); background: var(--accent-dim); }
-        .dash-quick-link-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
-        .dash-quick-link:hover .dash-quick-link-label { color: var(--accent); }
-        .dash-quick-link-title { font-size: 13px; font-weight: 600; color: var(--text); }
-        .dash-lead-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .dash-lead-item:last-child { border-bottom: none; }
-        .dash-lead-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
-        .dash-lead-dot.read { background: var(--border); }
-        .dash-lead-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-        .dash-lead-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
-        .dash-lead-status { font-size: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 100px; margin-left: auto; flex-shrink: 0; }
-        .dash-lead-status.new { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--ok-line); }
-        .dash-lead-status.contacted { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple-dim); }
-        .dash-lead-status.closed, .dash-lead-status.closed_lost, .dash-lead-status.disqualified { background: var(--bg-elevated); color: var(--text-muted); border: 1px solid var(--border); }
-        .dash-lead-status.confirmed { background: var(--info-dim); color: var(--info); border: 1px solid var(--info-line); }
-        .dash-lead-status.call_booked { background: var(--warn-dim); color: var(--warn); border: 1px solid var(--warn-line); }
-        .dash-lead-status.showed { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple-dim); }
-        .dash-lead-status.proposal_sent { background: var(--pink-dim); color: #f472b6; border: 1px solid var(--pink-dim); }
-        .dash-lead-status.closed_won { background: var(--ok-line); color: var(--accent); border: 1px solid var(--ok-line); }
-        .dash-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
-        .dash-notice { background: var(--accent-dim); border: 1px solid var(--ok-line); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        .dash-notice strong { color: var(--accent); }
-        .dash-notice.signed { background: var(--purple-dim); border-color: var(--purple-dim); }
-        .dash-notice.signed strong { color: var(--purple); }
-        .signed-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
-        .signed-row:last-child { border-bottom: none; }
-        .signed-badge { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
-        .signed-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-        .signed-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
-        .signed-time { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
-        .client-dash-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); text-decoration: none; }
-        .client-dash-row:last-child { border-bottom: none; }
-        .client-dash-row:hover .client-dash-name { color: var(--accent); }
-        .client-dash-name { font-size: 13px; font-weight: 600; color: var(--text); transition: color .15s; margin-bottom: 2px; }
-        .client-dash-meta { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .todo { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid var(--border); text-decoration: none; color: var(--text); }
+        .todo:last-child { border-bottom: none; }
+        .todo:hover .todo-text { color: var(--accent); }
+        .todo-bar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+        .todo-text { font-size: 13.5px; font-weight: 600; }
+        .todo-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .feed { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--text-secondary); align-items: baseline; }
+        .feed:last-child { border-bottom: none; }
+        .feed a { color: var(--text); font-weight: 600; text-decoration: none; white-space: nowrap; }
+        .feed time { margin-left: auto; color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+        .dash-empty { text-align: center; padding: 28px; color: var(--text-muted); font-size: 13px; }
+        .site-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .site-row a { font-size: 12.5px; color: var(--text-secondary); text-decoration: none; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 99px; padding: 6px 12px; }
+        .site-row a:hover { color: var(--accent); border-color: var(--accent-dim); }
       `}</style>
 
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Dashboard</h1>
-          <p className="admin-page-subtitle">Overview of your site and client portal</p>
+          <h1 className="admin-page-title">Today</h1>
+          <p className="admin-page-subtitle">{now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })} · {todos.length ? `${todos.length} thing${todos.length === 1 ? '' : 's'} need you` : 'nothing waiting on you'}</p>
         </div>
-        <Link href="/admin/clients/new" className="admin-btn admin-btn-primary">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path d="M12 5v14M5 12h14"/></svg>
-          New Client →
-        </Link>
+        <Link href="/admin/funnel-leads" className="admin-btn admin-btn-primary">Leads →</Link>
       </div>
 
-      {/* Signed contract alert — only if < 48h */}
-      {recentSigned.length > 0 && (() => {
-        const newest = recentSigned[0];
-        const hoursAgo = newest.signedAt ? Math.floor((Date.now() - new Date(newest.signedAt).getTime()) / 3600000) : null;
-        const isRecent = hoursAgo !== null && hoursAgo < 48;
-        return isRecent ? (
-          <div className="dash-notice signed">
-            <svg width="14" height="14" fill="none" stroke="var(--purple)" viewBox="0 0 24 24" strokeWidth={2}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span><strong>{newest.project.client.name}</strong> just signed the contract for <strong>{newest.project.name}</strong> — {hoursAgo === 0 ? 'just now' : `${hoursAgo}h ago`}</span>
-            <Link href={`/admin/projects/${newest.projectId}`} style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: 'var(--purple)', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
-          </div>
-        ) : null;
-      })()}
-
-      {/* New leads alert */}
-      {newLeadsCount > 0 && (
-        <div className="dash-notice">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-          <span>You have <strong>{newLeadsCount} new lead{newLeadsCount > 1 ? 's' : ''}</strong> waiting for follow-up.</span>
-          <Link href="/admin/funnel-leads" style={{ marginLeft: 'auto', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', letterSpacing: '.06em', textTransform: 'uppercase' }}>View →</Link>
-        </div>
-      )}
-
-      {/* Stats */}
       <div className="dash-grid">
-        <div className="dash-stat">
-          <div className="dash-stat-label">Clients</div>
-          <div className="dash-stat-value accent">{clientCount}</div>
-          <div className="dash-stat-sub">{activeClientCount} active</div>
-        </div>
-        <div className="dash-stat">
-          <div className="dash-stat-label">Portfolio</div>
-          <div className="dash-stat-value accent">{portfolioCount}</div>
-          <div className="dash-stat-sub">visible on site</div>
-        </div>
-        <div className="dash-stat">
-          <div className="dash-stat-label">Blog Posts</div>
-          <div className="dash-stat-value">{publishedBlogCount}</div>
-          <div className="dash-stat-sub">{blogCount - publishedBlogCount} draft{blogCount - publishedBlogCount !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="dash-stat">
-          <div className="dash-stat-label">New Leads</div>
-          <div className="dash-stat-value coral">{newLeadsCount}</div>
-          <div className="dash-stat-sub">unread in inbox</div>
-        </div>
+        <Link href="/admin/funnel-leads" className="dash-stat"><div className="dash-stat-label">Leads this month</div><div className="dash-stat-value">{leadsMonth}</div><div className="dash-stat-sub">{callsMonth} call{callsMonth === 1 ? '' : 's'} booked · {proposalsMonth} proposal{proposalsMonth === 1 ? '' : 's'} sent</div></Link>
+        <Link href="/admin/money" className="dash-stat"><div className="dash-stat-label">Won · money in</div><div className="dash-stat-value accent">{wonMonth}</div><div className="dash-stat-sub">{inr(money.income.inr)} received{money.pendingInr ? ` · ${inr(money.pendingInr)} pending` : ''}</div></Link>
+        <Link href="/admin/money?tab=ads" className="dash-stat"><div className="dash-stat-label">Meta ads</div><div className="dash-stat-value" style={{ color: settings.metaBalance != null && settings.metaBalance < settings.minBalance ? 'var(--danger)' : undefined }}>{settings.metaBalance != null ? inr(settings.metaBalance) : '—'}</div><div className="dash-stat-sub">balance · {inr(money.ads.spendInr)} spent this month · {money.ads.leads} lead{money.ads.leads === 1 ? '' : 's'}{money.ads.costPerLead ? ` at ${inr(money.ads.costPerLead)}` : ''}</div></Link>
+        <Link href="/admin/outreach" className="dash-stat"><div className="dash-stat-label">Cold email</div><div className="dash-stat-value">{(stage.contacted || 0) + (stage.replied || 0) + (stage.promoted || 0)}</div><div className="dash-stat-sub">contacted · {(verify.valid || 0) + (verify.risky || 0)} verified · {stage.replied || 0} replied{coldReplies ? ` · ${coldReplies} unanswered` : ''}</div></Link>
       </div>
 
-      {/* Main row: Quick Actions + Signed Contracts + Recent Leads */}
       <div className="dash-row">
-        {/* Quick Actions */}
         <div className="admin-card">
-          <div className="dash-section-title">Quick Actions</div>
-          <div className="dash-quick-grid">
-            <Link href="/admin/clients/new" className="dash-quick-link">
-              <div className="dash-quick-link-label">Portal</div>
-              <div className="dash-quick-link-title">+ New Client</div>
+          <div className="dash-section-title">Needs you <Link href="/admin/funnel-leads">All leads →</Link></div>
+          {todos.length === 0 ? <div className="dash-empty">All caught up. New leads, replies and report opens will appear here.</div> : todos.slice(0, 14).map((t, i) => (
+            <Link key={i} href={t.href} className="todo">
+              <span className="todo-bar" style={{ background: TONE[t.tone] }} />
+              <span style={{ fontSize: 16, lineHeight: '20px' }}>{t.icon}</span>
+              <span><div className="todo-text">{t.text}</div>{t.sub && <div className="todo-sub">{t.sub}</div>}</span>
             </Link>
-            <Link href="/admin/clients" className="dash-quick-link">
-              <div className="dash-quick-link-label">Portal</div>
-              <div className="dash-quick-link-title">All Clients <span style={{color:'var(--text-muted)',fontWeight:400}}>{clientCount}</span></div>
-            </Link>
-            <Link href="/admin/portfolio" className="dash-quick-link">
-              <div className="dash-quick-link-label">Content</div>
-              <div className="dash-quick-link-title">Portfolio</div>
-            </Link>
-            <Link href="/admin/blog/new" className="dash-quick-link">
-              <div className="dash-quick-link-label">Blog</div>
-              <div className="dash-quick-link-title">+ New Post</div>
-            </Link>
-            <Link href="/admin/leads" className="dash-quick-link">
-              <div className="dash-quick-link-label">Leads</div>
-              <div className="dash-quick-link-title">Inbox{newLeadsCount > 0 ? <span style={{color:'var(--accent)',marginLeft:6}}>{newLeadsCount}</span> : ''}</div>
-            </Link>
-            <Link href="/admin/testimonials" className="dash-quick-link">
-              <div className="dash-quick-link-label">Content</div>
-              <div className="dash-quick-link-title">Testimonials</div>
-            </Link>
-            <Link href="/admin/faqs" className="dash-quick-link">
-              <div className="dash-quick-link-label">Content</div>
-              <div className="dash-quick-link-title">FAQs <span style={{color:'var(--text-muted)',fontWeight:400}}>{faqCount}</span></div>
-            </Link>
-            <Link href="/admin/social" className="dash-quick-link">
-              <div className="dash-quick-link-label">Presence</div>
-              <div className="dash-quick-link-title">Social Links <span style={{color:'var(--text-muted)',fontWeight:400}}>{socialCount}</span></div>
-            </Link>
-            <Link href="/admin/settings" className="dash-quick-link">
-              <div className="dash-quick-link-label">Config</div>
-              <div className="dash-quick-link-title">Site Settings</div>
-            </Link>
-          </div>
+          ))}
         </div>
-
-        {/* Signed Contracts */}
         <div className="admin-card">
-          <div className="dash-section-title">
-            ✍️ Signed Contracts
-          </div>
-          {recentSigned.length === 0 ? (
-            <div className="dash-empty">No signed contracts yet.</div>
-          ) : (
-            recentSigned.map(c => (
-              <Link key={c.id} href={`/admin/projects/${c.projectId}`} style={{ textDecoration: 'none' }}>
-                <div className="signed-row">
-                  <div className="signed-badge" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="signed-name">{c.project.client.name}</div>
-                    <div className="signed-meta">{c.project.name}{c.phaseLabel ? ` · Phase ${c.phase} — ${c.phaseLabel}` : c.phase > 1 ? ` · Phase ${c.phase}` : ''}</div>
-                  </div>
-                  <div className="signed-time">{c.signedAt ? new Date(c.signedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}</div>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-
-        {/* Recent Leads */}
-        <div className="admin-card">
-          <div className="dash-section-title">
-            Recent Leads
-            <Link href="/admin/funnel-leads">View all →</Link>
-          </div>
-          {recentLeads.length === 0 ? (
-            <div className="dash-empty">No leads yet — Meta, free-audit and website leads will appear here.</div>
-          ) : (
-            recentLeads.map(lead => (
-              <Link key={lead.id} href={`/admin/funnel-leads/${lead.id}`} className="dash-lead-item" style={{ textDecoration: 'none' }}>
-                <div className={`dash-lead-dot${lead.status !== 'new' ? ' read' : ''}`} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="dash-lead-name">{lead.name}</div>
-                  <div className="dash-lead-meta">
-                    {lead.email} · {new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>
-                    {lead.utmMedium === 'instant-form' ? 'Meta Instant Form' : lead.utmMedium === 'ig-comment' ? 'Instagram comment' : lead.utmMedium === 'free-audit' ? 'Free audit request' : lead.utmSource === 'cold-email' ? 'Cold email reply' : 'Website'}
-                    {lead.storeUrl ? ` · ${lead.storeUrl.replace(/^https?:\/\//, '')}` : ''}
-                  </div>
-                </div>
-                <span className={`dash-lead-status ${lead.status}`}>{lead.status === 'showed' ? 'call done' : lead.status.replace(/_/g, ' ')}</span>
-              </Link>
-            ))
-          )}
+          <div className="dash-section-title">Latest activity</div>
+          {activities.length === 0 ? <div className="dash-empty">Nothing yet.</div> : activities.map((a) => (
+            <div key={a.id} className="feed"><Link href={`/admin/funnel-leads/${a.lead.id}`}>{a.lead.name.split(' ')[0]}</Link><span style={{ minWidth: 0 }}>{a.text.slice(0, 90)}</span><time>{ago(a.createdAt)}</time></div>
+          ))}
         </div>
       </div>
 
-      {/* Recent Clients */}
-      <div style={{ marginBottom: 8 }}>
-        <div className="dash-section-title">
-          Recent Clients
-          <Link href="/admin/clients">View all →</Link>
+      <div className="admin-card" style={{ padding: 16 }}>
+        <div className="dash-section-title" style={{ marginBottom: 10 }}>Website &amp; client portal</div>
+        <div className="site-row">
+          <Link href="/admin/clients">{activeClients} active client{activeClients === 1 ? '' : 's'}</Link>
+          <Link href="/admin/projects">Projects</Link>
+          <Link href="/admin/leads">{contactNew ? `${contactNew} website enquir${contactNew === 1 ? 'y' : 'ies'}` : 'Website enquiries'}</Link>
+          <Link href="/admin/portfolio">{portfolioCount} portfolio items</Link>
+          <Link href="/admin/blog">{blogCount} blog posts</Link>
+          <Link href="/admin/testimonials">{testimonialCount} testimonials</Link>
+          <Link href="/admin/settings">Site settings</Link>
         </div>
       </div>
-      <div className="admin-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 28 }}>
-        {clientsWithStatus.length === 0 ? (
-          <div className="admin-empty">
-            No clients yet. <Link href="/admin/clients/new" style={{ color: 'var(--accent)' }}>Add your first client →</Link>
-          </div>
-        ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Client</th>
-                <th>Latest Project</th>
-                <th>Projects</th>
-                <th>Status</th>
-                <th>Last Activity</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {clientsWithStatus.map(client => {
-                const cfg = STATUS_CFG[client.overallStatus] ?? STATUS_CFG['prospect'];
-                const latestProject = client.projects[0];
-                return (
-                  <tr key={client.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{client.name}</div>
-                      {client.email && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>{client.email}</div>
-                      )}
-                    </td>
-                    <td>
-                      {latestProject
-                        ? <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{latestProject.name}</span>
-                        : <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
-                      }
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 600 }}>{client._count.projects}</span>
-                    </td>
-                    <td>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                        borderRadius: 6, padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 5,
-                        color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}44`,
-                      }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.color }} />
-                        {cfg.label}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                        {new Date(client.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        href={latestProject ? `/admin/projects/${latestProject.id}` : `/admin/clients/${client.id}`}
-                        className="admin-btn admin-btn-ghost admin-btn-icon"
-                        style={{ fontSize: 11 }}
-                      >
-                        Manage →
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
     </div>
   );
 }
