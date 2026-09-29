@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
         await sendInstantFormWelcome({ id: dbLead.id, name, email }).catch(() => {});
         await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, `/admin/funnel-leads/${dbLead.id}`).catch(() => {});
         const waDigits = phone.replace(/[^0-9]/g, '');
+        const firstTouch = encodeURIComponent(`Hi ${name.split(' ')[0]}, Rachna here — you signed up for the free Shopify store check-up from my ad. What's your store link? I'll go through it and send you the report, no call needed.`);
         await notifyNewLead({
           source: 'Meta Instant Form (auto-synced)',
           adminPath: `/admin/funnel-leads/${dbLead.id}`,
@@ -170,7 +171,9 @@ export async function POST(req: NextRequest) {
             { label: 'Name', value: name },
             { label: 'Email', value: email },
             ...(phone ? [{ label: 'Phone', value: phone }] : []),
-            ...(waDigits ? [{ label: 'Reply now', value: `https://wa.me/${waDigits}?text=${encodeURIComponent(`Hi ${name.split(' ')[0]}! Rachna here — got your request for a free Shopify store audit. When's a good time for a quick chat?`)}` }] : []),
+            ...(waDigits ? [{ label: 'WhatsApp', value: `https://wa.me/${waDigits}?text=${firstTouch}` }] : []),
+            // US leads often ignore WhatsApp from a +91 number; iMessage from Rachna's iPhone is the second door.
+            ...(waDigits ? [{ label: 'iMessage', value: `sms:+${waDigits}&body=${firstTouch}` }] : []),
             ...(customAnswers.length ? customAnswers.map((a) => {
               const idx = a.indexOf(':');
               return { label: a.slice(0, idx), value: a.slice(idx + 1).trim() };

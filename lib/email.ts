@@ -140,7 +140,9 @@ function infoBox(rows: Array<{ label: string; value: string }>): string {
         <span style="font-size:14px;color:#1E293B;font-weight:500;">${
           /^https:\/\/[^\s"<>]+$/.test(r.value)
             ? `<a href="${esc(r.value)}" style="color:#06D6A0;font-weight:700;">${esc(r.value.replace('https://', ''))} ↗</a>`
-            : esc(r.value)
+            : /^sms:[^\s"<>]+$/.test(r.value)
+              ? `<a href="${esc(r.value)}" style="color:#06D6A0;font-weight:700;">Open in Messages (iMessage / SMS) ↗</a>`
+              : esc(r.value)
         }</span>
       </td>
     </tr>`).join('');
