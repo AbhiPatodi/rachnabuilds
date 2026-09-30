@@ -61,10 +61,12 @@ export async function trafficRows(month: string /* YYYY-MM */): Promise<unknown[
   }
   return [header, line('Total', tot), ...rows];
   function line(label: string, d: typeof tot) {
-    return [label, r2(d.spend), d.impr, d.reach, r2(div(d.spend, d.impr) * 1000), d.clicks, r2(div(d.clicks, d.impr) * 100), r2(div(d.spend, d.clicks)),
-      d.leads, r2(div(d.spend, d.leads)), r2(div(d.leads, d.clicks) * 100), d.apps, r2(div(d.spend, d.apps)), r2(div(d.apps, d.leads) * 100),
-      d.calls, r2(div(d.spend, d.calls)), r2(div(d.calls, d.apps) * 100), d.sales, r2(div(d.sales, d.calls) * 100), r2(d.revenue), r2(d.cash), r2(div(d.spend, d.sales)),
-      r2(d.revenue - d.spend), r2(d.cash - d.spend), r2(div(d.revenue - d.spend, d.spend) * 100), r2(div(d.cash - d.spend, d.spend) * 100)];
+    // Percentages are fractions (0.0242) because the template's % cells are percent-formatted.
+    const pct = (a: number, b: number) => Math.round(div(a, b) * 10000) / 10000;
+    return [label, r2(d.spend), d.impr, d.reach, r2(div(d.spend, d.impr) * 1000), d.clicks, pct(d.clicks, d.impr), r2(div(d.spend, d.clicks)),
+      d.leads, r2(div(d.spend, d.leads)), pct(d.leads, d.clicks), d.apps, r2(div(d.spend, d.apps)), pct(d.apps, d.leads),
+      d.calls, r2(div(d.spend, d.calls)), pct(d.calls, d.apps), d.sales, pct(d.sales, d.calls), r2(d.revenue), r2(d.cash), r2(div(d.spend, d.sales)),
+      r2(d.revenue - d.spend), r2(d.cash - d.spend), pct(d.revenue - d.spend, d.spend), pct(d.cash - d.spend, d.spend)];
   }
 }
 
