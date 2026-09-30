@@ -89,18 +89,28 @@ export async function salesEodRows(): Promise<unknown[][]> {
     const due = ps.filter((p) => p.status === 'expected').map((p) => p.date).sort((a, b) => a.getTime() - b.getTime())[0];
     return { cash: r2(cash), total: r2(total), due: due ? ddmmyyyy(dayIST(due)) : '' };
   };
-  const STATUS: Record<string, string> = { new: 'No decision yet', contacted: 'Following up', confirmed: 'Following up', call_booked: 'Call booked', showed: 'Call done — deciding', proposal_sent: 'Proposal sent', closed_won: 'CLOSED WON', closed_lost: 'Lost', disqualified: 'Disqualified' };
+  // Outcome must be one of the sheet's dropdown items (validation rule on G4:G298,L4:L298):
+  // CSU | Split Pay | Full Pay | Deposit | No Deposit & Follow Up | Offer & Didn't Buy | No Offer Yet | No Show | Cancelled | Rescheduled | Bad fit & No offer
+  const outcomeFor = (bookingStatus: string | null, leadStatus: string | null, m: { cash: number; total: number }) => {
+    if (bookingStatus === 'no_show') return 'No Show';
+    if (bookingStatus === 'cancelled') return 'Cancelled';
+    if (leadStatus === 'closed_won') return m.cash >= m.total && m.total > 0 ? 'Full Pay' : m.cash > 0 ? 'Deposit' : 'Split Pay';
+    if (leadStatus === 'closed_lost') return "Offer & Didn't Buy";
+    if (leadStatus === 'disqualified') return 'Bad fit & No offer';
+    if (leadStatus === 'proposal_sent') return 'No Deposit & Follow Up';
+    return 'No Offer Yet';
+  };
   const header = ['Date', 'Name', 'Email', 'Number', 'Link', 'Rep', 'Outcome', 'Cancel/Resc Reason', 'Summary', 'Objection', 'Next Call Date', 'Follow-Up Call Outcome', 'Cash Collected', 'Total Sales Value', 'Balance Due Date'];
   const rows: unknown[][] = [header];
   for (const b of bookings) {
     const l = b.funnelLead; const m = money(l?.payments || []);
-    const outcome = b.status === 'completed' ? 'Showed' : b.status === 'no_show' ? 'No-show' : b.status === 'cancelled' ? 'Cancelled' : b.startTime > new Date() ? 'Scheduled' : 'Showed';
-    const summary = (b.callSummary || '').replace(/[#*_>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 400);
-    rows.push([ddmmyyyy(dayIST(b.startTime)), b.name, b.email, l?.whatsapp || l?.phone || b.whatsapp || '', l?.storeUrl || '', 'Rachna', outcome, '', summary, '', '', l ? STATUS[l.status] || l.status : '', m.cash, m.total, m.due]);
+    const outcome = outcomeFor(b.status, l?.status ?? null, m);
+    const summary = (b.callSummary || '').replace(/[#*_>]/g, '').replace(/\s+/g, ' ').replace(/^Meeting Purpose\s*/i, '').trim().slice(0, 220);
+    rows.push([ddmmyyyy(dayIST(b.startTime)), b.name, b.email, l?.whatsapp || l?.phone || b.whatsapp || '', l?.storeUrl || '', 'Rachna', outcome, '', summary, '', '', '', m.cash, m.total, m.due]);
   }
   for (const w of wonNoCall) {
     const m = money(w.payments);
-    rows.push([ddmmyyyy(dayIST(w.updatedAt)), w.name, w.email.endsWith('@no-email.local') ? '' : w.email, w.whatsapp || w.phone || '', w.storeUrl || '', 'Rachna', `Closed without call (${w.utmSource || 'direct'})`, '', '', '', '', 'CLOSED WON', m.cash, m.total, m.due]);
+    rows.push([ddmmyyyy(dayIST(w.updatedAt)), w.name, w.email.endsWith('@no-email.local') ? '' : w.email, w.whatsapp || w.phone || '', w.storeUrl || '', 'Rachna', outcomeFor(null, 'closed_won', m), '', `Closed without a call (${w.utmSource || 'direct'})`, '', '', '', m.cash, m.total, m.due]);
   }
   return rows;
 }
