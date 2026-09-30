@@ -6,6 +6,8 @@ import Link from 'next/link';
 import ContactIcons from '@/app/components/admin/ContactIcons';
 import { getMoneySettings, monthSummary, ymOf } from '@/lib/money';
 import { placeWithFlag } from '@/lib/flag';
+import { after } from 'next/server';
+import { syncIfStale } from '@/lib/metaAds';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,7 @@ const when = (d: Date) => d.toLocaleString('en-IN', { day: 'numeric', month: 'sh
 type Todo = { tone: 'bad' | 'warn' | 'good' | 'info'; icon: string; text: string; sub?: string; href: string; at: number; contact?: { phone?: string | null; whatsapp?: string | null; email?: string | null } };
 
 export default async function DashboardPage() {
+  after(() => syncIfStale(6)); // self-heal when the GitHub cron is late
   const now = new Date();
   const ym = ymOf(now);
   const [leads, recentViews, proposals, pendingPayments, bookings, jobs, activities, money, settings, prospectStages, prospectVerify, content, coldReplies] = await Promise.all([

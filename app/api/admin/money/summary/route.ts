@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { monthSummary, ymOf } from '@/lib/money';
-import { hasAdsToken } from '@/lib/metaAds';
+import { hasAdsToken, syncIfStale } from '@/lib/metaAds';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  after(() => syncIfStale(6)); // refresh Meta numbers in the background when the cron has fallen behind
   const ym = req.nextUrl.searchParams.get('month') || ymOf(new Date());
   if (!/^\d{4}-\d{2}$/.test(ym)) return NextResponse.json({ error: 'month=YYYY-MM' }, { status: 400 });
   // Current month plus the five before it, for the comparison strip.

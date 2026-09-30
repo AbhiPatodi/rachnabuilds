@@ -119,3 +119,20 @@ export async function maybeLowBalanceAlert(balance: number | null) {
 }
 
 export function hasAdsToken() { return !!token(); }
+
+/** Self-heal for the twice-daily GitHub cron, which often fires hours late:
+ *  if the last balance sync is older than `maxAgeHours`, re-pull the last 3 days
+ *  + balance. Meant to run via next/server `after()` from admin pages, so the
+ *  page never waits on Meta. Cheap no-op when fresh. */
+export async function syncIfStale(maxAgeHours = 6): Promise<boolean> {
+  if (!hasAdsToken()) return false;
+  const at = await prisma.setting.findUnique({ where: { key: MONEY_SETTINGS.metaBalanceAt } });
+  const ageMs = at?.value ? Date.now() - new Date(at.value).getTime() : Infinity;
+  if (ageMs < maxAgeHours * 3600_000) return false;
+  try {
+    await syncAdSpend(dayKey(new Date(Date.now() - 3 * 86400_000)), dayKey(new Date()));
+    const balance = await syncBalance();
+    await maybeLowBalanceAlert(balance);
+    return true;
+  } catch { return false; }
+}
