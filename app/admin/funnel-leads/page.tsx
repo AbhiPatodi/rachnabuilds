@@ -74,9 +74,10 @@ function sourceLabel(l: FunnelLead) {
 // Segments: where the lead actually came from, as tabs with counts.
 type Segment = 'all' | 'meta' | 'social' | 'website' | 'cold' | 'manual';
 function segmentOf(l: FunnelLead): Exclude<Segment, 'all'> {
+  // Instagram wins over "manual": a DM lead added by hand is still an Instagram lead.
+  if (l.utmSource === 'instagram' || l.utmMedium === 'ig-comment' || l.utmMedium === 'ig-dm') return 'social';
   if (l.utmMedium === 'manual') return 'manual';
   if (l.utmMedium === 'instant-form') return 'meta';
-  if (l.utmMedium === 'ig-comment') return 'social';
   if (l.utmSource === 'cold-email' || l.utmMedium === 'cold-email') return 'cold';
   return 'website'; // site funnels (/training, /free-audit) + organic
 }
