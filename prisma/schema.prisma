@@ -847,6 +847,7 @@ model AdSpendDay {
   spend       Float
   currency    String   @default("INR")
   impressions Int      @default(0)
+  reach       Int      @default(0)
   clicks      Int      @default(0)
   leads       Int      @default(0)
   source      String   @default("api") // api | manual

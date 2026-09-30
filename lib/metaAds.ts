@@ -23,14 +23,14 @@ async function graph<T>(path: string, params: Record<string, string>): Promise<T
 }
 
 interface InsightRow {
-  date_start: string; spend?: string; impressions?: string; clicks?: string;
+  date_start: string; spend?: string; impressions?: string; reach?: string; clicks?: string;
   actions?: { action_type: string; value: string }[];
 }
 
 /** Pull spend/impressions/clicks/leads per day for [since, until] and upsert. */
 export async function syncAdSpend(since: string, until: string) {
   const data = await graph<{ data: InsightRow[] }>(`act_${AD_ACCOUNT_ID}/insights`, {
-    fields: 'spend,impressions,clicks,actions',
+    fields: 'spend,impressions,reach,clicks,actions',
     time_increment: '1',
     time_range: JSON.stringify({ since, until }),
     level: 'account',
@@ -42,8 +42,8 @@ export async function syncAdSpend(since: string, until: string) {
     const date = new Date(`${r.date_start}T00:00:00.000Z`);
     await prisma.adSpendDay.upsert({
       where: { accountId_date: { accountId: AD_ACCOUNT_ID, date } },
-      create: { accountId: AD_ACCOUNT_ID, date, spend: Number(r.spend) || 0, impressions: Number(r.impressions) || 0, clicks: Number(r.clicks) || 0, leads, currency: 'INR', source: 'api' },
-      update: { spend: Number(r.spend) || 0, impressions: Number(r.impressions) || 0, clicks: Number(r.clicks) || 0, leads, source: 'api' },
+      create: { accountId: AD_ACCOUNT_ID, date, spend: Number(r.spend) || 0, impressions: Number(r.impressions) || 0, reach: Number(r.reach) || 0, clicks: Number(r.clicks) || 0, leads, currency: 'INR', source: 'api' },
+      update: { spend: Number(r.spend) || 0, impressions: Number(r.impressions) || 0, reach: Number(r.reach) || 0, clicks: Number(r.clicks) || 0, leads, source: 'api' },
     });
     days++;
   }

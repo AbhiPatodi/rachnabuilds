@@ -15,7 +15,9 @@ export async function GET(req: NextRequest) {
   }
   if (!hasAdsToken()) return NextResponse.json({ skipped: 'no META_ADS_ACCESS_TOKEN' });
   try {
-    const days = await syncAdSpend(dayKey(new Date(Date.now() - 3 * 86400_000)), dayKey(new Date()));
+    // ?days=N re-pulls a longer window (backfill after adding a field); default 3.
+    const back = Math.min(90, Math.max(1, Number(req.nextUrl.searchParams.get('days')) || 3));
+    const days = await syncAdSpend(dayKey(new Date(Date.now() - back * 86400_000)), dayKey(new Date()));
     const topUps = await syncTopUps(new Date(Date.now() - 45 * 86400_000).toISOString()).catch(() => 0);
     const balance = await syncBalance().catch(() => null);
     const alerted = await maybeLowBalanceAlert(balance);
