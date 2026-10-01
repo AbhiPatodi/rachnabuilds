@@ -4,7 +4,7 @@
 // (recurring + one-off), client payments, and month-by-month comparison.
 import { useCallback, useEffect, useState } from 'react';
 
-type Tab = 'overview' | 'ads' | 'expenses' | 'income' | 'months';
+type Tab = 'overview' | 'channels' | 'ads' | 'expenses' | 'income' | 'months';
 
 interface Summary {
   month: string;
@@ -20,6 +20,7 @@ interface Summary {
   payments: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; fee: number | null; status: string; date: string; note: string | null; inr: number }[];
   history: { month: string; income: number; expenses: number; net: number; adSpend: number; leads: number }[];
   adsConnected: boolean;
+  channels: { channel: string; label: string; spend: number; leads: number; won: number; clients: string[]; bookedInr: number; receivedInr: number; feesInr: number; roiBooked: number | null; costPerClient: number | null }[];
 }
 interface Expense { id: string; title: string; vendor: string | null; category: string; amount: number; currency: string; date: string; recurring: string; active: boolean; note: string | null; nextDue: string | null }
 
@@ -120,7 +121,7 @@ export default function MoneyPage() {
   const daysLeft = bal != null && burn > 0 ? bal / burn : null;
   const balTone = bal == null ? undefined : bal < s.settings.minBalance ? 'bad' : daysLeft != null && daysLeft < 3 ? 'warn' : 'good';
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'overview', label: 'Overview' }, { id: 'ads', label: 'Meta Ads' }, { id: 'expenses', label: `Expenses (${expenses.length})` }, { id: 'income', label: `Income (${s.payments.length})` }, { id: 'months', label: 'Months' },
+    { id: 'overview', label: 'Overview' }, { id: 'channels', label: 'Channels' }, { id: 'ads', label: 'Meta Ads' }, { id: 'expenses', label: `Expenses (${expenses.length})` }, { id: 'income', label: `Income (${s.payments.length})` }, { id: 'months', label: 'Months' },
   ];
   const catRows = Object.entries(s.expenses.byCategory).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   const upcoming = expenses.filter((e) => e.nextDue).sort((a, b) => (a.nextDue! < b.nextDue! ? -1 : 1)).slice(0, 6);
@@ -226,6 +227,31 @@ export default function MoneyPage() {
             </div>
           </div>
         </>
+      )}
+
+      {tab === 'channels' && (
+        <div className="admin-card" style={{ padding: 0, overflow: 'clip' }}>
+          <div style={{ padding: '16px 18px 4px' }}>
+            <h2 className="admin-card-title" style={{ margin: 0 }}>Where clients come from · all-time</h2>
+            <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>Each client counts once, by what started the conversation. Instagram DMs after seeing an ad count as Meta ads. Spend: Meta = ad spend incl. GST · Cold email = Instantly · Upwork = fees and Connects.</div>
+          </div>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead><tr><th>Channel</th><th>Spent</th><th>Leads</th><th>Clients won</th><th>Booked</th><th>Received</th><th>Return</th></tr></thead>
+              <tbody>{(s.channels || []).map((c) => (
+                <tr key={c.channel}>
+                  <td><b>{c.label}</b>{c.clients.length > 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{c.clients.join(', ')}</div>}</td>
+                  <td>{c.spend ? inr(c.spend) : <span style={{ color: 'var(--text-muted)' }}>₹0</span>}{c.costPerClient ? <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{inr(c.costPerClient)} per client</div> : null}</td>
+                  <td>{c.leads}</td>
+                  <td><b>{c.won}</b></td>
+                  <td>{inr(c.bookedInr)}</td>
+                  <td>{inr(c.receivedInr)}{c.feesInr > 0 ? <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>after {inr(c.feesInr)} fees</div> : null}</td>
+                  <td>{c.roiBooked != null ? <b style={{ color: c.roiBooked >= 1 ? 'var(--ok)' : 'var(--danger)' }}>{c.roiBooked.toFixed(1)}×</b> : c.bookedInr > 0 ? <b style={{ color: 'var(--ok)' }}>free</b> : '—'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {tab === 'ads' && (

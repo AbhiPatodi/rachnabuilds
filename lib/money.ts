@@ -149,3 +149,65 @@ export async function monthSummary(ym: string) {
     payments: payments.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, fee: p.fee, status: p.status, date: dayKey(p.date), note: p.note, inr: p.inrReceived ?? toInr(p.amount - (p.fee || 0), p.currency, s.fxUsdInr), inrReceived: p.inrReceived })),
   };
 }
+
+// ─── Channels: what each acquisition channel cost vs what it brought in (all-time) ───
+export const CHANNELS = ['meta-ads', 'instagram', 'upwork', 'cold-email', 'website', 'referral'] as const;
+export type Channel = (typeof CHANNELS)[number];
+export const CHANNEL_LABEL: Record<Channel, string> = {
+  'meta-ads': 'Meta ads', instagram: 'Instagram (organic)', upwork: 'Upwork', 'cold-email': 'Cold email', website: 'Website', referral: 'Referral / direct',
+};
+
+/** One channel per lead, by what STARTED the conversation (ad-driven IG DMs count as Meta ads). */
+export function channelOf(l: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null }): Channel {
+  if (l.utmCampaign === 'meta-ad' || l.utmMedium === 'instant-form') return 'meta-ads';
+  if (l.utmSource === 'upwork') return 'upwork';
+  if (l.utmSource === 'cold-email' || l.utmMedium === 'cold-email') return 'cold-email';
+  if (l.utmSource === 'instagram' || (l.utmMedium || '').startsWith('ig-')) return 'instagram';
+  if (l.utmMedium === 'manual') return 'referral';
+  return 'website';
+}
+
+/** Expense → channel. Instantly = cold email; Upwork fees/connects = Upwork; the rest is overhead. */
+function expenseChannel(e: { vendor: string | null; category: string; title: string }): Channel | null {
+  const v = `${e.vendor || ''} ${e.title}`.toLowerCase();
+  if (v.includes('instantly')) return 'cold-email';
+  if (v.includes('upwork')) return 'upwork';
+  if (e.category === 'ads') return 'meta-ads';
+  return null;
+}
+
+export async function channelSummary() {
+  const s = await getMoneySettings();
+  const gst = 1 + s.gstPct / 100;
+  const [leads, spendAll, expenses] = await Promise.all([
+    prisma.funnelLead.findMany({
+      where: { NOT: { id: { startsWith: 'demo' } } },
+      select: { id: true, name: true, status: true, utmSource: true, utmMedium: true, utmCampaign: true, payments: { select: { amount: true, currency: true, status: true, fee: true, inrReceived: true } } },
+    }),
+    prisma.adSpendDay.aggregate({ _sum: { spend: true } }),
+    prisma.expense.findMany({ where: { category: { not: 'ads' } } }),
+  ]);
+  type Row = { channel: Channel; label: string; spend: number; leads: number; won: number; clients: string[]; bookedInr: number; receivedInr: number; feesInr: number };
+  const rows: Record<Channel, Row> = Object.fromEntries(CHANNELS.map((c) => [c, { channel: c, label: CHANNEL_LABEL[c], spend: 0, leads: 0, won: 0, clients: [], bookedInr: 0, receivedInr: 0, feesInr: 0 } as Row])) as unknown as Record<Channel, Row>;
+  rows['meta-ads'].spend = (spendAll._sum.spend || 0) * gst;
+  const now = new Date();
+  for (const e of expenses) {
+    const ch = expenseChannel(e); if (!ch) continue;
+    rows[ch].spend += occurrencesIn(e, new Date('2020-01-01'), now).length * toInr(e.amount, e.currency, s.fxUsdInr);
+  }
+  for (const l of leads) {
+    const r = rows[channelOf(l)];
+    r.leads++;
+    if (l.status === 'closed_won') { r.won++; r.clients.push(l.name); }
+    for (const p of l.payments) {
+      const gross = toInr(p.amount, p.currency, s.fxUsdInr);
+      r.bookedInr += gross;
+      if (p.status === 'received') {
+        const net = p.inrReceived ?? toInr(p.amount - (p.fee || 0), p.currency, s.fxUsdInr);
+        r.receivedInr += net; r.feesInr += gross - net;
+      }
+    }
+  }
+  return CHANNELS.map((c) => ({ ...rows[c], roiBooked: rows[c].spend ? rows[c].bookedInr / rows[c].spend : null, costPerClient: rows[c].won && rows[c].spend ? rows[c].spend / rows[c].won : null }))
+    .filter((r) => r.leads || r.spend);
+}

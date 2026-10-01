@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server';
-import { monthSummary, ymOf } from '@/lib/money';
+import { monthSummary, ymOf, channelSummary } from '@/lib/money';
 import { hasAdsToken, syncIfStale } from '@/lib/metaAds';
 
 export const dynamic = 'force-dynamic';
@@ -14,5 +14,6 @@ export async function GET(req: NextRequest) {
   for (let i = 5; i >= 0; i--) { const d = new Date(Date.UTC(y, m - 1 - i, 1)); months.push(ymOf(d)); }
   const [current, ...rest] = await Promise.all([monthSummary(ym), ...months.filter((x) => x !== ym).map(monthSummary)]);
   const history = [...rest, current].sort((a, b) => a.month.localeCompare(b.month)).map((s) => ({ month: s.month, income: s.income.inr, expenses: s.expenses.inr, net: s.net, adSpend: s.ads.spendInr, leads: s.ads.leads }));
-  return NextResponse.json({ ...current, history, adsConnected: hasAdsToken() });
+  const channels = await channelSummary();
+  return NextResponse.json({ ...current, history, channels, adsConnected: hasAdsToken() });
 }
