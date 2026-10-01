@@ -13,7 +13,7 @@ interface Summary {
   expenses: { inr: number; byCategory: Record<string, number>; lines: { id: string; title: string; vendor: string | null; category: string; amount: number; currency: string; inr: number; date: string; recurring: string }[] };
   net: number;
   ads: { spendInr: number; spendNetInr: number; gstPct: number; leads: number; costPerLead: number | null; days: { date: string; spend: number; leads: number; impressions: number; clicks: number }[]; budget: number; balance: number | null; balanceAt: string | null; burnPerDay: number; topUps: { id: string; date: string; amount: number; currency: string; method: string | null; source: string; note: string | null }[]; topUpTotal: number; allTime: { paidIn: number; spent: number } };
-  pending: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; date: string; note: string | null; inr: number; overdue: boolean }[];
+  pending: { id: string; clientName: string; leadId: string | null; amount: number; currency: string; method: string | null; date: string; note: string | null; inr: number; overdue: boolean; dateTbc?: boolean }[];
   pendingInr: number;
   clientsWon: number;
   costPerClient: number | null;
@@ -362,7 +362,7 @@ export default function MoneyPage() {
               <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 99, background: p.overdue ? 'var(--danger-dim)' : 'var(--warn-dim)', color: p.overdue ? 'var(--danger)' : 'var(--warn)' }}>{p.overdue ? 'overdue' : 'due'}</span>
               <b>{p.leadId ? <a href={`/admin/funnel-leads/${p.leadId}`} style={{ color: 'var(--text)' }}>{p.clientName}</a> : p.clientName}</b>
               <b style={{ color: p.overdue ? 'var(--danger)' : 'var(--text)' }}>{money(p.amount, p.currency)}</b>
-              <span style={{ color: 'var(--text-muted)' }}>{dmy(p.date)}{p.note ? ` · ${p.note}` : ''}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{p.dateTbc ? 'date TBC' : dmy(p.date)}{p.note ? ` · ${p.note}` : ''}</span>
               <button type="button" className="admin-btn admin-btn-primary" style={{ marginLeft: 'auto', fontSize: 12 }} disabled={busy} onClick={() => api(`/api/admin/money/payments/${p.id}`, 'PATCH', { status: 'received', date: today() })}>Mark received</button>
             </div>
           ))}

@@ -32,7 +32,7 @@ export async function trafficRows(month: string /* YYYY-MM */): Promise<unknown[
     prisma.funnelLead.findMany({ where: { ...FROM_ADS, createdAt: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) } }, select: { id: true, createdAt: true, storeUrl: true } }),
     prisma.booking.findMany({ where: { startTime: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, NOT: { id: { startsWith: 'demo' } }, funnelLead: FROM_ADS }, select: { startTime: true } }),
     prisma.funnelLead.findMany({ where: { status: 'closed_won', ...FROM_ADS, updatedAt: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) } }, select: { id: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true } } } }),
-    prisma.payment.findMany({ where: { status: 'received', date: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, lead: FROM_ADS }, select: { date: true, amount: true, currency: true } }),
+    prisma.payment.findMany({ where: { status: 'received', dateTbc: false, date: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, lead: FROM_ADS }, select: { date: true, amount: true, currency: true } }),
   ]);
   const fx = Number((await prisma.setting.findUnique({ where: { key: 'money_fx_usd_inr' } }))?.value) || 84;
   const inr = (amt: number, cur: string) => (cur === 'USD' ? amt * fx : amt);

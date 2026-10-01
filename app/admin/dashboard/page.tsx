@@ -34,7 +34,7 @@ export default async function DashboardPage() {
       orderBy: { viewedAt: 'desc' }, take: 10,
     }),
     prisma.proposal.findMany({ where: { status: 'sent' }, select: { id: true, leadId: true, validUntil: true, viewCount: true, lead: { select: { name: true } } } }),
-    prisma.payment.findMany({ where: { status: 'expected', date: { lte: new Date(Date.now() + 7 * DAY) } }, orderBy: { date: 'asc' }, select: { id: true, clientName: true, amount: true, currency: true, date: true, leadId: true } }),
+    prisma.payment.findMany({ where: { status: 'expected', dateTbc: false, date: { lte: new Date(Date.now() + 7 * DAY) } }, orderBy: { date: 'asc' }, select: { id: true, clientName: true, amount: true, currency: true, date: true, leadId: true } }),
     prisma.booking.findMany({ where: { status: 'confirmed', startTime: { gte: new Date(Date.now() - 2 * 3600_000), lte: new Date(Date.now() + 3 * DAY) } }, orderBy: { startTime: 'asc' }, select: { id: true, name: true, startTime: true, meetLink: true, funnelLeadId: true } }),
     prisma.storeProofJob.findMany({ where: { OR: [{ status: { in: ['queued', 'running'] } }, { status: 'failed', updatedAt: { gte: new Date(Date.now() - DAY) } }] }, select: { id: true, host: true, status: true, funnelLeadId: true, updatedAt: true, error: true } }),
     prisma.leadActivity.findMany({ orderBy: { createdAt: 'desc' }, take: 14, select: { id: true, text: true, type: true, createdAt: true, lead: { select: { id: true, name: true } } } }),

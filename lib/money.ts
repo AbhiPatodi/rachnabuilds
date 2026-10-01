@@ -92,7 +92,7 @@ export async function monthSummary(ym: string) {
   const { start, end } = monthRange(ym);
   const [expenses, payments, adDays, topUps, topUpAll, spendAll, pendingAll] = await Promise.all([
     prisma.expense.findMany({ where: { OR: [{ recurring: { not: 'none' } }, { date: { gte: start, lt: end } }] } }),
-    prisma.payment.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' }, include: { lead: { select: { name: true, storeUrl: true } } } }),
+    prisma.payment.findMany({ where: { date: { gte: start, lt: end }, dateTbc: false }, orderBy: { date: 'desc' }, include: { lead: { select: { name: true, storeUrl: true } } } }),
     prisma.adSpendDay.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'asc' } }),
     prisma.adTopUp.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' } }),
     prisma.adTopUp.aggregate({ _sum: { amount: true } }),
@@ -142,7 +142,7 @@ export async function monthSummary(ym: string) {
       topUpTotal: topUps.reduce((a, t) => a + t.amount, 0),
       allTime: { paidIn: topUpAll._sum.amount || 0, spent: (spendAll._sum.spend || 0) * gst },
     },
-    pending: pendingAll.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, date: dayKey(p.date), note: p.note, inr: toInr(p.amount, p.currency, s.fxUsdInr), overdue: p.date < new Date(new Date().toISOString().slice(0, 10)) })),
+    pending: pendingAll.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, date: dayKey(p.date), note: p.note, inr: toInr(p.amount, p.currency, s.fxUsdInr), overdue: !p.dateTbc && p.date < new Date(new Date().toISOString().slice(0, 10)), dateTbc: p.dateTbc })),
     pendingInr: pendingAll.reduce((a, p) => a + toInr(p.amount, p.currency, s.fxUsdInr), 0),
     clientsWon: won,
     costPerClient: won ? expensesInr / won : null,
@@ -154,7 +154,7 @@ export async function monthSummary(ym: string) {
 export const CHANNELS = ['meta-ads', 'instagram', 'upwork', 'cold-email', 'website', 'referral'] as const;
 export type Channel = (typeof CHANNELS)[number];
 export const CHANNEL_LABEL: Record<Channel, string> = {
-  'meta-ads': 'Meta ads', instagram: 'Instagram (organic)', upwork: 'Upwork', 'cold-email': 'Cold email', website: 'Website', referral: 'Referral / direct',
+  'meta-ads': 'Meta ads', instagram: 'Instagram & Threads (organic)', upwork: 'Upwork', 'cold-email': 'Cold email', website: 'Website', referral: 'Referral / direct',
 };
 
 /** One channel per lead, by what STARTED the conversation (ad-driven IG DMs count as Meta ads). */
@@ -162,8 +162,8 @@ export function channelOf(l: { utmSource: string | null; utmMedium: string | nul
   if (l.utmCampaign === 'meta-ad' || l.utmMedium === 'instant-form') return 'meta-ads';
   if (l.utmSource === 'upwork') return 'upwork';
   if (l.utmSource === 'cold-email' || l.utmMedium === 'cold-email') return 'cold-email';
-  if (l.utmSource === 'instagram' || (l.utmMedium || '').startsWith('ig-')) return 'instagram';
-  if (l.utmMedium === 'manual') return 'referral';
+  if (l.utmSource === 'instagram' || l.utmSource === 'threads' || (l.utmMedium || '').startsWith('ig-')) return 'instagram';
+  if (l.utmSource === 'referral' || l.utmMedium === 'manual') return 'referral';
   return 'website';
 }
 
