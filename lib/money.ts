@@ -120,7 +120,8 @@ export async function monthSummary(ym: string) {
 
   const received = payments.filter((p) => p.status === 'received');
   const expected = payments.filter((p) => p.status === 'expected');
-  const incomeInr = received.reduce((a, p) => a + toInr(p.amount - (p.fee || 0), p.currency, s.fxUsdInr), 0);
+  // Use the exact rupees that hit the bank when we know them; otherwise net of fee at the FX estimate.
+  const incomeInr = received.reduce((a, p) => a + (p.inrReceived ?? toInr(p.amount - (p.fee || 0), p.currency, s.fxUsdInr)), 0);
   const expectedInr = expected.reduce((a, p) => a + toInr(p.amount, p.currency, s.fxUsdInr), 0);
 
   const won = await prisma.funnelLead.count({ where: { status: 'closed_won', updatedAt: { gte: start, lt: end } } });
@@ -145,6 +146,6 @@ export async function monthSummary(ym: string) {
     pendingInr: pendingAll.reduce((a, p) => a + toInr(p.amount, p.currency, s.fxUsdInr), 0),
     clientsWon: won,
     costPerClient: won ? expensesInr / won : null,
-    payments: payments.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, fee: p.fee, status: p.status, date: dayKey(p.date), note: p.note, inr: toInr(p.amount, p.currency, s.fxUsdInr) })),
+    payments: payments.map((p) => ({ id: p.id, clientName: p.clientName, leadId: p.leadId, amount: p.amount, currency: p.currency, method: p.method, fee: p.fee, status: p.status, date: dayKey(p.date), note: p.note, inr: p.inrReceived ?? toInr(p.amount - (p.fee || 0), p.currency, s.fxUsdInr), inrReceived: p.inrReceived })),
   };
 }

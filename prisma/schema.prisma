@@ -829,6 +829,7 @@ model Payment {
   currency   String     @default("USD")
   method     String?    // paypal | upi | bank | razorpay | cash
   fee        Float?     // processor fee in the same currency
+  inrReceived Float?    // exact rupees that landed in the bank (overrides fee + FX estimate)
   status     String     @default("received") // received | expected
   date       DateTime   // received date, or due date when expected
   note       String?
