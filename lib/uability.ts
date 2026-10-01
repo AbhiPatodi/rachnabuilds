@@ -82,7 +82,7 @@ export async function salesEodRows(): Promise<unknown[][]> {
   });
   const wonNoCall = await prisma.funnelLead.findMany({
     where: { status: 'closed_won', updatedAt: { gte: since }, bookings: { none: {} } },
-    select: { id: true, name: true, email: true, phone: true, whatsapp: true, storeUrl: true, utmSource: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true, date: true } } },
+    select: { id: true, name: true, email: true, phone: true, whatsapp: true, storeUrl: true, utmSource: true, utmMedium: true, utmCampaign: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true, date: true } } },
   });
   const fx = Number((await prisma.setting.findUnique({ where: { key: 'money_fx_usd_inr' } }))?.value) || 84;
   const money = (ps: { amount: number; currency: string; status: string; date: Date }[]) => {
@@ -113,7 +113,7 @@ export async function salesEodRows(): Promise<unknown[][]> {
   }
   for (const w of wonNoCall) {
     const m = money(w.payments);
-    rows.push([ddmmyyyy(dayIST(w.updatedAt)), w.name, w.email.endsWith('@no-email.local') ? '' : w.email, w.whatsapp || w.phone || '', w.storeUrl || '', 'Rachna', outcomeFor(null, 'closed_won', m), '', `Closed without a call (${w.utmSource || 'direct'})`, '', '', '', m.cash, m.total, m.due]);
+    rows.push([ddmmyyyy(dayIST(w.updatedAt)), w.name, w.email.endsWith('@no-email.local') ? '' : w.email, w.whatsapp || w.phone || '', w.storeUrl || '', 'Rachna', outcomeFor(null, 'closed_won', m), '', `Closed without a call (${w.utmCampaign === 'meta-ad' ? `Meta ad → Instagram ${w.utmMedium === 'ig-comment' ? 'comment' : 'DM'}` : (w.utmSource || 'direct')})`, '', '', '', m.cash, m.total, m.due]);
   }
   return rows;
 }
