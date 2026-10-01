@@ -265,7 +265,8 @@ export default function FunnelLeadsPage() {
                               background: l.stage === 'applied' ? 'var(--accent-dim)' : 'var(--warn-dim)',
                               color: l.stage === 'applied' ? 'var(--accent)' : 'var(--warn)',
                             }}>
-                              {l.utmMedium === 'manual' ? (MANUAL_SOURCES.find((m) => m.key === l.utmSource)?.label || 'Manual')
+                              {l.utmCampaign === 'meta-ad' ? (l.utmMedium === 'ig-comment' ? 'Ad → comment' : 'Ad → DM')
+                                : l.utmMedium === 'manual' ? (MANUAL_SOURCES.find((m) => m.key === l.utmSource)?.label || 'Manual')
                                 : l.stage === 'applied' ? 'Applied'
                                 : l.utmMedium === 'instant-form' ? 'Meta form'
                                 : l.utmMedium === 'free-audit' ? 'Audit req.'

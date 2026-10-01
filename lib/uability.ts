@@ -12,6 +12,9 @@ export function sheetKey(): string | null {
 export function keyOk(k: string | null): boolean { const want = sheetKey(); return !!want && !!k && safeEqual(k, want); }
 
 const IST = 'Asia/Kolkata';
+// Paid traffic = Meta Instant Form leads + people who commented/DMed after seeing the ad
+// (tagged utmCampaign 'meta-ad'). Both are bought by the ad spend.
+const FROM_ADS = { OR: [{ utmMedium: 'instant-form' }, { utmCampaign: 'meta-ad' }] };
 const dayIST = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: IST, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); // YYYY-MM-DD
 const ddmmyyyy = (ymd: string) => { const [y, m, d] = ymd.split('-'); return `${d}/${m}/${y}`; };
 const csvCell = (v: unknown) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
@@ -26,10 +29,10 @@ export async function trafficRows(month: string /* YYYY-MM */): Promise<unknown[
   const daysInMonth = Math.round((next.getTime() - first.getTime()) / 86400_000);
   const [ads, leads, bookings, won, pays] = await Promise.all([
     prisma.adSpendDay.findMany({ where: { date: { gte: first, lt: next } } }),
-    prisma.funnelLead.findMany({ where: { utmMedium: 'instant-form', createdAt: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) } }, select: { id: true, createdAt: true, storeUrl: true } }),
-    prisma.booking.findMany({ where: { startTime: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, NOT: { id: { startsWith: 'demo' } }, funnelLead: { utmMedium: 'instant-form' } }, select: { startTime: true } }),
-    prisma.funnelLead.findMany({ where: { status: 'closed_won', utmMedium: 'instant-form', updatedAt: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) } }, select: { id: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true } } } }),
-    prisma.payment.findMany({ where: { status: 'received', date: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, lead: { utmMedium: 'instant-form' } }, select: { date: true, amount: true, currency: true } }),
+    prisma.funnelLead.findMany({ where: { ...FROM_ADS, createdAt: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) } }, select: { id: true, createdAt: true, storeUrl: true } }),
+    prisma.booking.findMany({ where: { startTime: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, NOT: { id: { startsWith: 'demo' } }, funnelLead: FROM_ADS }, select: { startTime: true } }),
+    prisma.funnelLead.findMany({ where: { status: 'closed_won', ...FROM_ADS, updatedAt: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) } }, select: { id: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true } } } }),
+    prisma.payment.findMany({ where: { status: 'received', date: { gte: new Date(first.getTime() - 86400_000), lt: new Date(next.getTime() + 86400_000) }, lead: FROM_ADS }, select: { date: true, amount: true, currency: true } }),
   ]);
   const fx = Number((await prisma.setting.findUnique({ where: { key: 'money_fx_usd_inr' } }))?.value) || 84;
   const inr = (amt: number, cur: string) => (cur === 'USD' ? amt * fx : amt);
