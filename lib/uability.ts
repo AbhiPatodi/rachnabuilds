@@ -81,7 +81,8 @@ export async function salesEodRows(): Promise<unknown[][]> {
     include: { funnelLead: { select: { id: true, status: true, storeUrl: true, phone: true, whatsapp: true, utmSource: true, payments: { select: { amount: true, currency: true, status: true, date: true } } } } },
   });
   const wonNoCall = await prisma.funnelLead.findMany({
-    where: { status: 'closed_won', updatedAt: { gte: since }, bookings: { none: {} } },
+    // Imported historical clients (sheet backfill, ids 'imp…') are not EOD sales — they'd read as fresh closes.
+    where: { status: 'closed_won', updatedAt: { gte: since }, bookings: { none: {} }, NOT: { id: { startsWith: 'imp' } } },
     select: { id: true, name: true, email: true, phone: true, whatsapp: true, storeUrl: true, utmSource: true, utmMedium: true, utmCampaign: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true, date: true } } },
   });
   const fx = Number((await prisma.setting.findUnique({ where: { key: 'money_fx_usd_inr' } }))?.value) || 84;
