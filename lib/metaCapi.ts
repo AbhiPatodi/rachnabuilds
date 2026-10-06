@@ -88,3 +88,59 @@ export async function sendMetaCapiEvent(
 export function clientIpFromHeaders(headers: Headers): string | undefined {
   return headers.get('x-forwarded-for')?.split(',')[0]?.trim() || undefined;
 }
+
+// ---------------------------------------------------------------------------
+// Lead-quality feedback (CRM → Meta). Tells Meta which Instant Form leads
+// turned out to be real prospects, so delivery can learn to find more of
+// them instead of optimising for whoever submits a form fastest.
+//
+// Spec per Meta's lead-ads CRM integration: action_source MUST be
+// "system_generated" and user_data.lead_id MUST be the leadgen id the
+// webhook received. Event names are our funnel stages; Meta treats them as
+// custom events (visible in Events Manager, usable for Conversion Leads
+// optimisation once volume allows).
+// ---------------------------------------------------------------------------
+
+export type LeadStage = 'lead_qualified' | 'lead_converted';
+
+export async function sendLeadStageToMeta(opts: {
+  stage: LeadStage;
+  leadgenId: string;
+  email?: string | null;
+  phone?: string | null;
+}): Promise<{ ok: boolean; reason?: string }> {
+  if (!PIXEL_ID || !ACCESS_TOKEN) return { ok: false, reason: 'not_configured' };
+
+  const userData: Record<string, unknown> = { lead_id: opts.leadgenId };
+  if (opts.email) userData.em = [sha256(opts.email)];
+  if (opts.phone) userData.ph = [sha256(opts.phone.replace(/[^0-9]/g, ''))];
+
+  const payload = {
+    data: [
+      {
+        event_name: opts.stage,
+        event_time: Math.floor(Date.now() / 1000),
+        // One event per stage per lead, ever — replays dedupe away.
+        event_id: `${opts.stage}_${opts.leadgenId}`,
+        action_source: 'system_generated',
+        user_data: userData,
+      },
+    ],
+  };
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/${GRAPH_VERSION}/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('Meta lead-stage CAPI error:', res.status, text);
+      return { ok: false, reason: `http_${res.status}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error('Meta lead-stage CAPI send failed:', err);
+    return { ok: false, reason: 'network_error' };
+  }
+}

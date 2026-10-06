@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendLeadStageToMeta, type LeadStage } from '@/lib/metaCapi';
+
+// CRM status → the quality signal Meta hears about that Instant Form lead.
+// One event per stage per lead (event_id dedupe in sendLeadStageToMeta).
+const STATUS_TO_META_STAGE: Record<string, LeadStage> = {
+  call_booked: 'lead_qualified',
+  showed: 'lead_qualified',
+  proposal_sent: 'lead_qualified',
+  closed_won: 'lead_converted',
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +117,24 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       await prisma.leadActivity.create({
         data: { leadId: id, type: 'status', text: `Status: ${before.status} → ${data.status}` },
       }).catch(() => {});
+      // Quality feedback to Meta for Instant Form leads: when a lead reaches
+      // a stage that proves it was real, tell the ad platform (after the
+      // response — never block the admin UI on Meta).
+      const stage = STATUS_TO_META_STAGE[data.status];
+      if (stage && lead.email) {
+        after(async () => {
+          try {
+            const ev = await prisma.metaLeadEvent.findFirst({ where: { email: lead.email } });
+            if (!ev) return;
+            const r = await sendLeadStageToMeta({ stage, leadgenId: ev.leadgenId, email: lead.email, phone: lead.phone });
+            if (r.ok) {
+              await prisma.leadActivity.create({
+                data: { leadId: id, type: 'system', text: `📡 Sent "${stage}" quality signal to Meta for this ad lead` },
+              }).catch(() => {});
+            }
+          } catch (e) { console.error('lead-stage CAPI hook failed:', e); }
+        });
+      }
     }
     return NextResponse.json(lead);
   } catch (err: unknown) {
