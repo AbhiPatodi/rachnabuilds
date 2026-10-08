@@ -107,7 +107,25 @@ export interface GaSnapshot {
   daily: Array<{ date: string; activeUsers: number; sessions: number }>;
   topPages: Array<{ path: string; views: number }>;
   topSources: Array<{ source: string; sessions: number }>;
+  /** Cities excluded as our own / bot traffic, so the UI can say so. */
+  excludedCities: string[];
 }
+
+// Our own visits swamp the real numbers: Indore was 46% of sessions and 68% of
+// pageviews in Oct 2026. Ashburn is AWS us-east-1 — link-preview fetchers and
+// bots, never people. Clients are US/UK/EU, so excluding these costs us nothing
+// real. (A GA4 property-level internal-traffic filter by IP would be the proper
+// long-term fix; this keeps every admin number honest in the meantime.)
+const EXCLUDED_CITIES = ['Indore', 'Ashburn'];
+
+const EXCLUDE_OWN_TRAFFIC = {
+  notExpression: {
+    filter: {
+      fieldName: 'city',
+      inListFilter: { values: EXCLUDED_CITIES },
+    },
+  },
+};
 
 export type GaResult =
   | { ok: true; snapshot: GaSnapshot }
@@ -131,6 +149,7 @@ export async function getTrafficSnapshot(days = 28): Promise<GaResult> {
         property,
         requestBody: {
           dateRanges,
+          dimensionFilter: EXCLUDE_OWN_TRAFFIC,
           metrics: [
             { name: 'activeUsers' }, { name: 'newUsers' },
             { name: 'sessions' }, { name: 'screenPageViews' },
@@ -141,6 +160,7 @@ export async function getTrafficSnapshot(days = 28): Promise<GaResult> {
         property,
         requestBody: {
           dateRanges,
+          dimensionFilter: EXCLUDE_OWN_TRAFFIC,
           dimensions: [{ name: 'date' }],
           metrics: [{ name: 'activeUsers' }, { name: 'sessions' }],
           orderBys: [{ dimension: { dimensionName: 'date' } }],
@@ -150,6 +170,7 @@ export async function getTrafficSnapshot(days = 28): Promise<GaResult> {
         property,
         requestBody: {
           dateRanges,
+          dimensionFilter: EXCLUDE_OWN_TRAFFIC,
           dimensions: [{ name: 'pagePath' }],
           metrics: [{ name: 'screenPageViews' }],
           orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
@@ -160,6 +181,7 @@ export async function getTrafficSnapshot(days = 28): Promise<GaResult> {
         property,
         requestBody: {
           dateRanges,
+          dimensionFilter: EXCLUDE_OWN_TRAFFIC,
           dimensions: [{ name: 'sessionSource' }],
           metrics: [{ name: 'sessions' }],
           orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
@@ -175,6 +197,7 @@ export async function getTrafficSnapshot(days = 28): Promise<GaResult> {
       ok: true,
       snapshot: {
         propertyId,
+        excludedCities: EXCLUDED_CITIES,
         totals: { activeUsers: num(0), newUsers: num(1), sessions: num(2), pageViews: num(3) },
         daily: (dailyRes.data.rows || []).map((r) => ({
           date: r.dimensionValues?.[0]?.value || '',
