@@ -5,11 +5,15 @@ import { sendLeadStageToMeta, type LeadStage } from '@/lib/metaCapi';
 
 // CRM status → the quality signal Meta hears about that Instant Form lead.
 // One event per stage per lead (event_id dedupe in sendLeadStageToMeta).
+// The negative signals matter as much as the positive ones: without them Meta
+// keeps hunting for more people like the ones who went nowhere.
 const STATUS_TO_META_STAGE: Record<string, LeadStage> = {
   call_booked: 'lead_qualified',
   showed: 'lead_qualified',
   proposal_sent: 'lead_qualified',
   closed_won: 'lead_converted',
+  closed_lost: 'lead_disqualified',
+  disqualified: 'lead_disqualified',
 };
 
 export const dynamic = 'force-dynamic';

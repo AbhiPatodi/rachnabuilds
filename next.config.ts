@@ -18,6 +18,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the workspace root: a stray package-lock.json in the parent folder
+  // makes Turbopack pick the wrong root and 404 every route in dev.
+  turbopack: { root: process.cwd() },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

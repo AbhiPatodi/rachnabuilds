@@ -101,7 +101,7 @@ export function clientIpFromHeaders(headers: Headers): string | undefined {
 // optimisation once volume allows).
 // ---------------------------------------------------------------------------
 
-export type LeadStage = 'lead_qualified' | 'lead_converted';
+export type LeadStage = 'lead_qualified' | 'lead_converted' | 'lead_disqualified';
 
 export async function sendLeadStageToMeta(opts: {
   stage: LeadStage;
