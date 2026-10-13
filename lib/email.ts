@@ -202,6 +202,32 @@ export async function sendEmail(
 
 // ─── Client notifications ─────────────────────────────────────────────────────
 
+/** Who gets the "do something now" internal alerts. */
+export const ALERT_RECIPIENTS = ['hello@rachnabuilds.com', 'abhipatodi1100@gmail.com'];
+
+/**
+ * A cold-email prospect asked for their report and it is built, but nothing goes
+ * out until a human has read it. Push alone is missable, so this lands in both
+ * inboxes with the report link and the approve link side by side.
+ */
+export async function sendReportAwaitingApproval(opts: {
+  storeName: string; prospectEmail: string; prospectName?: string | null;
+  finding?: string | null; issueCount?: number | null; reportUrl: string;
+}) {
+  const subject = `Check before sending: ${opts.storeName}`;
+  const html = base(`${opts.storeName} asked for their store check-up`, `
+    ${heading('A prospect is waiting for their report')}
+    ${bodyText(`<b>${esc(opts.storeName)}</b> replied to the cold email asking for the check-up, and the report is now built.`)}
+    ${bodyText(`Nothing has been sent to them. Read the report first — if anything in it is wrong, fix it before they ever see it.`)}
+    ${opts.finding ? bodyText(`What the email opened with: <i>${esc(opts.finding)}</i>`) : ''}
+    ${opts.issueCount ? bodyText(`Findings in the report: <b>${opts.issueCount}</b>`) : ''}
+    ${adminCtaButton('Read the report', opts.reportUrl)}
+    ${bodyText(`When it looks right, approve it here and it goes back in their own email thread: <a href="https://rachnabuilds.com/admin/outreach" style="color:#06D6A0;text-decoration:none;">Admin → Outreach</a>`)}
+    ${bodyText(`Prospect: ${esc(opts.prospectName || '')} &lt;${esc(opts.prospectEmail)}&gt;`)}
+  `);
+  return Promise.all(ALERT_RECIPIENTS.map((to) => sendEmail(to, subject, html)));
+}
+
 /** Contract is ready to sign — sent to client */
 export async function notifyContractReady(
   clientEmail: string,

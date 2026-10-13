@@ -4,6 +4,7 @@
 // inbox warm-up health, campaign numbers, and the latest replies.
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import PendingReports from './PendingReports';
 
 interface Data {
   pipeline: { tiers: Record<string, number>; verify: Record<string, number>; scan: Record<string, number>; stage: Record<string, number> };
@@ -56,6 +57,8 @@ export default function OutreachPage() {
         </div>
         <button type="button" className="admin-btn admin-btn-secondary" onClick={load}>↻ Refresh</button>
       </div>
+
+      <PendingReports />
 
       <div className="admin-stats">
         <Stat label="Top-tier list" value={topTier.toLocaleString('en-IN')} sub={`${(p.tiers['B'] || 0) + (p.tiers['C'] || 0)} more in B/C`} />

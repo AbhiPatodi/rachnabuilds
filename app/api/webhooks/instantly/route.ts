@@ -9,6 +9,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/auth';
 import { sendPushToAll } from '@/lib/webpush';
+import { ALERT_RECIPIENTS, sendEmail } from '@/lib/email';
 import { emailsForLead, hasInstantlyKey } from '@/lib/instantly';
 
 export const dynamic = 'force-dynamic';
@@ -109,6 +110,17 @@ export async function POST(req: NextRequest) {
     `${name}${prospect?.storeName ? ` · ${prospect.storeName}` : ''}${text ? `: ${text.slice(0, 90)}` : ''}${queued || negative ? '' : ' — reply within the hour'}`,
     `/admin/funnel-leads/${lead.id}`,
   ).catch(() => {});
+
+  // A reply is the whole point of the campaign — push can be missed, so it also
+  // lands in both inboxes with what they actually wrote.
+  if (!negative) {
+    const subject = positive ? `Wants the report: ${prospect?.storeName || name}` : `Cold-email reply: ${prospect?.storeName || name}`;
+    const html = `<p><b>${name}</b>${prospect?.storeName ? ` · ${prospect.storeName}` : ''} replied.</p>`
+      + (text ? `<blockquote style="border-left:3px solid #06D6A0;margin:12px 0;padding:4px 0 4px 12px;color:#344054">${text.slice(0, 600).replace(/</g, '&lt;')}</blockquote>` : '')
+      + (queued ? `<p>Their audit is running. You will get a second email when the report is ready to check.</p>` : '')
+      + `<p><a href="https://rachnabuilds.com/admin/funnel-leads/${lead.id}">Open the lead</a></p>`;
+    Promise.all(ALERT_RECIPIENTS.map((to) => sendEmail(to, subject, html))).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true, leadId: lead.id, positive, negative, queued });
 }
