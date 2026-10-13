@@ -859,6 +859,27 @@ model AdSpendDay {
   @@map("ad_spend_days")
 }
 
+// Per-day spend split by one dimension (region / platform / age+gender), so the
+// Meta Ads report can be cut by date range without calling the Graph API on
+// every page load. One row per account+day+dimension+key.
+model AdBreakdownDay {
+  id          String   @id @default(cuid())
+  accountId   String
+  date        DateTime // day, 00:00 UTC
+  dimension   String   // region | platform | age_gender
+  key         String   // "California" | "instagram" | "25-34|female"
+  spend       Float    @default(0)
+  impressions Int      @default(0)
+  reach       Int      @default(0)
+  clicks      Int      @default(0)
+  leads       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([accountId, date, dimension, key])
+  @@index([accountId, dimension, date])
+  @@map("ad_breakdown_days")
+}
+
 model AdTopUp {
   id          String   @id @default(cuid())
   accountId   String

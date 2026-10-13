@@ -50,6 +50,75 @@ export async function syncAdSpend(since: string, until: string) {
   return days;
 }
 
+// ── Breakdowns ───────────────────────────────────────────────────────────────
+// The daily table answers "how much and how many leads". These answer "from
+// where and from whom", which is what the Meta Ads report needs to show a state
+// or platform cut for any date range without hitting the Graph API per request.
+
+interface BreakdownRow extends InsightRow {
+  region?: string; publisher_platform?: string; age?: string; gender?: string;
+}
+
+const DIMENSIONS = {
+  region: { breakdowns: 'region', key: (r: BreakdownRow) => r.region || 'Unknown' },
+  platform: { breakdowns: 'publisher_platform', key: (r: BreakdownRow) => r.publisher_platform || 'unknown' },
+  age_gender: { breakdowns: 'age,gender', key: (r: BreakdownRow) => `${r.age || '?'}|${r.gender || 'unknown'}` },
+} as const;
+
+export type Dimension = keyof typeof DIMENSIONS;
+
+function leadsOf(r: InsightRow): number {
+  return (r.actions || [])
+    .filter((a) => /^(lead|onsite_conversion\.lead_grouped|leadgen_grouped)$/.test(a.action_type))
+    .reduce((m, a) => Math.max(m, Number(a.value) || 0), 0);
+}
+
+/** Pull one dimension's per-day rows for [since, until] and upsert them. */
+export async function syncBreakdown(dim: Dimension, since: string, until: string) {
+  const cfg = DIMENSIONS[dim];
+  let path = `act_${AD_ACCOUNT_ID}/insights`;
+  let params: Record<string, string> | null = {
+    fields: 'spend,impressions,reach,clicks,actions',
+    time_increment: '1',
+    time_range: JSON.stringify({ since, until }),
+    level: 'account',
+    breakdowns: cfg.breakdowns,
+    limit: '500',
+  };
+  let rows = 0;
+  // Breakdowns multiply the row count, so follow paging rather than trusting one page.
+  for (let page = 0; page < 20 && params; page++) {
+    const res: { data: BreakdownRow[]; paging?: { cursors?: { after?: string } } } =
+      await graph<{ data: BreakdownRow[]; paging?: { cursors?: { after?: string } } }>(path, params);
+    for (const r of res.data || []) {
+      const date = new Date(`${r.date_start}T00:00:00.000Z`);
+      const key = cfg.key(r);
+      const vals = {
+        spend: Number(r.spend) || 0, impressions: Number(r.impressions) || 0,
+        reach: Number(r.reach) || 0, clicks: Number(r.clicks) || 0, leads: leadsOf(r),
+      };
+      await prisma.adBreakdownDay.upsert({
+        where: { accountId_date_dimension_key: { accountId: AD_ACCOUNT_ID, date, dimension: dim, key } },
+        create: { accountId: AD_ACCOUNT_ID, date, dimension: dim, key, ...vals },
+        update: vals,
+      });
+      rows++;
+    }
+    const after = res.paging?.cursors?.after;
+    params = after && (res.data || []).length ? { ...params, after } : null;
+  }
+  return rows;
+}
+
+/** All three dimensions for a window. Used by the cron and the manual refresh. */
+export async function syncBreakdowns(since: string, until: string) {
+  const out: Record<string, number> = {};
+  for (const dim of Object.keys(DIMENSIONS) as Dimension[]) {
+    out[dim] = await syncBreakdown(dim, since, until).catch(() => 0);
+  }
+  return out;
+}
+
 interface ActivityRow { event_type: string; event_time: string; extra_data?: string }
 
 /** Top-ups: Meta logs each prepaid payment as a funding_event_successful activity (amount in paise). */

@@ -3,6 +3,7 @@
 // Money: income vs spend at a glance, Meta ad spend (auto), expenses
 // (recurring + one-off), client payments, and month-by-month comparison.
 import { useCallback, useEffect, useState } from 'react';
+import AdsReport from './AdsReport';
 
 type Tab = 'overview' | 'channels' | 'ads' | 'expenses' | 'income' | 'months';
 
@@ -65,6 +66,8 @@ function Bars({ days, budgetPerDay }: { days: Summary['ads']['days']; budgetPerD
 
 export default function MoneyPage() {
   const [tab, setTab] = useState<Tab>('overview');
+  // The Meta Ads tab has two faces: the day-to-day ledger, and the report that gets shared.
+  const [adsView, setAdsView] = useState<'manage' | 'report'>('manage');
   useEffect(() => { const t = new URLSearchParams(window.location.search).get('tab') as Tab | null; if (t) setTab(t); }, []);
   const [month, setMonth] = useState(thisMonth());
   const [s, setS] = useState<Summary | null>(null);
@@ -112,7 +115,7 @@ export default function MoneyPage() {
     }
   };
   const saveSettings = async () => { if (await api('/api/admin/money/settings', 'PATCH', { fxUsdInr: Number(set.fxUsdInr), adBudgetMonthly: Number(set.adBudgetMonthly) || 0, minBalance: Number(set.minBalance) || 0, gstPct: Number(set.gstPct) || 0, ...(set.metaBalance !== '' ? { metaBalance: Number(set.metaBalance) } : {}) })) flash('Settings saved'); };
-  const syncAds = async () => { if (await api('/api/admin/money/sync-ads', 'POST')) flash('Meta spend refreshed'); };
+  const syncAds = async (days?: number) => { if (await api(`/api/admin/money/sync-ads${days ? `?days=${days}` : ''}`, 'POST')) flash(days ? `Meta backfilled (${days} days)` : 'Meta spend refreshed'); };
 
   if (!s) return <div className="admin-content"><div style={{ color: 'var(--text-secondary)', fontSize: 14, padding: 40, textAlign: 'center' }}>Loading money…</div></div>;
 
@@ -151,7 +154,7 @@ export default function MoneyPage() {
         <button type="button" className="admin-btn admin-btn-primary" onClick={() => { setShowP(!showP); setShowE(false); }}>💰 Record payment</button>
         <button type="button" className="admin-btn admin-btn-secondary" onClick={() => { setShowE(!showE); setShowP(false); setEditE(null); }}>＋ Expense</button>
         <a className="admin-btn admin-btn-secondary" href={`/api/admin/money/export?month=${month}`}>⬇ CSV</a>
-        <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={syncAds} title={s.ads.balanceAt ? `Last sync ${new Date(s.ads.balanceAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : 'Meta not connected'}>
+        <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={() => syncAds()} title={s.ads.balanceAt ? `Last sync ${new Date(s.ads.balanceAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : 'Meta not connected'}>
           {busy ? 'Syncing…' : '↻ Sync Meta'}{s.ads.balanceAt && !busy ? <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6, fontSize: 11.5 }}>{new Date(s.ads.balanceAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</span> : null}
         </button>
       </div>
@@ -256,6 +259,19 @@ export default function MoneyPage() {
 
       {tab === 'ads' && (
         <>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {(['manage', 'report'] as const).map((v) => (
+              <button key={v} type="button" className={`settings-tab${adsView === v ? ' active' : ''}`}
+                onClick={() => setAdsView(v)}>{v === 'manage' ? 'Manage' : 'Report'}</button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === 'ads' && adsView === 'report' && <AdsReport />}
+
+      {tab === 'ads' && adsView === 'manage' && (
+        <>
           {!s.adsConnected && (
             <div className="admin-alert admin-alert-error" style={{ marginBottom: 16 }}>
               Meta isn&apos;t connected yet. Add <code>META_ADS_ACCESS_TOKEN</code> (a system-user token with <code>ads_read</code>) in Vercel, then press Refresh. Until then you can type the balance in Settings below.
@@ -269,7 +285,8 @@ export default function MoneyPage() {
           <div className="admin-card" style={{ padding: 18, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
               <h2 className="admin-card-title" style={{ margin: 0 }}>Spend per day (incl. GST) · green = days with leads</h2>
-              <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={syncAds}>↻ Refresh from Meta</button>
+              <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={() => syncAds()}>↻ Refresh from Meta</button>
+              <button type="button" className="admin-btn admin-btn-secondary" disabled={busy || !s.adsConnected} onClick={() => syncAds(120)} title="Re-pull the last 120 days, including the state / platform / audience breakdowns the report uses">↻↻ Backfill all</button>
             </div>
             {s.ads.days.length ? <Bars days={s.ads.days} budgetPerDay={s.settings.adBudgetMonthly ? (s.settings.adBudgetMonthly / 30) * (1 + s.ads.gstPct / 100) : 0} /> : <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>No spend recorded for this month.</p>}
             {s.ads.days.length > 0 && (
