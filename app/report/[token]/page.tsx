@@ -14,6 +14,7 @@ import { sendPushToAll } from '@/lib/webpush';
 import { isPreviewBot, placeWithFlag } from '@/lib/flag';
 import CompetitorAsk from './CompetitorAsk';
 import EngagementPing from './EngagementPing';
+import RevokedReport from './RevokedReport';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
 
 export const dynamic = 'force-dynamic';
@@ -58,16 +59,25 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
   const { token } = await params;
   const report = await prisma.storeProofReport.findUnique({
     where: { publicToken: token },
-    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, clientId: true, firstViewedAt: true, publicFull: true },
+    select: { id: true, storeName: true, host: true, findingsJson: true, funnelLeadId: true, clientId: true, firstViewedAt: true, publicFull: true, status: true },
   });
   if (!report) notFound();
+
+  // Hidden on purpose (Admin → StoreProof). The link still resolves so the
+  // visitor gets an explanation and a way to ask, rather than a dead 404 —
+  // and the ask lands as an email, a push and a note on their CRM timeline.
+  if (report.status === 'revoked') {
+    return <RevokedReport token={token} storeName={report.storeName} />;
+  }
 
   let findings: Finding[] = [];
   let opener = '';
   let brand: { logoUrl?: string; themeColor?: string } = {};
   let speed: { pages: SpeedPage[]; wins: SpeedWin[] } | null = null;
   let screenshots: Shot[] = [];
-  let design: { notes: { title: string; note: string }[]; shots: Shot[] } | null = null;
+  // shots is optional: hand-written findings.json (non-Shopify prospects, or any
+  // run published without crawl screenshots) carry design notes with no shots.
+  let design: { notes: { title: string; note: string }[]; shots?: Shot[] } | null = null;
   try {
     const parsed = JSON.parse(report.findingsJson);
     findings = parsed.findings || [];
@@ -332,7 +342,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           <div data-track="Design review">
             <h2 className="rpt-h2">A designer&apos;s eye on your store</h2>
             <p className="rpt-h2sub">Beyond the technical checks — how the store reads to a first-time shopper.</p>
-            {design.shots[0] && (
+            {design.shots?.[0] && (
               <figure className="rpt-shot rpt-designshot" style={{ margin: '0 0 14px' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={design.shots[0].dataUri} alt={design.shots[0].label} />
