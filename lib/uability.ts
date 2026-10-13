@@ -76,13 +76,15 @@ export async function trafficRows(month: string /* YYYY-MM */): Promise<unknown[
 /** One row per sales call (plus sales closed without a call) — UAbility "Sales EOD Report" columns. */
 export async function salesEodRows(): Promise<unknown[][]> {
   const since = new Date('2026-09-01T00:00:00Z');
+  // Paid-traffic sheet: only calls the ads bought. Upwork, referral and direct
+  // leads are someone else's channel and must not inflate this one's numbers.
   const bookings = await prisma.booking.findMany({
-    where: { startTime: { gte: since }, NOT: { id: { startsWith: 'demo' } } }, orderBy: { startTime: 'asc' },
+    where: { startTime: { gte: since }, NOT: { id: { startsWith: 'demo' } }, funnelLead: FROM_ADS }, orderBy: { startTime: 'asc' },
     include: { funnelLead: { select: { id: true, status: true, storeUrl: true, phone: true, whatsapp: true, utmSource: true, payments: { select: { amount: true, currency: true, status: true, date: true } } } } },
   });
   const wonNoCall = await prisma.funnelLead.findMany({
     // Imported historical clients (sheet backfill, ids 'imp…') are not EOD sales — they'd read as fresh closes.
-    where: { status: 'closed_won', updatedAt: { gte: since }, bookings: { none: {} }, NOT: { id: { startsWith: 'imp' } } },
+    where: { status: 'closed_won', updatedAt: { gte: since }, bookings: { none: {} }, NOT: { id: { startsWith: 'imp' } }, ...FROM_ADS },
     select: { id: true, name: true, email: true, phone: true, whatsapp: true, storeUrl: true, utmSource: true, utmMedium: true, utmCampaign: true, updatedAt: true, payments: { select: { amount: true, currency: true, status: true, date: true } } },
   });
   const fx = Number((await prisma.setting.findUnique({ where: { key: 'money_fx_usd_inr' } }))?.value) || 84;
