@@ -39,7 +39,11 @@ export default function OutreachPage() {
   const invalid = (p.verify.invalid || 0) + (p.verify.duplicate || 0);
   const unverified = p.verify.unverified || 0;
   const scanned = p.scan.scanned || 0;
-  const contacted = (p.stage.contacted || 0) + (p.stage.replied || 0) + (p.stage.promoted || 0);
+  // 'queued' = loaded into an Instantly campaign. Instantly does the sending, so
+  // our own stage never flips to 'contacted' — count queued as in-flight or the
+  // page reads "campaign not started" while 141 emails are going out.
+  const queued = p.stage.queued || 0;
+  const contacted = queued + (p.stage.contacted || 0) + (p.stage.replied || 0) + (p.stage.promoted || 0);
   const replied = (p.stage.replied || 0) + (p.stage.promoted || 0);
   const ready = d.instantly.accounts.filter((a) => a.ready).length;
   const warming = d.instantly.accounts.filter((a) => a.warmup).length;
@@ -66,7 +70,7 @@ export default function OutreachPage() {
         <Stat label="Scanned (have a finding)" value={scanned} sub={`${p.scan.failed || 0} failed · ${(p.scan.pending || 0)} pending`} />
       </div>
       <div className="admin-stats">
-        <Stat label="Contacted" value={contacted} sub={totalSent ? `${totalSent} emails sent` : 'campaign not started'} />
+        <Stat label="In the campaign" value={contacted} sub={totalSent ? `${totalSent} emails sent so far` : `${queued} queued · sending not started`} />
         <Stat label="Replied" value={replied} sub={contacted ? `${((replied / contacted) * 100).toFixed(1)}% of contacted` : undefined} tone={replied ? 'good' : undefined} />
         <Stat label="Bounce rate" value={totalSent ? `${bounceRate.toFixed(1)}%` : '—'} sub={totalSent ? (bounceRate > 2 ? 'PAUSE: over the 2% line' : 'under the 2% line') : 'no sends yet'} tone={totalSent ? (bounceRate > 2 ? 'bad' : 'good') : undefined} />
       </div>
