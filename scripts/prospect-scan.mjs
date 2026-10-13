@@ -54,8 +54,14 @@ async function scan(p) {
   const P = pdp?.text || '';
   const sig = (re, ...hs) => hs.some((h) => re.test(h));
   const has = {
-    metaPixel: sig(/connect\.facebook\.net\/[^"']*fbevents\.js|fbq\(/, H, P),
-    ga4: sig(/gtag\/js\?id=G-|googletagmanager\.com\/gtm\.js|G-[A-Z0-9]{6,}/, H, P),
+    // Classic markers OR Shopify Web Pixels sandbox. The official Meta sales
+    // channel installs the pixel inside the sandbox: no fbevents.js and no
+    // fbq( ever reach the document, only a webPixelsConfigList entry carrying
+    // {"pixel_id":"…","pixel_type":"facebook_pixel"} (plus facebookCapiEnabled
+    // when Conversions API is on). Matching only the classic markers reported
+    // healthy, pixel-tracking stores as having no pixel at all.
+    metaPixel: sig(/connect\.facebook\.net\/[^"']*fbevents\.js|fbq\(|facebook_pixel|facebookCapiEnabled\\?"\s*:\s*\\?"?true/, H, P),
+    ga4: sig(/gtag\/js\?id=G-|googletagmanager\.com\/gtm\.js|G-[A-Z0-9]{6,}|google_analytics|"pixel_type\\?":\\?"google/, H, P),
     klaviyo: sig(/klaviyo/i, H, P),
     email: sig(/klaviyo|omnisend|mailchimp|privy|attentive|postscript|justuno|wisepops|optimonk/i, H, P),
     reviewsApp: sig(/judge\.me|loox|yotpo|okendo|stamped|reviews\.io|junip|rivyo|opinew|ali-?reviews|trustpilot/i, H, P),
