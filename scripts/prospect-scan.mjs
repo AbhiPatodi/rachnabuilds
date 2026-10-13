@@ -63,8 +63,16 @@ async function scan(p) {
     metaPixel: sig(/connect\.facebook\.net\/[^"']*fbevents\.js|fbq\(|facebook_pixel|facebookCapiEnabled\\?"\s*:\s*\\?"?true/, H, P),
     ga4: sig(/gtag\/js\?id=G-|googletagmanager\.com\/gtm\.js|G-[A-Z0-9]{6,}|google_analytics|"pixel_type\\?":\\?"google/, H, P),
     klaviyo: sig(/klaviyo/i, H, P),
-    email: sig(/klaviyo|omnisend|mailchimp|privy|attentive|postscript|justuno|wisepops|optimonk/i, H, P),
-    reviewsApp: sig(/judge\.me|loox|yotpo|okendo|stamped|reviews\.io|junip|rivyo|opinew|ali-?reviews|trustpilot/i, H, P),
+    // Email capture is NOT just third-party apps: almost every Shopify theme ships
+    // a newsletter form (form_type="customer"). Checking only app names claimed
+    // "no way to bring them back" on 83% of stores that plainly had a signup box.
+    email: sig(/klaviyo|omnisend|mailchimp|privy|attentive|postscript|justuno|wisepops|optimonk|seguno|smsbump|sendlane|mailerlite|activecampaign|shopify-forms|shopify_forms/i, H, P)
+      || sig(/form_type=["']customer["']|customer\[email\]|name=["']contact\[email\]["']|newsletter-form|footer__newsletter|\/contact#contact_form/i, H, P),
+    // Reviews likewise: an app outside the list, Shopify's own rating metafields,
+    // a theme star block, or an AggregateRating in JSON-LD all mean reviews exist.
+    reviewsApp: sig(/judge\.?me|jdgm|loox|yotpo|okendo|oke-?reviews|stamped|reviews\.io|junip|rivyo|opinew|ali-?reviews|trustpilot|fera\.ai|vitals\.co|rivo\.io|growave|air-?reviews|trustoo|lai-?reviews|shopify-product-reviews|spr-badge|spr-review|judgeme_product/i, H, P)
+      || sig(/metafields\.reviews|reviews\.rating|"rating_count"|rating-star|star-rating|shopify-block-reviews|product-rating/i, H, P)
+      || sig(/"aggregateRating"|"reviewCount"|"ratingValue"/i, H, P),
     reviewsShown: sig(/jdgm-rev-widg|loox-rating|yotpo-main-widget|okendo-reviews|stamped-main-widget|data-number-of-reviews="[1-9]/i, P),
     stickyAtc: sig(/sticky[-_]?(add[-_]?to[-_]?cart|atc|buy|cart)|product-form--sticky|sticky-product|StickyAddToCart/i, P),
     shippingOnPdp: /shipping|delivery/i.test(strip(P).slice(0, 12000)) && /return|refund/i.test(strip(P).slice(0, 12000)),
