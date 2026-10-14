@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/auth';
-import { listCampaigns, campaignAnalytics, listAccounts, warmupAnalytics, hasInstantlyKey } from '@/lib/instantly';
+import { listCampaigns, campaignAnalytics, listAccounts, warmupAnalytics, hasInstantlyKey, campaignSendingStatus, dailyAccountAnalytics } from '@/lib/instantly';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +67,14 @@ export async function GET(req: NextRequest) {
           dailyLimit: a.daily_limit ?? null, score: a.stat_warmup_score ?? null,
         })),
         analytics, warmup: warm,
+        // The two questions the counts alone cannot answer: is it allowed to send
+        // right now, and did anything actually go out today.
+        sendingStatus: campaigns[0]
+          ? await campaignSendingStatus(campaigns[0].id).catch((e) => ({ error: (e as Error).message.slice(0, 200) }))
+          : null,
+        today: await dailyAccountAnalytics(
+          accounts.map((a) => a.email), new Date().toISOString().slice(0, 10),
+        ).catch((e) => ({ error: (e as Error).message.slice(0, 200) })),
       };
     } catch (e) {
       out.instantly = { connected: true, error: (e as Error).message.slice(0, 300) };
