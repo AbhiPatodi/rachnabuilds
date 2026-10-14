@@ -8,7 +8,7 @@ import PendingReports from './PendingReports';
 
 interface Data {
   pipeline: { tiers: Record<string, number>; verify: Record<string, number>; scan: Record<string, number>; stage: Record<string, number> };
-  instantly: { connected: boolean; accounts: { email: string; ready: boolean; warmup: boolean; dailyLimit: number; score: number | null }[]; campaigns: { id: string; name: string; status: number; leads_count?: number; contacted_count?: number; emails_sent_count?: number; open_count?: number; reply_count?: number; bounced_count?: number; unsubscribed_count?: number }[]; error?: string };
+  instantly: { connected: boolean; accounts: { email: string; ready: boolean; warmup: boolean; dailyLimit: number; score: number | null }[]; campaigns: { id: string; name: string; status: number; leads_count?: number; contacted_count?: number; reply_count_automatic?: number; emails_sent_count?: number; open_count?: number; reply_count?: number; bounced_count?: number; unsubscribed_count?: number }[]; error?: string };
   replied: { id: string; name: string; email: string; storeUrl: string | null; status: string; createdAt: string }[];
   lastWebhook: { at: string; type: string; email: string; campaign: string | null } | null;
 }
@@ -40,16 +40,19 @@ export default function OutreachPage() {
   const unverified = p.verify.unverified || 0;
   const scanned = p.scan.scanned || 0;
   // 'queued' = loaded into an Instantly campaign. Instantly does the sending, so
-  // our own stage never flips to 'contacted' — count queued as in-flight or the
-  // page reads "campaign not started" while 141 emails are going out.
+  // our own stage never flips to 'contacted' — the real count comes from Instantly.
   const queued = p.stage.queued || 0;
-  const contacted = queued + (p.stage.contacted || 0) + (p.stage.replied || 0) + (p.stage.promoted || 0);
   const replied = (p.stage.replied || 0) + (p.stage.promoted || 0);
   const ready = d.instantly.accounts.filter((a) => a.ready).length;
   const warming = d.instantly.accounts.filter((a) => a.warmup).length;
   const totalSent = d.instantly.campaigns.reduce((a, c) => a + (c.emails_sent_count || 0), 0);
   const totalReplies = d.instantly.campaigns.reduce((a, c) => a + (c.reply_count || 0), 0);
   const totalBounced = d.instantly.campaigns.reduce((a, c) => a + (c.bounced_count || 0), 0);
+  // How many PEOPLE have been emailed, from Instantly itself — the question that
+  // actually gets asked. emails_sent_count counts send attempts and runs ahead of it.
+  const totalContacted = d.instantly.campaigns.reduce((a, c) => a + (c.contacted_count || 0), 0);
+  const autoReplies = d.instantly.campaigns.reduce((a, c) => a + (c.reply_count_automatic || 0), 0);
+  const notYetContacted = Math.max(0, queued - totalContacted);
   const bounceRate = totalSent ? (totalBounced / totalSent) * 100 : 0;
 
   return (
@@ -70,9 +73,10 @@ export default function OutreachPage() {
         <Stat label="Scanned (have a finding)" value={scanned} sub={`${p.scan.failed || 0} failed · ${(p.scan.pending || 0)} pending`} />
       </div>
       <div className="admin-stats">
-        <Stat label="In the campaign" value={contacted} sub={totalSent ? `${totalSent} emails sent so far` : `${queued} queued · sending not started`} />
-        <Stat label="Replied" value={replied} sub={contacted ? `${((replied / contacted) * 100).toFixed(1)}% of contacted` : undefined} tone={replied ? 'good' : undefined} />
-        <Stat label="Bounce rate" value={totalSent ? `${bounceRate.toFixed(1)}%` : '—'} sub={totalSent ? (bounceRate > 2 ? 'PAUSE: over the 2% line' : 'under the 2% line') : 'no sends yet'} tone={totalSent ? (bounceRate > 2 ? 'bad' : 'good') : undefined} />
+        <Stat label="In the campaign" value={queued} sub={notYetContacted ? `${notYetContacted} still to be emailed` : 'everyone has been emailed'} />
+        <Stat label="Emailed so far" value={totalContacted} sub={totalSent ? `${totalSent} sends incl. follow-ups` : 'sending not started'} />
+        <Stat label="Replied" value={Math.max(replied, totalReplies)} sub={totalContacted ? `${((Math.max(replied, totalReplies) / totalContacted) * 100).toFixed(1)}% of those emailed${autoReplies ? ` · ${autoReplies} auto-reply` : ''}` : undefined} tone={Math.max(replied, totalReplies) ? 'good' : undefined} />
+        <Stat label="Bounce rate" value={totalSent ? `${bounceRate.toFixed(1)}%` : '—'} sub={totalSent ? (bounceRate > 2 ? 'PAUSE: over the 2% line' : `${totalBounced} bounced · under the 2% line`) : 'no sends yet'} tone={totalSent ? (bounceRate > 2 ? 'bad' : 'good') : undefined} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
