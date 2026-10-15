@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
         connected: true,
         campaigns: campaigns.map((c) => ({
           id: c.id, name: c.name, status: c.status,
+          dailyLimit: (c as { daily_limit?: number }).daily_limit ?? null,
           leads: (c as { leads_count?: number }).leads_count ?? null,
           sent: (c as { emails_sent_count?: number }).emails_sent_count ?? null,
           replies: (c as { reply_count?: number }).reply_count ?? null,
