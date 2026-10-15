@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/auth';
-import { listCampaigns, campaignAnalytics, listAccounts, warmupAnalytics, hasInstantlyKey, campaignSendingStatus, dailyAccountAnalytics } from '@/lib/instantly';
+import { listCampaigns, campaignAnalytics, listAccounts, warmupAnalytics, hasInstantlyKey, campaignSendingStatus, dailyAccountAnalytics, updateCampaignFields } from '@/lib/instantly';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,4 +82,32 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(out);
+}
+
+
+/**
+ * Change the campaign send rate. Instantly applies daily_limit to the WHOLE
+ * campaign, not per inbox — set it to 10 expecting 10-per-inbox and the batch
+ * crawls at 10 a day. Same derived key as the GET.
+ */
+export async function POST(req: NextRequest) {
+  const want = statusKey();
+  const got = req.nextUrl.searchParams.get('key');
+  if (!want || !got || !safeEqual(got, want)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (!hasInstantlyKey()) return NextResponse.json({ error: 'INSTANTLY_API_KEY is not set' }, { status: 400 });
+  const { campaignId, dailyLimit } = await req.json().catch(() => ({}));
+  if (!campaignId) return NextResponse.json({ error: 'campaignId is required' }, { status: 400 });
+  const n = Number(dailyLimit);
+  // Capped at 270 = the nine inboxes' own 30/day ceiling; anything more is wishful.
+  if (!Number.isFinite(n) || n < 1 || n > 270) {
+    return NextResponse.json({ error: 'dailyLimit must be between 1 and 270' }, { status: 400 });
+  }
+  try {
+    const out = await updateCampaignFields(campaignId, { daily_limit: n });
+    return NextResponse.json({ ok: true, dailyLimit: out.daily_limit ?? n });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message.slice(0, 300) }, { status: 502 });
+  }
 }

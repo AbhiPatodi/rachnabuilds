@@ -71,4 +71,8 @@ export const campaignSendingStatus = (id: string) =>
 export const dailyAccountAnalytics = (emails: string[], day: string) =>
   call<unknown>(`/accounts/analytics/daily?start_date=${day}&end_date=${day}&emails=${encodeURIComponent(emails.join(','))}`);
 
+/** Change campaign settings — currently only the send rate. */
+export const updateCampaignFields = (id: string, body: Record<string, unknown>) =>
+  call<{ id: string; daily_limit?: number }>(`/campaigns/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+
 export const hasInstantlyKey = () => !!process.env.INSTANTLY_API_KEY;
