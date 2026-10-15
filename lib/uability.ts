@@ -66,7 +66,10 @@ export async function trafficRows(month: string /* YYYY-MM */): Promise<unknown[
   function line(label: string, d: typeof tot) {
     // Percentages are fractions (0.0242) because the template's % cells are percent-formatted.
     const pct = (a: number, b: number) => Math.round(div(a, b) * 10000) / 10000;
-    return [label, r2(d.spend), d.impr, d.reach, r2(div(d.spend, d.impr) * 1000), d.clicks, pct(d.clicks, d.impr), r2(div(d.spend, d.clicks)),
+    // CTR is clicks over REACH, not impressions. That is UAbility's own
+    // definition in the template's total row (=F4/D4), and the daily rows we
+    // feed have to agree with it or one column disagrees with its own total.
+    return [label, r2(d.spend), d.impr, d.reach, r2(div(d.spend, d.impr) * 1000), d.clicks, pct(d.clicks, d.reach), r2(div(d.spend, d.clicks)),
       d.leads, r2(div(d.spend, d.leads)), pct(d.leads, d.clicks), d.apps, r2(div(d.spend, d.apps)), pct(d.apps, d.leads),
       d.calls, r2(div(d.spend, d.calls)), pct(d.calls, d.apps), d.sales, pct(d.sales, d.calls), r2(d.revenue), r2(d.cash), r2(div(d.spend, d.sales)),
       r2(d.revenue - d.spend), r2(d.cash - d.spend), pct(d.revenue - d.spend, d.spend), pct(d.cash - d.spend, d.spend)];
