@@ -76,3 +76,10 @@ export const updateCampaignFields = (id: string, body: Record<string, unknown>) 
   call<{ id: string; daily_limit?: number }>(`/campaigns/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 
 export const hasInstantlyKey = () => !!process.env.INSTANTLY_API_KEY;
+
+/**
+ * Full campaign record, including `sequences` — the actual follow-up steps and
+ * their wait days. The list endpoint omits these, so this is the only way to
+ * see what a follow-up says and when it fires.
+ */
+export const getCampaign = (id: string) => call<Record<string, unknown>>(`/campaigns/${id}`);

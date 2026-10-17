@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { safeEqual } from '@/lib/auth';
-import { listCampaigns, campaignAnalytics, listAccounts, warmupAnalytics, hasInstantlyKey, campaignSendingStatus, dailyAccountAnalytics, updateCampaignFields } from '@/lib/instantly';
+import { listCampaigns, campaignAnalytics, listAccounts, warmupAnalytics, hasInstantlyKey, campaignSendingStatus, dailyAccountAnalytics, updateCampaignFields, getCampaign } from '@/lib/instantly';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +76,30 @@ export async function GET(req: NextRequest) {
         today: await dailyAccountAnalytics(
           accounts.map((a) => a.email), new Date().toISOString().slice(0, 10),
         ).catch((e) => ({ error: (e as Error).message.slice(0, 200) })),
+        // The follow-up steps themselves: how many, how long each waits, and the
+        // first line of each variant. Without this there is no way to tell whether
+        // follow-ups are configured at all, or just not reached yet.
+        sequence: campaigns[0]
+          ? await getCampaign(campaigns[0].id)
+              .then((c) => {
+                const seqs = (c as { sequences?: unknown[] }).sequences || [];
+                return seqs.map((sq, si) => ({
+                  sequence: si + 1,
+                  steps: (((sq as { steps?: unknown[] }).steps) || []).map((st, i) => {
+                    const step = st as { type?: string; delay?: number; variants?: { subject?: string; body?: string }[] };
+                    return {
+                      step: i + 1,
+                      waitDays: step.delay ?? null,
+                      variants: (step.variants || []).map((v) => ({
+                        subject: v.subject || '(no subject — same thread)',
+                        preview: (v.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180),
+                      })),
+                    };
+                  }),
+                }));
+              })
+              .catch((e) => ({ error: (e as Error).message.slice(0, 200) }))
+          : null,
       };
     } catch (e) {
       out.instantly = { connected: true, error: (e as Error).message.slice(0, 300) };
