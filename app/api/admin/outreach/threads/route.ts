@@ -59,15 +59,16 @@ export async function GET(req: NextRequest) {
         const inbound = e.ue_type === 2;
         const body = (e.body?.text || e.body?.html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
         const subject = e.subject || '';
-        // Instantly's step looks like "0_0_1" — the leading digit is the step.
-        const stepRaw = (e as { step?: string }).step;
-        const step = stepRaw ? Number(String(stepRaw).split('_')[0]) : null;
+        // Instantly's `step` ("0_0_1") is the THREAD's opening step, not this
+        // message's: in-thread follow-ups carry the same string, so every
+        // thread would read as a first touch. The real step is the message's
+        // position among the sends in that thread, assigned after sorting.
         const msgs = byLead.get(lead) || [];
         msgs.push({
           id: e.id,
           at: e.timestamp_created || null,
           inbound,
-          step: Number.isFinite(step as number) ? (step as number) : null,
+          step: null, // filled in below, from order within the thread
           subject,
           body: body.slice(0, 4000),
           inbox: e.eaccount || '',
@@ -97,6 +98,7 @@ export async function GET(req: NextRequest) {
     .map(([email, msgs]) => {
       msgs.sort((a, b) => (a.at || '').localeCompare(b.at || ''));
       const sent = msgs.filter((m) => !m.inbound);
+      sent.forEach((m, i) => { m.step = i; });
       const inbound = msgs.filter((m) => m.inbound);
       const human = inbound.filter((m) => !m.auto);
       const p = pMap.get(email);
