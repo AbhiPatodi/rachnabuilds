@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import PendingReports from './PendingReports';
+import Threads from './Threads';
 
 interface Data {
   pipeline: { tiers: Record<string, number>; verify: Record<string, number>; scan: Record<string, number>; stage: Record<string, number> };
@@ -121,6 +122,7 @@ export default function OutreachPage() {
           </div>
         ))}
       </div>
+      <Threads />
     </div>
   );
 }

@@ -41,7 +41,7 @@ export interface CampaignAnalytics {
 export const campaignAnalytics = (id?: string) =>
   call<CampaignAnalytics[]>(`/campaigns/analytics${id ? `?id=${id}` : ''}`);
 
-export interface InstantlyEmail { id: string; subject?: string; body?: { text?: string; html?: string }; from_address_email?: string; to_address_email_list?: string; eaccount?: string; timestamp_created?: string; ue_type?: number; thread_id?: string; campaign_id?: string }
+export interface InstantlyEmail { id: string; subject?: string; body?: { text?: string; html?: string }; from_address_email?: string; to_address_email_list?: string; eaccount?: string; timestamp_created?: string; ue_type?: number; thread_id?: string; campaign_id?: string; lead?: string; step?: string }
 /** Emails for one lead (newest first). ue_type 2 = received reply. */
 export const emailsForLead = (leadEmail: string, campaignId?: string) =>
   call<{ items: InstantlyEmail[] }>(`/emails?lead=${encodeURIComponent(leadEmail)}${campaignId ? `&campaign_id=${campaignId}` : ''}&limit=20`).then((r) => r.items || []);
@@ -83,3 +83,14 @@ export const hasInstantlyKey = () => !!process.env.INSTANTLY_API_KEY;
  * see what a follow-up says and when it fires.
  */
 export const getCampaign = (id: string) => call<Record<string, unknown>>(`/campaigns/${id}`);
+
+/**
+ * One page of a campaign's Unibox emails, newest first. `limit` caps at 100 per
+ * page, so a full history needs the `starting_after` cursor.
+ * ue_type 2 = received (a reply); anything else is one we sent.
+ */
+export const listCampaignEmails = (campaignId: string, limit = 100, startingAfter?: string) =>
+  call<{ items: InstantlyEmail[]; next_starting_after?: string }>(
+    `/emails?campaign_id=${encodeURIComponent(campaignId)}&limit=${limit}` +
+      (startingAfter ? `&starting_after=${encodeURIComponent(startingAfter)}` : ''),
+  );
