@@ -68,7 +68,16 @@ export async function POST(req: NextRequest) {
   const text = String(p.reply_text || p.reply_text_snippet || '').replace(/\s+/g, ' ').trim();
   const negative = NEGATIVE.test(text);
   const positive = !negative && POSITIVE.test(text.slice(0, 400));
-  const name = String(p.first_name || p.firstName || prospect?.name || '').trim() || email.split('@')[0];
+  // Instantly echoes back the firstName variable WE set — which is the literal
+  // "there" when no real first name was known ("Hi there"). Three leads landed
+  // in the CRM named "there" before this guard existed. Prefer the store name
+  // over our own placeholder.
+  const rawFirst = String(p.first_name || p.firstName || '').trim();
+  const PLACEHOLDER = /^(there|hi|hello|friend|team)$/i;
+  const name =
+    (rawFirst && !PLACEHOLDER.test(rawFirst) ? rawFirst : '') ||
+    String(prospect?.storeName || prospect?.name || '').trim() ||
+    email.split('@')[0];
 
   // Promote to the CRM (idempotent on email)
   let lead = await prisma.funnelLead.findUnique({ where: { email } });
@@ -84,7 +93,31 @@ export async function POST(req: NextRequest) {
   await prisma.leadActivity.create({
     data: { id: 'act_' + randomBytes(10).toString('hex'), leadId: lead.id, type: 'system', text: `✉️ Replied to cold email${p.campaign_name ? ` (${p.campaign_name})` : ''}${text ? `: "${text.slice(0, 220)}"` : ''}` },
   }).catch(() => {});
-  if (prospect) await prisma.prospect.update({ where: { id: prospect.id }, data: { stage: negative ? 'suppressed' : 'replied', promotedLeadId: lead.id } });
+  // A "no thanks" is a reply, not a bounce. It used to become `suppressed` with
+  // nothing recorded, indistinguishable from a bounce in every count, so two
+  // declines went unnoticed for two days. Now: stage `declined`, the text kept
+  // on the prospect, and the promoted lead closed rather than left as `new`.
+  if (prospect) {
+    const prior = (prospect.coldReply && typeof prospect.coldReply === 'object' ? prospect.coldReply : {}) as Record<string, unknown>;
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: {
+        stage: negative ? 'declined' : 'replied',
+        promotedLeadId: lead.id,
+        coldReply: {
+          ...prior,
+          at: new Date().toISOString(),
+          subject: String(p.reply_subject || p.subject || '').slice(0, 200) || (prior.subject as string | undefined) || null,
+          eaccount: String(p.email_account || p.eaccount || '') || (prior.eaccount as string | undefined) || null,
+          replyText: text.slice(0, 600),
+          outcome: negative ? 'declined' : positive ? 'interested' : 'replied',
+        },
+      },
+    });
+  }
+  if (negative) {
+    await prisma.funnelLead.update({ where: { id: lead.id }, data: { status: 'closed_lost' } }).catch(() => {});
+  }
 
   // Interested → queue the FULL audit for their real store; the link goes back
   // in this thread when the worker finishes (see /api/storeproof/jobs complete).

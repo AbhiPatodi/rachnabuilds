@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   // approved. The webhook itself sets prospects.stage = 'replied', and that is
   // the queue nobody was reading: a real reply sat there for two days (19–21 Oct)
   // while this endpoint reported zero. pendingReplies reads that stage directly.
-  const [stages, replied, pendingReplies, lastHook] = await Promise.all([
+  const [stages, replied, pendingReplies, lastHook, declines] = await Promise.all([
     prisma.prospect.groupBy({ by: ['stage'], _count: true }),
     prisma.funnelLead.findMany({
       where: { utmSource: 'cold-email' },
@@ -44,6 +44,13 @@ export async function GET(req: NextRequest) {
       select: { id: true, email: true, storeName: true, domain: true, coldReply: true, updatedAt: true },
     }),
     prisma.setting.findUnique({ where: { key: 'instantly_last_webhook' } }),
+    // Declines are replies too. A human said "no thanks" — that is a result the
+    // owner asked to hear about, and it is also the earliest signal on copy.
+    prisma.prospect.findMany({
+      where: { stage: 'declined' },
+      orderBy: { updatedAt: 'desc' }, take: 20,
+      select: { id: true, email: true, storeName: true, domain: true, coldReply: true, updatedAt: true },
+    }),
   ]);
 
   const out: Record<string, unknown> = {
@@ -54,6 +61,11 @@ export async function GET(req: NextRequest) {
       pendingReplyList: pendingReplies.map((p) => {
         const cr = (p.coldReply || {}) as { at?: string; subject?: string; eaccount?: string };
         return { id: p.id, email: p.email, store: p.storeName || p.domain, repliedAt: cr.at ?? p.updatedAt, subject: cr.subject ?? null, inbox: cr.eaccount ?? null };
+      }),
+      declines: declines.length,
+      recentDeclines: declines.map((p) => {
+        const cr = (p.coldReply || {}) as { at?: string; replyText?: string; from?: string };
+        return { email: p.email, store: p.storeName || p.domain, at: cr.at ?? p.updatedAt, said: (cr.replyText || '').slice(0, 140) };
       }),
       replies: replied.length,
       recentReplies: replied,
