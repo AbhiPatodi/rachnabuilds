@@ -27,12 +27,21 @@ export async function GET(req: NextRequest) {
 
   // Our own side first: these are the numbers that matter and they never depend
   // on Instantly being reachable.
-  const [stages, replied, lastHook] = await Promise.all([
+  // `replied` (promoted funnel leads) only counts replies a human has already
+  // approved. The webhook itself sets prospects.stage = 'replied', and that is
+  // the queue nobody was reading: a real reply sat there for two days (19–21 Oct)
+  // while this endpoint reported zero. pendingReplies reads that stage directly.
+  const [stages, replied, pendingReplies, lastHook] = await Promise.all([
     prisma.prospect.groupBy({ by: ['stage'], _count: true }),
     prisma.funnelLead.findMany({
       where: { utmSource: 'cold-email' },
       orderBy: { createdAt: 'desc' }, take: 10,
       select: { id: true, name: true, email: true, status: true, createdAt: true },
+    }),
+    prisma.prospect.findMany({
+      where: { stage: 'replied' },
+      orderBy: { updatedAt: 'desc' }, take: 20,
+      select: { id: true, email: true, storeName: true, domain: true, coldReply: true, updatedAt: true },
     }),
     prisma.setting.findUnique({ where: { key: 'instantly_last_webhook' } }),
   ]);
@@ -40,6 +49,12 @@ export async function GET(req: NextRequest) {
   const out: Record<string, unknown> = {
     crm: {
       stages: Object.fromEntries(stages.map((s) => [s.stage, s._count])),
+      // Replies awaiting a human — the number that actually needs a same-day answer.
+      pendingReplies: pendingReplies.length,
+      pendingReplyList: pendingReplies.map((p) => {
+        const cr = (p.coldReply || {}) as { at?: string; subject?: string; eaccount?: string };
+        return { id: p.id, email: p.email, store: p.storeName || p.domain, repliedAt: cr.at ?? p.updatedAt, subject: cr.subject ?? null, inbox: cr.eaccount ?? null };
+      }),
       replies: replied.length,
       recentReplies: replied,
       lastWebhook: lastHook?.value ? JSON.parse(lastHook.value) : null,
