@@ -31,8 +31,9 @@ interface Msg {
 
 /** Heuristic: does this inbound message read as a machine reply? */
 function looksAutomatic(subject: string, body: string): boolean {
-  const s = `${subject} ${body}`.toLowerCase();
-  return /out of office|out-of-office|ooo\b|automatic reply|auto-reply|autoreply|otomatik|away from (my|the) (desk|office)|on (vacation|holiday|leave)|has been received|your message has been received|we('| ha)?ve received your|response within|thanks for reaching out|ticket/.test(s);
+  // Normalise curly apostrophes first: "We’ve received" slipped past "we've".
+  const s = `${subject} ${body}`.toLowerCase().replace(/[\u2018\u2019\u02bc]/g, "'");
+  return /out of office|out-of-office|\booo\b|automatic(ally)? (reply|generated)|auto-?reply|otomatik|away from (my|the) (desk|office)|on (vacation|holiday|(maternity |paternity |parental |annual |sick )?leave)|has been received|your (message|request|email) has been received|we('| ha)?ve received your|response within|thanks for (reaching out|getting in touch|contacting)|\bticket\b|do not respond|not monitored|unmonitored|rate (the help|our (team|support))|satisfaction survey/.test(s);
 }
 
 export async function GET(req: NextRequest) {
