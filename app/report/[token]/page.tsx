@@ -278,18 +278,27 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         .rpt-ctanote { font-size:12.5px; color:#667085; margin:12px 0 0; }
         .rpt-fab { position:fixed; right:22px; bottom:22px; width:58px; height:58px; border-radius:50%; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 22px rgba(16,24,40,0.28); z-index:60; text-decoration:none; }
         .rpt-fab svg { width:30px; height:30px; }
-        .rpt-sticky { display:none; }
+        /* Floating contact bar on every screen size — the report is long and
+           the owner shouldn't have to find the bottom to reply. */
+        .rpt-fab { display:none; }
+        .rpt-wrap { padding-bottom: 120px; }
+        .rpt-sticky { display:flex; position:fixed; bottom:0; left:0; right:0; gap:10px; justify-content:center;
+          padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:rgba(255,255,255,0.96);
+          border-top:1px solid #E4E7EC; backdrop-filter:blur(8px); z-index:50; }
+        .rpt-sticky .rpt-btn { text-align:center; padding:13px 22px; font-size:14px; }
+        .rpt-sticky .rpt-label { display:none; }
+        @media (min-width: 641px) {
+          .rpt-sticky .rpt-label { display:block; align-self:center; font-size:13px; color:#475467; margin-right:6px; }
+          .rpt-sticky .rpt-label b { color:#0B3D2E; }
+        }
         @media (max-width: 640px) {
-          .rpt-wrap { padding-bottom: 110px; padding-left:14px; padding-right:14px; }
+          .rpt-wrap { padding-left:14px; padding-right:14px; }
           .rpt-h1 { font-size: 21px; }
           .rpt-logo { max-height:38px; max-width:130px; }
-          .rpt-fab { display:none; }
           .rpt-comp-row { flex-direction: column; }
           .rpt-comp-row input { min-width: 0; }
-          .rpt-sticky { display:flex; position:fixed; bottom:0; left:0; right:0; gap:10px;
-            padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:rgba(255,255,255,0.96);
-            border-top:1px solid #E4E7EC; backdrop-filter:blur(8px); z-index:50; }
-          .rpt-sticky .rpt-btn { flex:1; text-align:center; padding:13px 10px; font-size:14px; }
+          .rpt-sticky .rpt-btn { flex:1; padding:13px 8px; font-size:13.5px; }
+          .rpt-sticky .rpt-btn.mail { display:none; }
         }
       `}</style>
       <div className="rpt-wrap">
@@ -503,8 +512,10 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
       </a>
 
       <div className="rpt-sticky">
+        <span className="rpt-label"><b>Questions?</b> Message already written — just hit send.</span>
         <a className="rpt-btn" href={waUrl} target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>
-        <a className="rpt-btn imsg" href={smsUrl}>iMessage</a>
+        <a className="rpt-btn imsg" href={smsUrl}>iMessage / SMS</a>
+        <a className="rpt-btn mail" href={mailUrl}>✉️ Email</a>
         <a className="rpt-btn secondary" href={bookUrl}>Book a Call</a>
       </div>
     </div>
