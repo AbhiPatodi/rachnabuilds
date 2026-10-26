@@ -29,6 +29,8 @@ const WHATSAPP = '919404643510';
 interface Finding {
   title?: string;
   merchant_copy?: string;
+  outcome?: string;
+  shot?: { label: string; dataUri: string };
   effort?: string;
 }
 interface SpeedPage { label: string; score: number; lcpMs: number }
@@ -87,13 +89,25 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
     screenshots = parsed.screenshots || [];
     design = parsed.design?.notes?.length ? parsed.design : null;
   } catch { /* malformed findings — render the shell */ }
+  // "What fixing these adds up to" — hand-written per store, optional.
+  let gains: { title: string; body: string }[] = [];
+  try {
+    const g = JSON.parse(report.findingsJson).gains;
+    if (Array.isArray(g)) gains = g.filter((x) => x?.title && x?.body).slice(0, 4);
+  } catch { /* optional */ }
 
-  // Top 3 locked with blur; next 2 fully visible as proof; the rest are
-  // locked title-only rows so the count on the page matches "N issues found".
+  // Top 3 locked (screenshot + first sentence shown, the rest blurred); the
+  // next 4 fully open as proof — each with its screenshot and what changes
+  // when it's fixed; the rest are locked title-only rows so the count on the
+  // page matches "N issues found".
   const locked = findings.slice(0, 3);
-  const visible = findings.slice(3, 5);
-  const rest = findings.slice(5);
+  const visible = findings.slice(3, 7);
+  const rest = findings.slice(7);
   const total = findings.length;
+  const hook = (f: Finding) => {
+    const m = (f.merchant_copy || '').match(/^.*?[.!?](\s|$)/);
+    return (m ? m[0] : f.merchant_copy || '').trim();
+  };
 
   // Visit context: geo from Vercel's edge headers, device from the UA string —
   // free per-open behaviour data for the lead's activity card.
@@ -170,6 +184,10 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
     `Hi Rachna! I just got my store report for ${report.host} — I'd like to go through the locked findings.`,
   );
   const waUrl = `https://wa.me/${WHATSAPP}?text=${waText}`;
+  // iMessage / SMS and email with the same prefilled line — some owners never
+  // open WhatsApp. `sms:` with `?&body=` works on both iOS and Android.
+  const smsUrl = `sms:+${WHATSAPP}?&body=${waText}`;
+  const mailUrl = `mailto:hello@rachnabuilds.com?subject=${encodeURIComponent(`Store report for ${report.host}`)}&body=${waText}`;
 
   return (
     <div style={{ minHeight: '100vh', background: '#F6F8F7', color: '#1D2939', fontFamily: "'Helvetica Neue', Arial, sans-serif", fontSize: 15, lineHeight: 1.65 }}>
@@ -241,6 +259,23 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         .rpt-comp-row input:focus { outline:2px solid #06D6A0; border-color:#06D6A0; }
         .rpt-comp-row button { background:#0B3D2E; color:#fff; font-weight:800; font-size:13.5px; border:none; padding:11px 22px; border-radius:9px; cursor:pointer; }
         .rpt-comp-row button:disabled { opacity:0.5; cursor:default; }
+        .rpt-fshot { margin:12px 0 0; }
+        .rpt-fshot img { width:100%; max-width:260px; border-radius:12px; border:1px solid #E4E7EC; display:block; box-shadow:0 4px 18px rgba(16,24,40,0.08); }
+        .rpt-fshot figcaption { font-size:12px; color:#667085; margin-top:6px; max-width:420px; }
+        .rpt-lockedwrap .rpt-fshot img { border-color:rgba(255,255,255,0.18); }
+        .rpt-lockedwrap .rpt-fshot figcaption { color:#9AE6C6; }
+        .rpt-hook { font-size:13.5px; color:#E7F8F0; margin:0 0 6px; }
+        .rpt-outcome { margin:10px 0 0; padding:10px 12px; background:#F0FDF7; border-left:3px solid #06D6A0; border-radius:8px; font-size:13px; color:#0B3D2E; }
+        .rpt-outcome b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#067647; margin-bottom:3px; }
+        .rpt-lockedwrap .rpt-outcome { background:rgba(6,214,160,0.1); color:#E7F8F0; }
+        .rpt-lockedwrap .rpt-outcome b { color:#9AE6C6; }
+        .rpt-gains { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-top:12px; }
+        .rpt-gain { background:#fff; border:1px solid #E4E7EC; border-top:4px solid #06D6A0; border-radius:14px; padding:14px 16px; }
+        .rpt-gain h4 { margin:0 0 6px; font-size:14.5px; color:#0B3D2E; }
+        .rpt-gain p { margin:0; font-size:13px; color:#475467; }
+        .rpt-btn.imsg { background:#0A84FF; color:#fff; }
+        .rpt-btn.mail { background:#fff; color:#0B3D2E; border:2px solid #D0D5DD; }
+        .rpt-ctanote { font-size:12.5px; color:#667085; margin:12px 0 0; }
         .rpt-fab { position:fixed; right:22px; bottom:22px; width:58px; height:58px; border-radius:50%; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 22px rgba(16,24,40,0.28); z-index:60; text-decoration:none; }
         .rpt-fab svg { width:30px; height:30px; }
         .rpt-sticky { display:none; }
@@ -292,6 +327,16 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
                   <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
                 </div>
                 <p className="rpt-body">{f.merchant_copy}</p>
+                {f.shot?.dataUri && (
+                  <figure className="rpt-fshot">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.shot.dataUri} alt={f.shot.label} loading="lazy" />
+                    <figcaption>📱 {f.shot.label}</figcaption>
+                  </figure>
+                )}
+                {f.outcome && (
+                  <div className="rpt-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>
+                )}
               </div>
             </div>
           );
@@ -382,12 +427,23 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
                     <h4>{f.title}</h4>
                     <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
                   </div>
+                  {hook(f) && <p className="rpt-hook">{hook(f)}</p>}
                   <div aria-hidden="true">
                     <div className="rpt-blur-line" />
                     <div className="rpt-blur-line" />
                     <div className="rpt-blur-line" />
                   </div>
-                  <div className="rpt-locknote">🔓 Unlocked on your free walkthrough call</div>
+                  {f.shot?.dataUri && (
+                    <figure className="rpt-fshot">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.shot.dataUri} alt={f.shot.label} loading="lazy" />
+                      <figcaption>📱 {f.shot.label}</figcaption>
+                    </figure>
+                  )}
+                  {f.outcome && (
+                    <div className="rpt-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>
+                  )}
+                  <div className="rpt-locknote">🔓 The why and the exact fix — on your free walkthrough call</div>
                 </div>
               </div>
             );
@@ -405,6 +461,21 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           )}
         </div>
 
+        {gains.length > 0 && (
+          <div data-track="Gains">
+            <h2 className="rpt-h2">What fixing these adds up to</h2>
+            <p className="rpt-h2sub">Not a forecast — what each group of fixes changes for the shopper, and therefore for you.</p>
+            <div className="rpt-gains">
+              {gains.map((g, i) => (
+                <div className="rpt-gain" key={i}>
+                  <h4>{g.title}</h4>
+                  <p>{g.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="rpt-cta" data-track="Call CTA">
           <h2>See all {total} findings — on your store, live</h2>
           <p>
@@ -414,8 +485,11 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           </p>
           <div className="rpt-btnrow">
             <a className="rpt-btn" href={waUrl} target="_blank" rel="noopener noreferrer">💬 WhatsApp Rachna</a>
+            <a className="rpt-btn imsg" href={smsUrl}>iMessage / SMS</a>
+            <a className="rpt-btn mail" href={mailUrl}>✉️ Email</a>
             <a className="rpt-btn secondary" href={bookUrl}>Book a Call →</a>
           </div>
+          <p className="rpt-ctanote">Every button opens with the message already written — just hit send. Replies within a few hours, 7 days a week.</p>
         </div>
 
         <footer>
@@ -429,7 +503,8 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
       </a>
 
       <div className="rpt-sticky">
-        <a className="rpt-btn" href={waUrl} target="_blank" rel="noopener noreferrer">💬 WhatsApp Rachna</a>
+        <a className="rpt-btn" href={waUrl} target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>
+        <a className="rpt-btn imsg" href={smsUrl}>iMessage</a>
         <a className="rpt-btn secondary" href={bookUrl}>Book a Call</a>
       </div>
     </div>

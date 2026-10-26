@@ -5,7 +5,7 @@
 // section's data wasn't gathered for that run.
 import React from 'react';
 
-interface Finding { title?: string; merchant_copy?: string; effort?: string; severity?: string; fix_tier?: string; impact?: string | { assumption_note?: string; basis?: string } }
+interface Finding { title?: string; merchant_copy?: string; effort?: string; severity?: string; fix_tier?: string; impact?: string | { assumption_note?: string; basis?: string }; outcome?: string; shot?: { label: string; dataUri: string } }
 interface SpeedPage { label: string; score: number; lcpMs: number }
 interface SpeedWin { title: string; savingsMs: number }
 interface Shot { label: string; dataUri: string }
@@ -204,6 +204,18 @@ export default function FullReport({
                   {!hideEffort && <span className={`fr-effort ${e.cls}`}>{e.label}</span>}
                 </div>
                 <p className="fr-body">{f.merchant_copy}</p>
+                {f.shot?.dataUri && (
+                  <figure style={{ margin: '12px 0 0' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.shot.dataUri} alt={f.shot.label} loading="lazy" style={{ width: '100%', maxWidth: 260, borderRadius: 12, border: '1px solid #E4E7EC', display: 'block' }} />
+                    <figcaption style={{ fontSize: 12, color: '#667085', marginTop: 6, maxWidth: 420 }}>📱 {f.shot.label}</figcaption>
+                  </figure>
+                )}
+                {f.outcome && (
+                  <div style={{ margin: '10px 0 0', padding: '10px 12px', background: '#F0FDF7', borderLeft: '3px solid #06D6A0', borderRadius: 8, fontSize: 13, color: '#0B3D2E' }}>
+                    <b style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#067647', marginBottom: 3 }}>What changes when it&apos;s fixed</b>{f.outcome}
+                  </div>
+                )}
                 {(() => {
                   const impactText = typeof f.impact === 'string' ? f.impact : f.impact?.assumption_note;
                   return impactText ? <p className="fr-impact">{impactText}</p> : null;
