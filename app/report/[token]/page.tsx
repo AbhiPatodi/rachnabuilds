@@ -326,14 +326,12 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
         </div>
 
         {visible.map((f, i) => {
-          const e = effortMeta(f);
           return (
             <div className="rpt-finding" key={i} data-track={`Finding: ${f.title?.slice(0, 48) || i + 1}`}>
               <span className="rpt-num">{i + 1}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="rpt-fhead">
                   <h4>{f.title}</h4>
-                  <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
                 </div>
                 <p className="rpt-body">{f.merchant_copy}</p>
                 {f.shot?.dataUri && (
@@ -427,14 +425,12 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           <h2>The three things costing you the most</h2>
           <div className="sub">Ranked by revenue impact — we walk you through all three, live, on your free call.</div>
           {locked.map((f, i) => {
-            const e = effortMeta(f);
             return (
               <div className="rpt-finding" key={i}>
                 <span className="rpt-num locked">🔒</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="rpt-fhead">
                     <h4>{f.title}</h4>
-                    <span className={`rpt-effort ${e.cls}`}>{e.label}</span>
                   </div>
                   {hook(f) && <p className="rpt-hook">{hook(f)}</p>}
                   <div aria-hidden="true">
