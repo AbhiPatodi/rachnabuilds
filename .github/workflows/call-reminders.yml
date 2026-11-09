@@ -26,3 +26,10 @@ jobs:
             https://rachnabuilds.com/api/cron/funnel-nudges)
           cat /tmp/out2.json
           [ "$code" = "200" ] || exit 1
+      - name: Trigger lead follow-up alarms + morning digest
+        run: |
+          code=$(curl -s -o /tmp/out3.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://rachnabuilds.com/api/cron/lead-followups)
+          cat /tmp/out3.json
+          [ "$code" = "200" ] || exit 1

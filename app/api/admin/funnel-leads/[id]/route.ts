@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendLeadStageToMeta, type LeadStage } from '@/lib/metaCapi';
-
-// CRM status → the quality signal Meta hears about that Instant Form lead.
-// One event per stage per lead (event_id dedupe in sendLeadStageToMeta).
-// The negative signals matter as much as the positive ones: without them Meta
-// keeps hunting for more people like the ones who went nowhere.
-const STATUS_TO_META_STAGE: Record<string, LeadStage> = {
-  call_booked: 'lead_qualified',
-  showed: 'lead_qualified',
-  proposal_sent: 'lead_qualified',
-  closed_won: 'lead_converted',
-  closed_lost: 'lead_disqualified',
-  disqualified: 'lead_disqualified',
-};
+import { LEAD_STATUSES, queueMetaSignal } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +8,7 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-const VALID_STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
+const VALID_STATUSES = LEAD_STATUSES;
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
@@ -95,7 +81,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const body = await req.json();
-  const data: { status?: string; notes?: string } = {};
+  const data: { status?: string; notes?: string; nextFollowUpAt?: Date | null } = {};
 
   if (body.status !== undefined) {
     if (!VALID_STATUSES.includes(body.status)) {
@@ -105,8 +91,15 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       );
     }
     data.status = body.status;
+    // A closed lead has nothing left to chase.
+    if (['closed_won', 'closed_lost', 'disqualified'].includes(body.status)) data.nextFollowUpAt = null;
   }
   if (body.notes !== undefined) data.notes = String(body.notes);
+  if (body.nextFollowUpAt !== undefined) {
+    const d = body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null;
+    if (d && isNaN(d.getTime())) return NextResponse.json({ error: 'bad nextFollowUpAt' }, { status: 400 });
+    data.nextFollowUpAt = d;
+  }
 
   if (!Object.keys(data).length) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
@@ -121,24 +114,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       await prisma.leadActivity.create({
         data: { leadId: id, type: 'status', text: `Status: ${before.status} → ${data.status}` },
       }).catch(() => {});
-      // Quality feedback to Meta for Instant Form leads: when a lead reaches
-      // a stage that proves it was real, tell the ad platform (after the
-      // response — never block the admin UI on Meta).
-      const stage = STATUS_TO_META_STAGE[data.status];
-      if (stage && lead.email) {
-        after(async () => {
-          try {
-            const ev = await prisma.metaLeadEvent.findFirst({ where: { email: lead.email } });
-            if (!ev) return;
-            const r = await sendLeadStageToMeta({ stage, leadgenId: ev.leadgenId, email: lead.email, phone: lead.phone });
-            if (r.ok) {
-              await prisma.leadActivity.create({
-                data: { leadId: id, type: 'system', text: `📡 Sent "${stage}" quality signal to Meta for this ad lead` },
-              }).catch(() => {});
-            }
-          } catch (e) { console.error('lead-stage CAPI hook failed:', e); }
-        });
-      }
+      // Quality feedback to Meta for Instant Form leads (after the response).
+      queueMetaSignal(id, data.status);
     }
     return NextResponse.json(lead);
   } catch (err: unknown) {

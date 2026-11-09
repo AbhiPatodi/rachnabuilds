@@ -49,6 +49,8 @@ interface FunnelLead {
   readiness: string | null;
   stage: string;
   status: string;
+  nextFollowUpAt: string | null;
+  lastTouchAt: string | null;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
@@ -156,9 +158,11 @@ const LABELS: Record<string, string> = {
   later: 'More than 30 days',
 };
 
-const STATUSES = ['new', 'confirmed', 'call_booked', 'showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
+const STATUSES = ['new', 'contacted', 'no_reply', 'confirmed', 'call_booked', 'showed', 'proposal_sent', 'closed_won', 'closed_lost', 'disqualified'];
 const STATUS_META: Record<string, { label: string; color: string }> = {
   new: { label: 'New', color: 'var(--accent)' },
+  contacted: { label: 'Contacted', color: 'var(--info)' },
+  no_reply: { label: 'No Reply Yet', color: 'var(--warn)' },
   confirmed: { label: 'Confirmed', color: 'var(--info)' },
   call_booked: { label: 'Call Booked', color: 'var(--warn)' },
   showed: { label: 'Call Done ✓', color: 'var(--purple)' },
@@ -167,6 +171,27 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   closed_lost: { label: 'Closed Lost', color: 'var(--danger)' },
   disqualified: { label: 'Disqualified', color: 'var(--text-muted)' },
 };
+
+// One-tap outcomes — mirrors OUTCOMES in lib/leadStatus.ts (server decides
+// the status move and the next follow-up date).
+const OUTCOME_BUTTONS: { id: string; label: string; hint: string }[] = [
+  { id: 'whatsapp_sent', label: '💬 Messaged', hint: 'chase in 2 days' },
+  { id: 'no_reply', label: '🔕 No reply', hint: 'chase in 2 days' },
+  { id: 'replied', label: '✅ Replied', hint: 'follow up tomorrow' },
+  { id: 'call_booked', label: '📞 Call booked', hint: 'tells Meta: good lead' },
+  { id: 'not_interested', label: '✖ Not interested', hint: 'closes the lead' },
+];
+const DAY_MS = 86400_000;
+function followUpLabel(iso: string | null): { text: string; color: string } {
+  if (!iso) return { text: 'No follow-up set', color: 'var(--text-muted)' };
+  const d = new Date(iso);
+  const fmt = (x: Date) => x.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' });
+  const today = fmt(new Date());
+  if (fmt(d) === today) return { text: `Follow up today`, color: 'var(--warn)' };
+  if (d.getTime() < Date.now()) return { text: `Overdue — was due ${fmt(d)}`, color: 'var(--danger)' };
+  if (fmt(d) === fmt(new Date(Date.now() + DAY_MS))) return { text: 'Follow up tomorrow', color: 'var(--info)' };
+  return { text: `Follow up ${d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short' })}`, color: 'var(--info)' };
+}
 
 type TabId = 'overview' | 'timeline' | 'application' | 'audit' | 'script' | 'bookings' | 'proposal';
 
@@ -297,6 +322,31 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
     }
   };
 
+  const logOutcome = async (outcome: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/funnel-leads/${id}/outcome`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ outcome }),
+      });
+      if (!res.ok) alert((await res.json()).error || 'Failed to log');
+      await fetchLead();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setFollowUp = async (at: Date | null) => {
+    setBusy(true);
+    try {
+      await fetch(`/api/admin/funnel-leads/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nextFollowUpAt: at ? at.toISOString() : null }),
+      });
+      await fetchLead();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveNotes = async () => {
     setBusy(true);
     try {
@@ -391,6 +441,42 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       {/* ─── OVERVIEW ─── */}
       {tab === 'overview' && (
         <div style={{ marginTop: 20 }}>
+          {!['closed_won', 'closed_lost', 'disqualified'].includes(lead.status) && (() => {
+            const fu = followUpLabel(lead.nextFollowUpAt);
+            const at9 = (days: number) => { const d = new Date(Date.now() + days * DAY_MS); d.setHours(9, 0, 0, 0); return d; };
+            return (
+              <div className="admin-card" style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>What happened?</h3>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    One tap logs it and sets the next follow-up{lead.lastTouchAt ? ` · last touch ${new Date(lead.lastTouchAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {OUTCOME_BUTTONS.map((o) => (
+                    <button key={o.id} type="button" disabled={busy} title={o.hint} onClick={() => logOutcome(o.id)}
+                      className={`admin-btn ${o.id === 'whatsapp_sent' ? 'admin-btn-primary' : 'admin-btn-secondary'}`} style={{ fontSize: 12.5 }}>
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: fu.color }}>⏰ {fu.text}</span>
+                  {[['Today', 0], ['Tomorrow', 1], ['3 days', 3], ['1 week', 7]].map(([l, d]) => (
+                    <button key={l} type="button" disabled={busy} className="admin-btn admin-btn-secondary" style={{ fontSize: 11.5, padding: '4px 10px' }}
+                      onClick={() => setFollowUp(d === 0 ? new Date() : at9(d as number))}>{l}</button>
+                  ))}
+                  <input type="date" disabled={busy}
+                    onChange={(e) => { if (e.target.value) { const d = new Date(`${e.target.value}T09:00`); setFollowUp(d); } }}
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 8px', color: 'var(--text)', fontSize: 12 }} />
+                  {lead.nextFollowUpAt && (
+                    <button type="button" disabled={busy} onClick={() => setFollowUp(null)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>clear</button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
           {lead.stage !== 'applied' && isVslLead(lead) && (
             <div style={{ marginBottom: 16, padding: '12px 16px', background: 'var(--warn-dim)', border: '1px solid var(--warn-line)', borderRadius: 8, fontSize: 13, color: 'var(--warn)', fontWeight: 600 }}>
               ✋ Opt-in only — hasn&apos;t submitted the full application yet.

@@ -6,6 +6,7 @@ import { sendPushToAll } from '@/lib/webpush';
 import { notifyCallBooked, sendBookingConfirmationToLead } from '@/lib/email';
 import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
 import { rateLimitIp, rateLimit } from '@/lib/rateLimit';
+import { queueMetaSignal } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,8 +78,9 @@ export async function POST(req: NextRequest) {
     if (linkedLeadId) {
       await prisma.funnelLead.update({
         where: { id: linkedLeadId },
-        data: { status: 'call_booked' },
+        data: { status: 'call_booked', nextFollowUpAt: null },
       }).catch(() => {});
+      queueMetaSignal(linkedLeadId, 'call_booked');
     }
 
     // Fire-and-forget promises are not reliable on Vercel serverless — the

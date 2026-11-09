@@ -124,6 +124,8 @@ export async function sendLeadStageToMeta(opts: {
         event_id: `${opts.stage}_${opts.leadgenId}`,
         action_source: 'system_generated',
         user_data: userData,
+        // Marks these as CRM stage events for Meta's Conversion Leads setup.
+        custom_data: { event_source: 'crm', lead_event_source: 'Rachna Builds Admin' },
       },
     ],
   };

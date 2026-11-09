@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { createCalendarEvent, isCalendarConnected } from '@/lib/googleCalendar';
 import { BOOKING_TIMEZONE } from '@/lib/availability';
 import { sendPushToAll } from '@/lib/webpush';
+import { queueMetaSignal } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       meetLink,
     },
   });
-  await prisma.funnelLead.update({ where: { id: lead.id }, data: { status: 'call_booked' } }).catch(() => {});
+  await prisma.funnelLead.update({ where: { id: lead.id }, data: { status: 'call_booked', nextFollowUpAt: null } }).catch(() => {});
+  queueMetaSignal(lead.id, 'call_booked');
   await prisma.leadActivity.create({
     data: {
       leadId: lead.id, type: 'system',

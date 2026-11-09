@@ -505,7 +505,12 @@ model FunnelLead {
   readiness     String?   // right_now | within_30_days | later
   // Funnel state
   stage         String    @default("optin")   // optin | applied
-  status        String    @default("new")     // new | confirmed | call_booked | showed (call done) | proposal_sent | closed_won | closed_lost | disqualified
+  status        String    @default("new")     // new | contacted | no_reply | confirmed | call_booked | showed (call done) | proposal_sent | closed_won | closed_lost | disqualified
+  // Follow-up discipline: when to chase next, when we last reached out, and
+  // how many "nobody has touched this lead" alarms have fired (0 → 1 → 2).
+  nextFollowUpAt DateTime?
+  lastTouchAt    DateTime?
+  speedAlarms    Int       @default(0)
   // Attribution
   utmSource     String?
   utmMedium     String?
@@ -526,6 +531,7 @@ model FunnelLead {
 
   @@index([stage])
   @@index([status])
+  @@index([nextFollowUpAt])
   @@map("funnel_leads")
 }
 

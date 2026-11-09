@@ -56,6 +56,8 @@ const LABELS: Record<string, string> = {
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   new: { label: 'New', color: 'var(--accent)' },
+  contacted: { label: 'Contacted', color: 'var(--info)' },
+  no_reply: { label: 'No Reply Yet', color: 'var(--warn)' },
   confirmed: { label: 'Confirmed', color: 'var(--info)' },
   call_booked: { label: 'Call Booked', color: 'var(--warn)' },
   showed: { label: 'Call Done ✓', color: 'var(--purple)' },

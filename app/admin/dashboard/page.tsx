@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   const [leads, recentViews, proposals, pendingPayments, bookings, jobs, activities, money, settings, prospectStages, prospectVerify, content, coldReplies] = await Promise.all([
     prisma.funnelLead.findMany({
       where: { status: { notIn: ['closed_won', 'closed_lost', 'disqualified'] } },
-      select: { id: true, name: true, email: true, phone: true, whatsapp: true, status: true, createdAt: true, utmSource: true, utmMedium: true, storeUrl: true, activities: { where: { type: 'note' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true, text: true } } },
+      select: { id: true, name: true, email: true, phone: true, whatsapp: true, status: true, createdAt: true, nextFollowUpAt: true, utmSource: true, utmMedium: true, storeUrl: true, activities: { where: { type: 'note' }, orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true, text: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.storeProofReportView.findMany({
@@ -48,12 +48,23 @@ export default async function DashboardPage() {
 
   // ── Needs you today ──
   const todos: Todo[] = [];
+  // End of today in IST — follow-ups dated before this are due now.
+  const ist = new Date(Date.now() + 330 * 60_000);
+  const endOfToday = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate() + 1) - 330 * 60_000);
   for (const l of leads) {
     const last = l.activities[0]?.createdAt ?? null;
     const isCold = l.utmSource === 'cold-email';
+    if (l.nextFollowUpAt) {
+      // An explicit follow-up date wins over the guesswork below.
+      if (l.nextFollowUpAt < endOfToday) {
+        const overdue = l.nextFollowUpAt.getTime() < endOfToday.getTime() - DAY;
+        todos.push({ tone: overdue ? 'bad' : 'warn', icon: '⏰', text: `${l.name} — ${overdue ? 'follow-up overdue' : 'follow up today'}`, sub: `${overdue ? `was due ${ago(l.nextFollowUpAt)} · ` : ''}${l.activities[0]?.text ? `last: "${l.activities[0].text.slice(0, 50)}"` : 'no notes yet'}`, href: `/admin/funnel-leads/${l.id}`, at: overdue ? 1 : 2, contact: l });
+      }
+      continue;
+    }
     if (!last && l.status === 'new' && Date.now() - l.createdAt.getTime() > 12 * 3600_000) {
       todos.push({ tone: isCold ? 'bad' : 'warn', icon: isCold ? '✉️' : '👋', text: `${l.name} — ${isCold ? 'replied to cold email, nobody has answered' : 'never contacted'}`, sub: `${l.storeUrl ? l.storeUrl.replace(/^https?:\/\/(www\.)?/, '') + ' · ' : 'no store link yet · '}${ago(l.createdAt)}`, href: `/admin/funnel-leads/${l.id}`, at: isCold ? 0 : 2, contact: l });
-    } else if (last && ['new', 'confirmed', 'showed'].includes(l.status) && Date.now() - last.getTime() > 4 * DAY) {
+    } else if (last && ['new', 'contacted', 'no_reply', 'confirmed', 'showed'].includes(l.status) && Date.now() - last.getTime() > 4 * DAY) {
       todos.push({ tone: 'warn', icon: '🔁', text: `${l.name} — follow-up due`, sub: `last message ${ago(last)}${l.activities[0]?.text ? ` · "${l.activities[0].text.slice(0, 40)}"` : ''}`, href: `/admin/funnel-leads/${l.id}`, at: 4, contact: l });
     }
   }

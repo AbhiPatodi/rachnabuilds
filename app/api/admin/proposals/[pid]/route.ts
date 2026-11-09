@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseContent } from '@/lib/proposal';
+import { queueMetaSignal } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (lead && !TERMINAL.has(lead.status) && lead.status !== 'proposal_sent') {
       await prisma.funnelLead.update({ where: { id: existing.leadId }, data: { status: 'proposal_sent' } });
       await prisma.leadActivity.create({ data: { leadId: existing.leadId, type: 'status', text: `Status: ${lead.status} → proposal_sent` } }).catch(() => {});
+      queueMetaSignal(existing.leadId, 'proposal_sent');
     }
     await prisma.leadActivity.create({ data: { leadId: existing.leadId, type: 'system', text: '📤 Proposal sent' } }).catch(() => {});
     return NextResponse.json({ proposal });
