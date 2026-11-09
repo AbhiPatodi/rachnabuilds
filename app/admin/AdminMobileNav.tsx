@@ -38,16 +38,26 @@ const MORE: { href: string; label: string; icon: keyof typeof ICON; sub: string 
   { href: '/admin/calendar', label: 'Calendar sync', icon: 'calendar', sub: 'Google Calendar' },
   { href: '/admin/portfolio', label: 'Portfolio', icon: 'work', sub: 'Website content' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings', sub: 'Site settings' },
+  { href: '/admin/team', label: 'Team & pipeline', icon: 'clients', sub: 'Logins, lead rotation, sub-stages' },
+  { href: '/admin/funnel-leads/ad-report', label: 'Ad report', icon: 'money', sub: 'Which ads bring good leads' },
 ];
 
 const Svg = ({ k }: { k: keyof typeof ICON }) => (
   <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>{ICON[k]}</svg>
 );
 
-export default function AdminMobileNav() {
+export default function AdminMobileNav({ rep = false }: { rep?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => { setOpen(false); }, [pathname]);
+
+  if (rep) {
+    return (
+      <nav className="admin-nav-mobile">
+        <Link href="/admin/funnel-leads" className="anm-item active"><Svg k="leads" /><span>My leads</span></Link>
+      </nav>
+    );
+  }
 
   const isPrimary = (m: string[]) => m.some((p) => (p === '/admin' ? pathname === p : pathname.startsWith(p)));
   const moreActive = !PRIMARY.some((p) => isPrimary(p.match)) && pathname.startsWith('/admin');

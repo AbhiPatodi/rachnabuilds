@@ -206,6 +206,8 @@ model PushSubscription {
   auth      String
   label     String?   // "iPhone · Home Screen app", "Mac · Chrome"
   lastSeenAt DateTime? // last time this device re-confirmed its subscription
+  memberId   String?   // null = owner's device; set = a team member's device
+  member     TeamMember? @relation(fields: [memberId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@map("push_subscriptions")
@@ -511,6 +513,9 @@ model FunnelLead {
   nextFollowUpAt DateTime?
   lastTouchAt    DateTime?
   speedAlarms    Int       @default(0)
+  subStatus      String?   // custom sub-stage under status (options in settings key lead_substatus_options)
+  assignedToId   String?
+  assignedTo     TeamMember? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   // Attribution
   utmSource     String?
   utmMedium     String?
@@ -532,7 +537,27 @@ model FunnelLead {
   @@index([stage])
   @@index([status])
   @@index([nextFollowUpAt])
+  @@index([assignedToId])
   @@map("funnel_leads")
+}
+
+// People who log in to the admin besides the owner password. role "admin" =
+// full access; role "rep" = only the funnel leads assigned to them.
+model TeamMember {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  passwordHash   String    // scrypt: salt:hash (hex)
+  role           String    @default("rep") // admin | rep
+  active         Boolean   @default(true)
+  receivesLeads  Boolean   @default(true)  // in the auto-assign rotation
+  lastAssignedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  leads          FunnelLead[]
+  pushSubs       PushSubscription[]
+
+  @@map("team_members")
 }
 
 model AuditReport {

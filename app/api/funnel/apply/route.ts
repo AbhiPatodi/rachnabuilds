@@ -4,6 +4,7 @@ import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
 import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
 import { rateLimitIp } from '@/lib/rateLimit';
+import { normalizePhone } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const applicationData = {
       name: name.trim().slice(0, 120),
-      whatsapp: whatsapp.trim().slice(0, 40),
+      whatsapp: (normalizePhone(whatsapp) || whatsapp.trim()).slice(0, 40),
       storeUrl: storeUrl.trim().slice(0, 300),
       role: role?.trim()?.slice(0, 120) || null,
       challenge,

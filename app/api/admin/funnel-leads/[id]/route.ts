@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { LEAD_STATUSES, queueMetaSignal } from '@/lib/leadStatus';
+import { currentSession } from '@/lib/auth';
+import { assignLead } from '@/lib/team';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       auditReports: { orderBy: { createdAt: 'desc' } },
       bookings: { orderBy: { startTime: 'desc' } },
       activities: { orderBy: { createdAt: 'desc' }, take: 100 },
+      assignedTo: { select: { id: true, name: true } },
     },
   });
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
@@ -72,8 +75,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const { text, actor } = await req.json();
   if (!text?.trim()) return NextResponse.json({ error: 'text required' }, { status: 400 });
+  const session = await currentSession();
   const activity = await prisma.leadActivity.create({
-    data: { leadId: id, type: 'note', text: String(text).trim().slice(0, 2000), actor: actor || null },
+    data: { leadId: id, type: 'note', text: String(text).trim().slice(0, 2000), actor: actor || session?.name || null },
   });
   return NextResponse.json({ ok: true, activity });
 }
@@ -81,7 +85,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const body = await req.json();
-  const data: { status?: string; notes?: string; nextFollowUpAt?: Date | null } = {};
+  const session = await currentSession();
+  const data: { status?: string; notes?: string; nextFollowUpAt?: Date | null; subStatus?: string | null } = {};
 
   if (body.status !== undefined) {
     if (!VALID_STATUSES.includes(body.status)) {
@@ -91,17 +96,21 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       );
     }
     data.status = body.status;
+    data.subStatus = null; // a new status starts without a sub-stage
     // A closed lead has nothing left to chase.
     if (['closed_won', 'closed_lost', 'disqualified'].includes(body.status)) data.nextFollowUpAt = null;
   }
   if (body.notes !== undefined) data.notes = String(body.notes);
+  if (body.subStatus !== undefined) data.subStatus = body.subStatus ? String(body.subStatus).slice(0, 80) : null;
+  // Reassigning is for the owner / admins only (reps can't hand leads around).
+  const reassign = body.assignedToId !== undefined && session?.role === 'admin';
   if (body.nextFollowUpAt !== undefined) {
     const d = body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null;
     if (d && isNaN(d.getTime())) return NextResponse.json({ error: 'bad nextFollowUpAt' }, { status: 400 });
     data.nextFollowUpAt = d;
   }
 
-  if (!Object.keys(data).length) {
+  if (!Object.keys(data).length && !reassign) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
   }
 
@@ -109,10 +118,16 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const before = data.status !== undefined
       ? await prisma.funnelLead.findUnique({ where: { id }, select: { status: true } })
       : null;
-    const lead = await prisma.funnelLead.update({ where: { id }, data });
+    if (reassign) await assignLead(id, body.assignedToId || null, session?.name || 'Owner');
+    const lead = Object.keys(data).length
+      ? await prisma.funnelLead.update({ where: { id }, data })
+      : await prisma.funnelLead.findUniqueOrThrow({ where: { id } });
+    if (data.subStatus && body.status === undefined) {
+      await prisma.leadActivity.create({ data: { leadId: id, type: 'status', text: `Sub-stage: ${data.subStatus}`, actor: session?.name || null } }).catch(() => {});
+    }
     if (data.status !== undefined && before && before.status !== data.status) {
       await prisma.leadActivity.create({
-        data: { leadId: id, type: 'status', text: `Status: ${before.status} → ${data.status}` },
+        data: { leadId: id, type: 'status', text: `Status: ${before.status} → ${data.status}`, actor: session?.name || null },
       }).catch(() => {});
       // Quality feedback to Meta for Instant Form leads (after the response).
       queueMetaSignal(id, data.status);

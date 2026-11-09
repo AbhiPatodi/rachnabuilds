@@ -205,3 +205,23 @@ export async function syncIfStale(maxAgeHours = 6): Promise<boolean> {
     return true;
   } catch { return false; }
 }
+
+/** Spend and Meta-counted leads per ad (by ad name — the same name the lead
+ *  webhook stores in utmContent). since/until = YYYY-MM-DD; omitted = all time. */
+export async function spendByAd(since?: string, until?: string): Promise<{ adName: string; campaignName: string; spend: number; leads: number }[]> {
+  const params: Record<string, string> = { level: 'ad', fields: 'ad_name,campaign_name,spend,actions', limit: '200' };
+  if (since && until) params.time_range = JSON.stringify({ since, until });
+  else params.date_preset = 'maximum';
+  const out: { adName: string; campaignName: string; spend: number; leads: number }[] = [];
+  let page = await graph<{ data: (InsightRow & { ad_name?: string; campaign_name?: string })[]; paging?: { next?: string } }>(`act_${AD_ACCOUNT_ID}/insights`, params);
+  for (let i = 0; i < 10; i++) {
+    for (const r of page.data || []) {
+      const leads = Number(r.actions?.find((a) => a.action_type === 'lead' || a.action_type === 'leadgen_grouped')?.value || 0);
+      out.push({ adName: r.ad_name || '(no name)', campaignName: r.campaign_name || '', spend: Number(r.spend) || 0, leads });
+    }
+    if (!page.paging?.next) break;
+    const res = await fetch(page.paging.next);
+    page = await res.json();
+  }
+  return out;
+}

@@ -18,6 +18,9 @@ interface FunnelLead {
   financial: string | null;
   stage: string;
   status: string;
+  subStatus?: string | null;
+  nextFollowUpAt?: string | null;
+  assignedTo?: { id: string; name: string } | null;
   createdAt: string;
   hasCallScript?: boolean;
   auditReports?: { id: string; status: string; token: string }[];
@@ -101,6 +104,10 @@ export default function FunnelLeadsPage() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [segment, setSegment] = useState<Segment>('all');
   const [adding, setAdding] = useState(false);
+  const [me, setMe] = useState<{ role: string; team: { id: string; name: string }[] } | null>(null);
+  const [assignedFilter, setAssignedFilter] = useState('all');
+  const isRep = me?.role === 'rep';
+  useEffect(() => { fetch('/api/admin/me').then((r) => (r.ok ? r.json() : null)).then(setMe).catch(() => {}); }, []);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -118,7 +125,10 @@ export default function FunnelLeadsPage() {
 
   const segmented = segment === 'all' ? leads : leads.filter((l) => segmentOf(l) === segment);
   const stageFiltered = stageTab === 'all' ? segmented : segmented.filter((l) => l.stage === stageTab);
-  const filtered = sourceFilter === 'all' ? stageFiltered : stageFiltered.filter((l) => sourceLabel(l) === sourceFilter);
+  const sourceFiltered = sourceFilter === 'all' ? stageFiltered : stageFiltered.filter((l) => sourceLabel(l) === sourceFilter);
+  const filtered = assignedFilter === 'all' ? sourceFiltered
+    : assignedFilter === 'none' ? sourceFiltered.filter((l) => !l.assignedTo)
+    : sourceFiltered.filter((l) => l.assignedTo?.id === assignedFilter);
   const applied = leads.filter((l) => l.stage === 'applied');
   const sources = ['all', ...Array.from(new Set(leads.map(sourceLabel))).sort()];
 
@@ -132,7 +142,7 @@ export default function FunnelLeadsPage() {
 
   return (
     <div className="admin-content">
-      <LeadsSubNav />
+      <LeadsSubNav rep={isRep} />
       <style>{`
         @media (max-width: 767px) {
           /* admin.css sets ".admin-card table td{display:table-cell}" inside this
@@ -152,10 +162,10 @@ export default function FunnelLeadsPage() {
       `}</style>
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Funnel Leads</h1>
-          <p className="admin-page-subtitle">Every lead — Meta Instant Form, website, cold email, plus Upwork and direct clients added by hand</p>
+          <h1 className="admin-page-title">{isRep ? 'My leads' : 'Funnel Leads'}</h1>
+          <p className="admin-page-subtitle">{isRep ? 'Leads assigned to you — message new ones within 15 minutes' : 'Every lead — Meta Instant Form, website, cold email, plus Upwork and direct clients added by hand'}</p>
         </div>
-        <button type="button" className="admin-btn admin-btn-primary" onClick={() => setAdding(true)}>+ Add lead</button>
+        {me && !isRep && <button type="button" className="admin-btn admin-btn-primary" onClick={() => setAdding(true)}>+ Add lead</button>}
       </div>
       {adding && <AddLeadModal onClose={() => setAdding(false)} onAdded={(id) => { window.location.href = `/admin/funnel-leads/${id}`; }} />}
 
@@ -217,17 +227,27 @@ export default function FunnelLeadsPage() {
             </button>
           ))}
         </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        {!isRep && !!me?.team.length && (
+          <select value={assignedFilter} onChange={(e) => setAssignedFilter(e.target.value)}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--text)', fontSize: 12.5 }}>
+            <option value="all">Everyone&apos;s leads</option>
+            <option value="none">Unassigned</option>
+            {me.team.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        )}
         {sources.length > 2 && (
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
-            style={{ marginBottom: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--text)', fontSize: 12.5 }}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', color: 'var(--text)', fontSize: 12.5 }}
           >
             {sources.map((s) => (
               <option key={s} value={s}>{s === 'all' ? 'All sources' : s}</option>
             ))}
           </select>
         )}
+        </div>
       </div>
 
       <div className="admin-card" style={{ padding: 0, overflow: 'clip' }}>
@@ -278,7 +298,7 @@ export default function FunnelLeadsPage() {
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{hideEmail(l.email) ? (l.phone || 'no email') : l.email}</div>
                         </Link>
-                        <div style={{ marginTop: 6 }}><ContactIcons phone={l.phone} whatsapp={l.whatsapp} email={hideEmail(l.email) ? null : l.email} /></div>
+                        <div style={{ marginTop: 6 }}><ContactIcons phone={l.phone} whatsapp={l.whatsapp} email={hideEmail(l.email) ? null : l.email} leadId={l.id} onLogged={fetchLeads} /></div>
                       </td>
                       <td className="fl-col-source" style={{ fontSize: 12.5 }}>
                         {l.utmSource ? (
@@ -320,6 +340,13 @@ export default function FunnelLeadsPage() {
                         <span style={{ fontSize: 11, fontWeight: 700, color: meta.color, background: `${meta.color}1f`, padding: '4px 10px', borderRadius: 100, whiteSpace: 'nowrap' }}>
                           {meta.label}
                         </span>
+                        {l.subStatus && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{l.subStatus}</div>}
+                        {l.nextFollowUpAt && !['closed_won', 'closed_lost', 'disqualified'].includes(l.status) && (() => {
+                          const d = new Date(l.nextFollowUpAt);
+                          const late = d.getTime() < Date.now();
+                          return <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: late ? 'var(--danger)' : 'var(--info)', whiteSpace: 'nowrap' }}>⏰ {late ? 'due ' : ''}{d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>;
+                        })()}
+                        {!isRep && l.assignedTo && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>👤 {l.assignedTo.name}</div>}
                       </td>
                       <td className="fl-col-applied" style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {new Date(l.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}

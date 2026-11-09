@@ -4,6 +4,8 @@ import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
 import { sendMetaCapiEvent, clientIpFromHeaders } from '@/lib/metaCapi';
 import { rateLimitIp } from '@/lib/rateLimit';
+import { normalizePhone } from '@/lib/phone';
+import { autoAssign } from '@/lib/team';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +29,7 @@ export async function POST(req: NextRequest) {
       create: {
         name: name.trim().slice(0, 120),
         email: cleanEmail,
-        phone: phone.trim().slice(0, 40),
+        phone: (normalizePhone(phone) || phone.trim()).slice(0, 40),
         profession: profession?.trim()?.slice(0, 120) || null,
         utmSource: utmSource || null,
         utmMedium: utmMedium || null,
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
       // their data; the visitor still gets their session restored.
       update: {},
     });
+    if (Date.now() - lead.createdAt.getTime() < 10_000) after(() => autoAssign(lead.id).catch(() => {}));
 
     // See comment in booking/create/route.ts — after() keeps the function
     // alive for these instead of an unreliable fire-and-forget promise.

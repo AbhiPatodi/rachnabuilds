@@ -78,10 +78,68 @@ export async function mintAdminToken(): Promise<string> {
   return mint('admin', 'admin', fp, ADMIN_TTL_MS);
 }
 
-export async function isAdminToken(token?: string | null): Promise<boolean> {
+async function isOwnerToken(token?: string | null): Promise<boolean> {
   const fp = adminFingerprint();
   if (!fp) return false;
   return check('admin', 'admin', fp, token);
+}
+
+/** Full admin: the owner password, or a team member with role "admin".
+ *  Reps are NOT admins — they only get their own leads (see sessionFromToken). */
+export async function isAdminToken(token?: string | null): Promise<boolean> {
+  const s = await sessionFromToken(token);
+  return !!s && s.role === 'admin';
+}
+
+// ── Team members (admin_session = t2.<memberId>.<exp>.<sig>) ─────────────
+// Fingerprint = their password hash + active flag, so a password reset or
+// deactivation logs that person out everywhere.
+export type AdminSession =
+  | { kind: 'owner'; id: null; name: null; role: 'admin' }
+  | { kind: 'member'; id: string; name: string; role: 'admin' | 'rep' };
+
+export async function mintMemberToken(memberId: string): Promise<string | null> {
+  const m = await prisma.teamMember.findUnique({ where: { id: memberId }, select: { passwordHash: true, active: true } });
+  if (!m || !m.active) return null;
+  const t = await mint('team', memberId, sha(m.passwordHash).slice(0, 24), ADMIN_TTL_MS);
+  return `t2.${memberId}.${t.slice(3)}`;
+}
+
+export async function sessionFromToken(token?: string | null): Promise<AdminSession | null> {
+  if (!token) return null;
+  if (token.startsWith('t2.')) {
+    const [, memberId, ...rest] = token.split('.');
+    if (!memberId) return null;
+    const m = await prisma.teamMember.findUnique({ where: { id: memberId }, select: { name: true, role: true, passwordHash: true, active: true } });
+    if (!m || !m.active) return null;
+    if (!(await check('team', memberId, sha(m.passwordHash).slice(0, 24), `v2.${rest.join('.')}`))) return null;
+    return { kind: 'member', id: memberId, name: m.name, role: m.role === 'admin' ? 'admin' : 'rep' };
+  }
+  return (await isOwnerToken(token)) ? { kind: 'owner', id: null, name: null, role: 'admin' } : null;
+}
+
+/** For route handlers / server components: who is logged in to the admin? */
+export async function currentSession(): Promise<AdminSession | null> {
+  const store = await cookies();
+  return sessionFromToken(store.get('admin_session')?.value);
+}
+
+/** Fresh token of the same kind (rolling session in proxy.ts). */
+export async function remintSession(s: AdminSession): Promise<string | null> {
+  return s.kind === 'owner' ? mintAdminToken() : mintMemberToken(s.id);
+}
+
+// scrypt password hashing for team members ("salt:hash", hex).
+export function hashPassword(pw: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return `${salt}:${crypto.scryptSync(pw, salt, 32).toString('hex')}`;
+}
+export function verifyPassword(pw: string, stored: string): boolean {
+  const [salt, hash] = stored.split(':');
+  if (!salt || !hash) return false;
+  const a = crypto.scryptSync(pw, salt, 32);
+  const b = Buffer.from(hash, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 /** For route handlers / server components: is the caller the admin? */

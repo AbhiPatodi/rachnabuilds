@@ -10,6 +10,17 @@ export function smsHref(phone: string, text?: string) {
 
 const stop = (e: React.MouseEvent) => e.stopPropagation();
 
+/** Opening a lead's WhatsApp / iMessage chat counts as messaging them: logs
+ *  "Messaged", moves new → contacted, sets the 2-day follow-up. keepalive so
+ *  it survives the page switching to the chat app; the server ignores a
+ *  repeat within 15 minutes. */
+export function logChatOpened(leadId: string, onLogged?: () => void) {
+  fetch(`/api/admin/funnel-leads/${leadId}/outcome`, {
+    method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outcome: 'whatsapp_sent', auto: true }),
+  }).then(() => onLogged?.()).catch(() => {});
+}
+
 // Brand glyphs (brand colours are the recognisable part, so these stay literal).
 export const WhatsAppIcon = ({ s }: { s: number }) => (
   <svg width={s} height={s} viewBox="0 0 24 24" aria-hidden="true">
@@ -30,8 +41,10 @@ export const MailIcon = ({ s }: { s: number }) => (
   </svg>
 );
 
-export default function ContactIcons({ phone, whatsapp, email, text, size = 'sm' }: {
+export default function ContactIcons({ phone, whatsapp, email, text, size = 'sm', leadId, onLogged }: {
   phone?: string | null; whatsapp?: string | null; email?: string | null;
+  /** when set, opening WhatsApp / iMessage auto-logs "Messaged" on this lead */
+  leadId?: string; onLogged?: () => void;
   /** optional pre-filled message (already URL-encoded) */
   text?: string;
   size?: 'sm' | 'md';
@@ -47,8 +60,8 @@ export default function ContactIcons({ phone, whatsapp, email, text, size = 'sm'
   };
   return (
     <span style={{ display: 'inline-flex', gap: 10, verticalAlign: 'middle', alignItems: 'center' }} onClick={stop}>
-      {wa && <a href={`https://wa.me/${wa}${text ? `?text=${text}` : ''}`} target="_blank" rel="noopener noreferrer" title="WhatsApp" aria-label="WhatsApp" style={box} onClick={stop}><WhatsAppIcon s={ic} /></a>}
-      {wa && <a href={smsHref(number, text)} title="iMessage / SMS" aria-label="iMessage / SMS" style={box} onClick={stop}><MessagesIcon s={ic} /></a>}
+      {wa && <a href={`https://wa.me/${wa}${text ? `?text=${text}` : ''}`} target="_blank" rel="noopener noreferrer" title="WhatsApp" aria-label="WhatsApp" style={box} onClick={(e) => { stop(e); if (leadId) logChatOpened(leadId, onLogged); }}><WhatsAppIcon s={ic} /></a>}
+      {wa && <a href={smsHref(number, text)} title="iMessage / SMS" aria-label="iMessage / SMS" style={box} onClick={(e) => { stop(e); if (leadId) logChatOpened(leadId, onLogged); }}><MessagesIcon s={ic} /></a>}
       {email && <a href={`mailto:${email}`} title="Email" aria-label="Email" style={box} onClick={stop}><MailIcon s={ic} /></a>}
     </span>
   );

@@ -4,6 +4,7 @@ import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead } from '@/lib/email';
 import { rateLimitIp } from '@/lib/rateLimit';
 import { normalizeStoreUrl } from '@/lib/storeUrl';
+import { autoAssign } from '@/lib/team';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +56,9 @@ export async function POST(req: NextRequest) {
     }
 
     const leadPath = `/admin/funnel-leads/${lead.id}`;
+    const isNew = Date.now() - lead.createdAt.getTime() < 10_000;
     after(async () => {
+      if (isNew) await autoAssign(lead.id).catch(() => {});
       await sendPushToAll(
         '🔍 New Free Audit Request!',
         `${name.trim()} · ${store.host} · ${cleanRevenue || 'revenue n/a'}`,

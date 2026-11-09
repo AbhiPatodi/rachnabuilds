@@ -15,6 +15,8 @@ import { prisma } from '@/lib/prisma';
 import { sendPushToAll } from '@/lib/webpush';
 import { notifyNewLead, sendInstantFormWelcome } from '@/lib/email';
 import { getPageAuth } from '@/lib/metaPage';
+import { normalizePhone, phoneKey } from '@/lib/phone';
+import { autoAssign } from '@/lib/team';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest) {
 
         const name = pick('full_name', 'name') || 'Instant Form Lead';
         const email = pick('email').trim().toLowerCase();
-        const phone = pick('phone_number', 'phone');
+        const phone = normalizePhone(pick('phone_number', 'phone')) || '';
         if (!email) {
           results.push({ leadgenId, ok: false, reason: 'no_email' });
           continue;
@@ -121,7 +123,26 @@ export async function POST(req: NextRequest) {
           results.push({ leadgenId, ok: true, reason: 'duplicate_event' });
           continue;
         }
-        const existingLead = await prisma.funnelLead.findUnique({ where: { email }, select: { id: true, name: true } });
+        let existingLead = await prisma.funnelLead.findUnique({ where: { email }, select: { id: true, name: true } });
+        // Same person, different email: match on the phone number too, so a
+        // repeat enquiry lands on their existing lead instead of a duplicate.
+        const pk = phoneKey(phone);
+        if (!existingLead && pk) {
+          const samePhone = await prisma.$queryRaw<{ id: string; name: string }[]>`
+            SELECT id, name FROM funnel_leads
+            WHERE right(regexp_replace(coalesce(phone, whatsapp, ''), '[^0-9]', '', 'g'), 10) = ${pk}
+            ORDER BY "createdAt" ASC LIMIT 1`;
+          if (samePhone[0]) {
+            existingLead = samePhone[0];
+            await prisma.leadActivity.create({
+              data: { leadId: samePhone[0].id, type: 'system', text: `🔁 Filled the Meta form again with a different email (${email}) — same phone number` },
+            }).catch(() => {});
+            await prisma.metaLeadEvent.update({ where: { leadgenId: String(leadgenId) }, data: { email: (await prisma.funnelLead.findUnique({ where: { id: samePhone[0].id }, select: { email: true } }))?.email ?? email } }).catch(() => {});
+            await sendPushToAll('🔁 Repeat Meta form submission', `${name} filled the form again (new email, same phone) — already in your pipeline`, `/admin/funnel-leads/${samePhone[0].id}`).catch(() => {});
+            results.push({ leadgenId, ok: true, reason: 'existing_lead_same_phone' });
+            continue;
+          }
+        }
 
         // Custom qualifying questions (e.g. conversion rate, ad spend) arrive
         // with form-specific keys — store every non-contact answer as
@@ -160,6 +181,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        await autoAssign(dbLead.id).catch((e) => console.error('auto-assign failed:', e));
         await sendInstantFormWelcome({ id: dbLead.id, name, email }).catch(() => {});
         await sendPushToAll('⚡ Instant Form Lead!', `${name} (${email}) via Meta lead ad`, `/admin/funnel-leads/${dbLead.id}`).catch(() => {});
         const waDigits = phone.replace(/[^0-9]/g, '');

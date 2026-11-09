@@ -17,6 +17,7 @@ const LogoSVG = () => (
 export default function AdminLoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,10 +29,11 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, ...(email.trim() ? { email: email.trim() } : {}) }),
       });
       if (res.ok) {
-        router.push('/admin/dashboard');
+        const data = await res.json().catch(() => ({}));
+        router.push(data.role === 'rep' ? '/admin/funnel-leads' : '/admin/dashboard');
       } else {
         setError('Incorrect password');
       }
@@ -64,12 +66,24 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="admin-field">
+            <label className="admin-label" htmlFor="email">Email <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(team members only)</span></label>
+            <input
+              id="email"
+              type="email"
+              className="admin-input"
+              placeholder="Leave empty for the owner password"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="username"
+            />
+          </div>
+          <div className="admin-field">
             <label className="admin-label" htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
               className="admin-input"
-              placeholder="Enter admin password"
+              placeholder={email.trim() ? 'Your password' : 'Enter admin password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"

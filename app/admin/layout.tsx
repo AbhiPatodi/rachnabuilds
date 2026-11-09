@@ -5,6 +5,7 @@ import AdminNav from './AdminNav';
 import AdminMobileNav from './AdminMobileNav';
 import { PushSubscribeButton } from '@/app/components/PushSubscribeButton';
 import { ThemeToggle } from '@/app/components/ThemeToggle';
+import { currentSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,22 +19,25 @@ const LogoSVG = () => (
   </svg>
 );
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Reps get a one-item nav (their leads); everyone else the full admin.
+  const session = await currentSession();
+  const rep = session?.role === 'rep';
   return (
     <div className="admin-layout">
       {/* Desktop sidebar — hidden on mobile via CSS */}
       <aside className="admin-sidebar">
-        <Link href="/admin/dashboard" className="admin-sidebar-logo">
+        <Link href={rep ? '/admin/funnel-leads' : '/admin/dashboard'} className="admin-sidebar-logo">
           <span className="admin-sidebar-logo-mark">
             <LogoSVG />
           </span>
           <div className="admin-sidebar-logo-text">
             <span className="brand">Rachna Builds</span>
-            <span className="panel">Admin Panel</span>
+            <span className="panel">{session?.kind === 'member' ? session.name : 'Admin Panel'}</span>
           </div>
         </Link>
 
-        <AdminNav />
+        <AdminNav rep={rep} />
 
         <div className="admin-sidebar-footer">
           <div style={{ padding: '0 0 8px 0' }}>
@@ -60,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
 
       {/* Mobile bottom nav — rendered outside aside so display:none on aside doesn't suppress it */}
-      <AdminMobileNav />
+      <AdminMobileNav rep={rep} />
     </div>
   );
 }

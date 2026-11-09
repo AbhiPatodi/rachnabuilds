@@ -9,7 +9,7 @@ import CallScriptView from '@/app/components/audit/CallScriptView';
 import ProposalTab from '@/app/components/admin/ProposalTab';
 import LeadPayments from '@/app/components/admin/LeadPayments';
 import { countryFlag, placeWithFlag } from '@/lib/flag';
-import ContactIcons, { WhatsAppIcon, MessagesIcon, smsHref } from '@/app/components/admin/ContactIcons';
+import ContactIcons, { WhatsAppIcon, MessagesIcon, smsHref, logChatOpened } from '@/app/components/admin/ContactIcons';
 
 interface AuditReport {
   id: string;
@@ -51,6 +51,8 @@ interface FunnelLead {
   status: string;
   nextFollowUpAt: string | null;
   lastTouchAt: string | null;
+  subStatus: string | null;
+  assignedTo: { id: string; name: string } | null;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
@@ -261,6 +263,9 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
   const [notes, setNotes] = useState('');
   const [noteText, setNoteText] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
+  const [me, setMe] = useState<{ role: string; subStatus: Record<string, string[]>; team: { id: string; name: string }[] } | null>(null);
+  const isRep = me?.role === 'rep';
+  useEffect(() => { fetch('/api/admin/me').then((r) => (r.ok ? r.json() : null)).then(setMe).catch(() => {}); }, []);
 
   const fetchLead = useCallback(async () => {
     const res = await fetch(`/api/admin/funnel-leads/${id}`);
@@ -310,11 +315,12 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
     }
   };
 
-  const updateStatus = async (status: string) => {
+  const updateStatus = async (status: string) => patchLead({ status });
+  const patchLead = async (body: Record<string, unknown>) => {
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/funnel-leads/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       if (res.ok) await fetchLead();
     } finally {
@@ -407,7 +413,8 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
     { id: 'script', label: 'Call Script' },
     { id: 'bookings', label: `Bookings (${lead.bookings.length})` },
     { id: 'proposal', label: lead.proposals?.length ? `Proposal (${lead.proposals.length})` : 'Proposal' },
-  ];
+  ].filter((t) => !isRep || !['proposal', 'script'].includes(t.id)) as { id: TabId; label: string }[];
+  const subOptions = me?.subStatus?.[lead.status] || [];
 
   return (
     <div className="admin-content">
@@ -417,17 +424,43 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
 
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>{lead.name} <ContactIcons phone={lead.phone} whatsapp={lead.whatsapp} email={lead.email} size="md" /></h1>
+          <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>{lead.name} <ContactIcons phone={lead.phone} whatsapp={lead.whatsapp} email={lead.email} size="md" leadId={id} onLogged={fetchLead} /></h1>
           <p className="admin-page-subtitle">{lead.email} · Applied {new Date(lead.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
         </div>
-        <select
-          value={lead.status}
-          disabled={busy}
-          onChange={(e) => updateStatus(e.target.value)}
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 14px', color: meta.color, fontWeight: 700, fontSize: 13 }}
-        >
-          {STATUSES.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select
+            value={lead.status}
+            disabled={busy}
+            onChange={(e) => updateStatus(e.target.value)}
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 14px', color: meta.color, fontWeight: 700, fontSize: 13 }}
+          >
+            {STATUSES.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
+          </select>
+          {(subOptions.length > 0 || lead.subStatus) && (
+            <select
+              value={lead.subStatus || ''}
+              disabled={busy}
+              onChange={(e) => patchLead({ subStatus: e.target.value || null })}
+              title="Sub-stage (edit the list in Team & pipeline)"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--text-secondary)', fontSize: 12.5 }}
+            >
+              <option value="">— sub-stage —</option>
+              {[...new Set([...subOptions, ...(lead.subStatus ? [lead.subStatus] : [])])].map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          )}
+          {me && !isRep && me.team.length > 0 && (
+            <select
+              value={lead.assignedTo?.id || ''}
+              disabled={busy}
+              onChange={(e) => patchLead({ assignedToId: e.target.value || null })}
+              title="Who works this lead"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', color: 'var(--text-secondary)', fontSize: 12.5 }}
+            >
+              <option value="">👤 Unassigned (you)</option>
+              {me.team.map((m) => <option key={m.id} value={m.id}>👤 {m.name}</option>)}
+            </select>
+          )}
+        </div>
       </div>
 
       <div className="settings-tabs">
@@ -496,7 +529,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Contact</h3>
             <Field label="Name" value={lead.name} />
             <Field label="Email" value={<a href={`mailto:${lead.email}`} style={{ color: 'var(--accent)' }}>{lead.email}</a>} />
-            <Field label="WhatsApp" value={lead.whatsapp ? <a href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{lead.whatsapp} ↗</a> : lead.phone} />
+            <Field label="WhatsApp" value={lead.whatsapp ? <a href={`https://wa.me/${lead.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={() => logChatOpened(id, fetchLead)} style={{ color: 'var(--accent)' }}>{lead.whatsapp} ↗</a> : lead.phone} />
             <Field label="Role / Profession" value={lead.role || lead.profession} />
             <Field label="Store URL" value={lead.storeUrl ? <a href={lead.storeUrl.startsWith('http') ? lead.storeUrl : `https://${lead.storeUrl}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{lead.storeUrl} ↗</a> : null} />
           </div>
@@ -558,12 +591,12 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                       <>
                         <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5 }} href={upcoming.meetLink} target="_blank" rel="noopener noreferrer">Open Meet ↗</a>
                         {waDigits2 && (
-                          <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={`https://wa.me/${waDigits2}?text=${waCallMsg}`} target="_blank" rel="noopener noreferrer">
+                          <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={`https://wa.me/${waDigits2}?text=${waCallMsg}`} target="_blank" rel="noopener noreferrer" onClick={() => logChatOpened(id, fetchLead)}>
                             <WhatsAppIcon s={15} /> Send Meet link on WhatsApp
                           </a>
                         )}
                         {waDigits2 && (
-                          <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={smsHref(waDigits2, waCallMsg)}>
+                          <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={smsHref(waDigits2, waCallMsg)} onClick={() => logChatOpened(id, fetchLead)}>
                             <MessagesIcon s={15} /> iMessage
                           </a>
                         )}
@@ -646,12 +679,12 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                     <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                       {waDigits && (
                         <a className="admin-btn admin-btn-primary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }}
-                          href={`https://wa.me/${waDigits}?text=${waMsg}`} target="_blank" rel="noopener noreferrer">
+                          href={`https://wa.me/${waDigits}?text=${waMsg}`} target="_blank" rel="noopener noreferrer" onClick={() => logChatOpened(id, fetchLead)}>
                           <WhatsAppIcon s={15} /> Share on WhatsApp
                         </a>
                       )}
                       {waDigits && (
-                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={smsHref(waDigits, waMsg)}>
+                        <a className="admin-btn admin-btn-secondary" style={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 7 }} href={smsHref(waDigits, waMsg)} onClick={() => logChatOpened(id, fetchLead)}>
                           <MessagesIcon s={15} /> iMessage
                         </a>
                       )}
@@ -758,7 +791,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             )}
           </div>
 
-          <LeadPayments leadId={id} leadName={lead.name} onChange={fetchLead} />
+          {me && !isRep && <LeadPayments leadId={id} leadName={lead.name} onChange={fetchLead} />}
 
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Internal notes</h3>
@@ -947,7 +980,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
       )}
 
       {/* ─── PROPOSAL ─── */}
-      {tab === 'proposal' && <ProposalTab leadId={id} leadName={lead.name} onLeadChange={fetchLead} />}
+      {tab === 'proposal' && !isRep && <ProposalTab leadId={id} leadName={lead.name} onLeadChange={fetchLead} />}
 
       {/* ─── BOOKINGS ─── */}
       {tab === 'bookings' && (

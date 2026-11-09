@@ -12,9 +12,26 @@ function initVapid() {
   return false
 }
 
+type Sub = { endpoint: string; p256dh: string; auth: string }
+
+/** Owner + admin-role team members' devices. Reps never get business-wide
+ *  alerts (money, ads, every lead) — they get sendPushToMember for theirs. */
 export async function sendPushToAll(title: string, body: string, url = '/admin/dashboard') {
   if (!initVapid()) return [] // Push not configured yet
-  const subs = await prisma.pushSubscription.findMany()
+  const subs = await prisma.pushSubscription.findMany({
+    where: { OR: [{ memberId: null }, { member: { role: 'admin', active: true } }] },
+  })
+  return sendToSubs(subs, title, body, url)
+}
+
+/** One team member's devices (their assigned leads, their alarms, their digest). */
+export async function sendPushToMember(memberId: string, title: string, body: string, url = '/admin/funnel-leads') {
+  if (!initVapid()) return []
+  const subs = await prisma.pushSubscription.findMany({ where: { memberId, member: { active: true } } })
+  return sendToSubs(subs, title, body, url)
+}
+
+async function sendToSubs(subs: Sub[], title: string, body: string, url: string) {
 
   const results = await Promise.allSettled(
     subs.map(sub =>

@@ -16,7 +16,7 @@ const ago = (d: Date) => { const h = Math.round((Date.now() - d.getTime()) / 360
 const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const when = (d: Date) => d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
-type Todo = { tone: 'bad' | 'warn' | 'good' | 'info'; icon: string; text: string; sub?: string; href: string; at: number; contact?: { phone?: string | null; whatsapp?: string | null; email?: string | null } };
+type Todo = { tone: 'bad' | 'warn' | 'good' | 'info'; icon: string; text: string; sub?: string; href: string; at: number; contact?: { phone?: string | null; whatsapp?: string | null; email?: string | null; leadId?: string } };
 
 export default async function DashboardPage() {
   after(() => syncIfStale(6)); // self-heal when the GitHub cron is late
@@ -58,14 +58,14 @@ export default async function DashboardPage() {
       // An explicit follow-up date wins over the guesswork below.
       if (l.nextFollowUpAt < endOfToday) {
         const overdue = l.nextFollowUpAt.getTime() < endOfToday.getTime() - DAY;
-        todos.push({ tone: overdue ? 'bad' : 'warn', icon: '⏰', text: `${l.name} — ${overdue ? 'follow-up overdue' : 'follow up today'}`, sub: `${overdue ? `was due ${ago(l.nextFollowUpAt)} · ` : ''}${l.activities[0]?.text ? `last: "${l.activities[0].text.slice(0, 50)}"` : 'no notes yet'}`, href: `/admin/funnel-leads/${l.id}`, at: overdue ? 1 : 2, contact: l });
+        todos.push({ tone: overdue ? 'bad' : 'warn', icon: '⏰', text: `${l.name} — ${overdue ? 'follow-up overdue' : 'follow up today'}`, sub: `${overdue ? `was due ${ago(l.nextFollowUpAt)} · ` : ''}${l.activities[0]?.text ? `last: "${l.activities[0].text.slice(0, 50)}"` : 'no notes yet'}`, href: `/admin/funnel-leads/${l.id}`, at: overdue ? 1 : 2, contact: { ...l, leadId: l.id } });
       }
       continue;
     }
     if (!last && l.status === 'new' && Date.now() - l.createdAt.getTime() > 12 * 3600_000) {
-      todos.push({ tone: isCold ? 'bad' : 'warn', icon: isCold ? '✉️' : '👋', text: `${l.name} — ${isCold ? 'replied to cold email, nobody has answered' : 'never contacted'}`, sub: `${l.storeUrl ? l.storeUrl.replace(/^https?:\/\/(www\.)?/, '') + ' · ' : 'no store link yet · '}${ago(l.createdAt)}`, href: `/admin/funnel-leads/${l.id}`, at: isCold ? 0 : 2, contact: l });
+      todos.push({ tone: isCold ? 'bad' : 'warn', icon: isCold ? '✉️' : '👋', text: `${l.name} — ${isCold ? 'replied to cold email, nobody has answered' : 'never contacted'}`, sub: `${l.storeUrl ? l.storeUrl.replace(/^https?:\/\/(www\.)?/, '') + ' · ' : 'no store link yet · '}${ago(l.createdAt)}`, href: `/admin/funnel-leads/${l.id}`, at: isCold ? 0 : 2, contact: { ...l, leadId: l.id } });
     } else if (last && ['new', 'contacted', 'no_reply', 'confirmed', 'showed'].includes(l.status) && Date.now() - last.getTime() > 4 * DAY) {
-      todos.push({ tone: 'warn', icon: '🔁', text: `${l.name} — follow-up due`, sub: `last message ${ago(last)}${l.activities[0]?.text ? ` · "${l.activities[0].text.slice(0, 40)}"` : ''}`, href: `/admin/funnel-leads/${l.id}`, at: 4, contact: l });
+      todos.push({ tone: 'warn', icon: '🔁', text: `${l.name} — follow-up due`, sub: `last message ${ago(last)}${l.activities[0]?.text ? ` · "${l.activities[0].text.slice(0, 40)}"` : ''}`, href: `/admin/funnel-leads/${l.id}`, at: 4, contact: { ...l, leadId: l.id } });
     }
   }
   for (const v of recentViews) {
@@ -153,7 +153,7 @@ export default async function DashboardPage() {
               <span className="todo-bar" style={{ background: TONE[t.tone] }} />
               <span style={{ fontSize: 16, lineHeight: '20px' }}>{t.icon}</span>
               <Link href={t.href} style={{ textDecoration: 'none', color: 'inherit', minWidth: 0, flex: 1 }}><div className="todo-text">{t.text}</div>{t.sub && <div className="todo-sub">{t.sub}</div>}</Link>
-              {t.contact && <ContactIcons phone={t.contact.phone} whatsapp={t.contact.whatsapp} email={t.contact.email} />}
+              {t.contact && <ContactIcons phone={t.contact.phone} whatsapp={t.contact.whatsapp} email={t.contact.email} leadId={t.contact.leadId} />}
             </div>
           ))}
         </div>

@@ -11,6 +11,7 @@ import { safeEqual } from '@/lib/auth';
 import { sendPushToAll } from '@/lib/webpush';
 import { ALERT_RECIPIENTS, sendEmail } from '@/lib/email';
 import { emailsForLead, hasInstantlyKey } from '@/lib/instantly';
+import { autoAssign } from '@/lib/team';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
         notes: prospect?.finding ? `Cold-email finding: ${prospect.finding}` : null,
       },
     });
+    await autoAssign(lead.id).catch(() => {});
   }
   await prisma.leadActivity.create({
     data: { id: 'act_' + randomBytes(10).toString('hex'), leadId: lead.id, type: 'system', text: `✉️ Replied to cold email${p.campaign_name ? ` (${p.campaign_name})` : ''}${text ? `: "${text.slice(0, 220)}"` : ''}` },

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { normalizePhone } from '@/lib/phone';
+import { currentSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,14 +10,23 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
   const stage = searchParams.get('stage');
+  const assigned = searchParams.get('assigned'); // member id | 'none' | 'me'
+  const session = await currentSession();
+  // Reps only ever see their own leads.
+  const assignedToId = session?.role === 'rep' ? session.id
+    : assigned === 'me' ? (session?.id ?? null)
+    : assigned === 'none' ? null
+    : assigned || undefined;
 
   const leads = await prisma.funnelLead.findMany({
     where: {
       ...(status ? { status } : {}),
       ...(stage ? { stage } : {}),
+      ...(assignedToId !== undefined ? { assignedToId } : {}),
     },
     orderBy: { createdAt: 'desc' },
     include: {
+      assignedTo: { select: { id: true, name: true } },
       auditReports: {
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -53,7 +64,7 @@ const MANUAL = new Set(['upwork', 'referral', 'direct', 'linkedin', 'instagram',
 export async function POST(req: NextRequest) {
   const b = await req.json().catch(() => ({}));
   const name = String(b.name || '').trim();
-  const phone = String(b.phone || '').trim() || null;
+  const phone = normalizePhone(String(b.phone || ''));
   let email = String(b.email || '').trim().toLowerCase();
   const source = MANUAL.has(String(b.source)) ? String(b.source) : 'other';
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });

@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import { getPageAuth } from '@/lib/metaPage';
 import { sendInstantFormWelcome } from '@/lib/email';
 import { safeEqual } from '@/lib/auth';
+import { normalizePhone, phoneKey } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -52,7 +53,7 @@ function parseLead(raw: RawLead) {
     isMetaTest: pick('email').includes('@meta.com') || (pick('full_name', 'name') || '').startsWith('<test lead'),
     name: pick('full_name', 'name') || 'Instant Form Lead',
     email: pick('email').trim().toLowerCase(),
-    phone: pick('phone_number', 'phone'),
+    phone: normalizePhone(pick('phone_number', 'phone')) || '',
     formAnswers: Object.keys(formAnswers).length ? formAnswers : null,
     createdTime: raw.created_time,
     adName: raw.ad_name,

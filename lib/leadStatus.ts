@@ -65,11 +65,16 @@ export const OUTCOMES: Record<string, { label: string; status: string | null; fo
   not_interested: { label: '✖ Not interested', status: 'closed_lost', followUpDays: null, note: '✖ Not interested — closed' },
 };
 
-export async function applyOutcome(leadId: string, outcome: string, actor?: string | null) {
+/** `auto` = logged by tapping a WhatsApp / iMessage button rather than an
+ *  outcome button. Opening the same chat twice in 15 minutes logs once. */
+export async function applyOutcome(leadId: string, outcome: string, actor?: string | null, auto = false) {
   const o = OUTCOMES[outcome];
   if (!o) throw new Error('unknown outcome');
-  const lead = await prisma.funnelLead.findUnique({ where: { id: leadId }, select: { status: true } });
+  const lead = await prisma.funnelLead.findUnique({ where: { id: leadId }, select: { status: true, lastTouchAt: true } });
   if (!lead) throw new Error('not found');
+  if (auto && lead.lastTouchAt && Date.now() - lead.lastTouchAt.getTime() < 15 * 60_000) {
+    return prisma.funnelLead.findUniqueOrThrow({ where: { id: leadId } });
+  }
 
   let next: string | null = null;
   if (o.status && o.status !== lead.status) {
@@ -83,7 +88,7 @@ export async function applyOutcome(leadId: string, outcome: string, actor?: stri
     where: { id: leadId },
     data: { ...(next ? { status: next } : {}), lastTouchAt: now, nextFollowUpAt: followUp },
   });
-  await prisma.leadActivity.create({ data: { leadId, type: 'note', text: o.note, actor: actor || null } });
+  await prisma.leadActivity.create({ data: { leadId, type: 'note', text: auto ? `${o.note} (logged when the chat was opened)` : o.note, actor: actor || null } });
   if (next) {
     await prisma.leadActivity.create({ data: { leadId, type: 'status', text: `Status: ${lead.status} → ${next}` } }).catch(() => {});
     queueMetaSignal(leadId, next);
