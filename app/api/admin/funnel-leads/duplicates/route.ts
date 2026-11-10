@@ -6,7 +6,20 @@ import { phoneKey } from '@/lib/phone';
 export const dynamic = 'force-dynamic';
 
 const nameKey = (n: string) => n.toLowerCase().replace(/[^a-z0-9]/g, '');
-const hostKey = (u: string | null) => (u || '').toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/.*$/, '') || null;
+// Marketplaces where thousands of different stores share one domain: the path
+// (shop name) is the store's identity, so the domain alone never matches.
+const SHARED_HOSTS = new Set(['etsy.com', 'amazon.com', 'amazon.in', 'ebay.com', 'flipkart.com', 'instagram.com', 'facebook.com', 'linktr.ee']);
+const hostKey = (u: string | null) => {
+  if (!u) return null;
+  const s = u.toLowerCase().trim().replace(/^https?:\/\/(www\.)?/, '');
+  const host = s.replace(/[/?#].*$/, '');
+  if (!host) return null;
+  if (SHARED_HOSTS.has(host)) {
+    const path = s.slice(host.length).replace(/[?#].*$/, '').replace(/^\/+|\/+$/g, '');
+    return path ? `${host}/${path}` : null;
+  }
+  return host;
+};
 
 /** Groups of leads that look like the same person: same phone (last 10
  *  digits), same store, or same name. Email is unique, so never a match. */
