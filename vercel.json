@@ -1,6 +1,7 @@
 {
   "framework": "nextjs",
   "crons": [
-    { "path": "/api/cron/meta-spend?pulse=1", "schedule": "5 * * * *" }
+    { "path": "/api/cron/meta-spend?pulse=1", "schedule": "5 * * * *" },
+    { "path": "/api/cron/lead-replies", "schedule": "*/10 * * * *" }
   ]
 }

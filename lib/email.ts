@@ -34,7 +34,8 @@ function esc(v: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-function base(preheader: string, bodyHtml: string): string {
+/** `why` = the footer's "You received this because …" line (default: clients). */
+function base(preheader: string, bodyHtml: string, why = 'you are a client of Rachna Builds'): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,7 +85,7 @@ function base(preheader: string, bodyHtml: string): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="font-size:12px;color:#94A3B8;line-height:1.7;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-                    You received this because you are a client of Rachna Builds.
+                    You received this because ${why}.
                     Questions? Reply to this email or write to
                     <a href="mailto:hello@rachnabuilds.com" style="color:#06D6A0;text-decoration:none;">hello@rachnabuilds.com</a>
                   </td>
@@ -489,7 +490,7 @@ export async function sendBookingConfirmationToLead(opts: {
     ${subheading(`Your call with Rachna is booked for ${when} IST.`)}
     ${bodyText('A calendar invite with the Google Meet link has been sent to your email. Please join a few minutes early from a quiet, distraction-free spot.')}
     ${opts.meetLink ? ctaButton('Join the Meeting', opts.meetLink) : ''}
-    `,
+    `, 'you booked a call with Rachna Builds',
   );
   const subject = `Your call is confirmed — ${when} IST`;
   const result = await sendEmail(opts.email, subject, html);
@@ -550,7 +551,7 @@ export async function sendCallReminderToLead(opts: {
     ${bodyText(c.body)}
     ${opts.meetLink ? ctaButton(c.cta, opts.meetLink) : bodyText('Use the Google Meet link from your calendar invite to join.')}
     ${bodyText('Need to reschedule? Just reply to this email.')}
-    `,
+    `, 'you booked a call with Rachna Builds',
   );
   const result = await sendEmail(opts.email, c.subject, html);
   await logFunnelEmail(opts.email, opts.kind, c.subject, result);
@@ -587,11 +588,11 @@ export async function sendInstantFormWelcome(opts: {
     subject,
     `
     ${heading(`Got it, ${firstName}!`)}
-    ${bodyText('Thanks for requesting your <strong>free Shopify conversion audit</strong>. Rachna will personally message you on WhatsApp shortly to understand your store and set up your audit — no sales team, no gatekeepers.')}
+    ${bodyText('Thanks for requesting your <strong>free Shopify conversion audit</strong>. Rachna will personally message you shortly (WhatsApp, text or email) to understand your store and set up your audit — no sales team, no gatekeepers.')}
     ${bodyText('Don\'t want to wait? Pick a time for your call right now:')}
     ${ctaButton('Book My Audit Call', bookUrl)}
     ${bodyText('Questions in the meantime? Just reply to this email.')}
-    `,
+    `, 'you requested a free store audit from Rachna Builds',
   );
   const result = await sendEmail(opts.email, subject, html);
   await logFunnelEmail(opts.email, 'instant_welcome', subject, result);
@@ -614,7 +615,7 @@ export async function sendAuditReportReady(opts: {
     ${ctaButton('Open My Store Report', reportUrl)}
     ${bodyText('Two findings are open for you right now. The three costing you the most are unlocked on a free 20-minute walkthrough call — we go through every issue on your store, live, and you leave knowing exactly what to fix first.')}
     ${bodyText('No pitch decks, no obligations — just your store, on screen, with someone who does this every day.')}
-    `,
+    `, 'you requested a free store audit from Rachna Builds',
   );
   const result = await sendEmail(opts.email, subject, html);
   await logFunnelEmail(opts.email, 'audit_ready', subject, result);
@@ -634,7 +635,7 @@ export async function sendColdOptinNudge(opts: {
     ${bodyText('You unlocked the free training on building a 2%+ converting Shopify store — but haven\'t watched it yet. It only takes about 12 minutes, and it walks through the exact audit → optimize → convert → grow system we use with clients.')}
     ${ctaButton('Watch the Training Now', watchUrl)}
     ${bodyText('No pressure if it\'s not the right time — just didn\'t want you to miss it.')}
-    `,
+    `, 'you signed up with Rachna Builds',
   );
   const result = await sendEmail(opts.email, subject, html);
   await logFunnelEmail(opts.email, 'nudge_cold', subject, result);
@@ -654,7 +655,7 @@ export async function sendWatchedStalledNudge(opts: {
     ${bodyText('You\'ve watched most of the training — nice. The next step is a free Shopify Conversion Audit: a real look at your store\'s conversion bottlenecks, plus a 1:1 strategy session to walk through what to fix first.')}
     ${ctaButton('Apply for Your Free Audit', applyUrl)}
     ${bodyText('Takes about 2 minutes, and we\'ll come to the call already familiar with your store.')}
-    `,
+    `, 'you signed up with Rachna Builds',
   );
   const result = await sendEmail(opts.email, subject, html);
   await logFunnelEmail(opts.email, 'nudge_watched', subject, result);
@@ -673,7 +674,7 @@ export async function sendBookCallNudge(opts: {
     ${heading(`Almost there, ${firstName}`)}
     ${bodyText('Your application for a free Shopify Conversion Audit is in — but you haven\'t picked a time for your strategy call yet. It takes 30 seconds to grab a slot, and the sooner we talk, the sooner we can start fixing what\'s costing you sales.')}
     ${ctaButton('Pick Your Call Time', bookUrl)}
-    `,
+    `, 'you signed up with Rachna Builds',
   );
   const result = await sendEmail(opts.email, subject, html);
   await logFunnelEmail(opts.email, 'nudge_book', subject, result);

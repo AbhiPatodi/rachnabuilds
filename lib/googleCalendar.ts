@@ -26,6 +26,8 @@ export function getAuthUrl(state?: string) {
       'https://www.googleapis.com/auth/calendar.events',
       'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/gmail.send',
+      // Read-only: spot lead replies in the inbox (lib/leadReplies).
+      'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/analytics.readonly',
     ],
