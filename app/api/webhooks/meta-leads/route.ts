@@ -17,6 +17,7 @@ import { notifyNewLead, sendInstantFormWelcome } from '@/lib/email';
 import { getPageAuth } from '@/lib/metaPage';
 import { normalizePhone, phoneKey } from '@/lib/phone';
 import { autoAssign } from '@/lib/team';
+import { adNamesFor } from '@/lib/metaAds';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -91,6 +92,13 @@ export async function POST(req: NextRequest) {
           console.error('Meta lead fetch failed:', JSON.stringify(lead).slice(0, 300));
           results.push({ leadgenId, ok: false, reason: 'fetch_failed' });
           continue;
+        }
+
+        // The Page token returns ad_id but not the ad/campaign names — look them up with the ads token.
+        if (lead.ad_id && (!lead.ad_name || !lead.campaign_name)) {
+          const names = await adNamesFor(String(lead.ad_id));
+          lead.ad_name = lead.ad_name || names.adName;
+          lead.campaign_name = lead.campaign_name || names.campaignName;
         }
 
         // field_data: [{name: 'full_name', values: ['…']}, …] — names vary by form

@@ -189,6 +189,39 @@ export async function maybeLowBalanceAlert(balance: number | null) {
 
 export function hasAdsToken() { return !!token(); }
 
+/** Ad + campaign name for a lead's ad_id. The lead webhook reads leads with the
+ *  Page token, which can't see ad objects, so ad_name comes back empty there. */
+export async function adNamesFor(adId: string): Promise<{ adName: string | null; campaignName: string | null }> {
+  try {
+    const ad = await graph<{ name?: string; campaign?: { name?: string } }>(adId, { fields: 'name,campaign{name}' });
+    return { adName: ad.name || null, campaignName: ad.campaign?.name || null };
+  } catch { return { adName: null, campaignName: null }; }
+}
+
+/** Hourly pulse: push today's numbers (IST day, the ad account's timezone) when
+ *  they moved since the last pulse. Silent while nothing is delivering. */
+export async function adsPulse(balance: number | null): Promise<string | null> {
+  const ist = new Date(Date.now() + 330 * 60_000);
+  const day = ist.toISOString().slice(0, 10);
+  const row = await prisma.adSpendDay.findUnique({
+    where: { accountId_date: { accountId: AD_ACCOUNT_ID, date: new Date(`${day}T00:00:00.000Z`) } },
+  });
+  const now = { day, spend: row?.spend || 0, impressions: row?.impressions || 0, reach: row?.reach || 0, clicks: row?.clicks || 0, leads: row?.leads || 0 };
+  const lastRaw = await prisma.setting.findUnique({ where: { key: 'ads_pulse_last' } });
+  const last = lastRaw ? JSON.parse(lastRaw.value) as typeof now : null;
+  const prev = last?.day === day ? last : { ...now, spend: 0, impressions: 0, reach: 0, clicks: 0, leads: 0 };
+  await setSetting('ads_pulse_last', JSON.stringify(now));
+  if (now.impressions === prev.impressions && now.leads === prev.leads) return null;
+  const n = (v: number) => v.toLocaleString('en-IN');
+  const newLeads = now.leads - prev.leads;
+  const title = newLeads > 0 ? `🎉 +${newLeads} lead${newLeads > 1 ? 's' : ''} from ads` : '📈 Ads today';
+  const body = `₹${n(Math.round(now.spend))} spent · ${n(now.impressions)} impressions (+${n(now.impressions - prev.impressions)}) · ${n(now.reach)} reached · ${n(now.clicks)} clicks · ${now.leads} lead${now.leads === 1 ? '' : 's'}`
+    + (now.leads ? ` · ₹${n(Math.round(now.spend / now.leads))}/lead` : '')
+    + (balance != null ? ` · balance ₹${n(Math.round(balance))}` : '');
+  await sendPushToAll(title, body, '/admin/money?tab=ads');
+  return body;
+}
+
 /** Self-heal for the twice-daily GitHub cron, which often fires hours late:
  *  if the last balance sync is older than `maxAgeHours`, re-pull the last 3 days
  *  + balance. Meant to run via next/server `after()` from admin pages, so the
