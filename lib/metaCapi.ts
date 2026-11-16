@@ -101,13 +101,16 @@ export function clientIpFromHeaders(headers: Headers): string | undefined {
 // optimisation once volume allows).
 // ---------------------------------------------------------------------------
 
-export type LeadStage = 'lead_qualified' | 'lead_converted' | 'lead_disqualified';
+// lead_received = the raw lead (Meta: "send all stages … including the raw lead").
+export type LeadStage = 'lead_received' | 'lead_qualified' | 'lead_converted' | 'lead_disqualified';
 
 export async function sendLeadStageToMeta(opts: {
   stage: LeadStage;
   leadgenId: string;
   email?: string | null;
   phone?: string | null;
+  /** Unix seconds. Must be after the lead was generated or Meta discards it. Defaults to now. */
+  eventTime?: number;
 }): Promise<{ ok: boolean; reason?: string }> {
   if (!PIXEL_ID || !ACCESS_TOKEN) return { ok: false, reason: 'not_configured' };
 
@@ -119,7 +122,7 @@ export async function sendLeadStageToMeta(opts: {
     data: [
       {
         event_name: opts.stage,
-        event_time: Math.floor(Date.now() / 1000),
+        event_time: opts.eventTime ?? Math.floor(Date.now() / 1000),
         // One event per stage per lead, ever — replays dedupe away.
         event_id: `${opts.stage}_${opts.leadgenId}`,
         action_source: 'system_generated',
@@ -138,7 +141,7 @@ export async function sendLeadStageToMeta(opts: {
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       console.error('Meta lead-stage CAPI error:', res.status, text);
-      return { ok: false, reason: `http_${res.status}` };
+      return { ok: false, reason: `http_${res.status} ${text.slice(0, 160)}` };
     }
     return { ok: true };
   } catch (err) {

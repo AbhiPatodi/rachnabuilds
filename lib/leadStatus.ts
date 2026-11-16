@@ -22,6 +22,38 @@ const STATUS_TO_META_STAGE: Record<string, LeadStage> = {
   disqualified: 'lead_disqualified',
 };
 
+/** Raw-lead stage for every Instant Form lead, sent once per leadgen id.
+ *  Runs from the lead webhook (instantly) and from the hourly cron, which
+ *  also picks up anything the webhook missed. A rejection is logged on the
+ *  lead once and not retried, so a bad id can't loop every hour. */
+export async function sendRawLeadSignals(limit = 25): Promise<{ sent: number; failed: number }> {
+  const pending = await prisma.$queryRaw<{ leadgenId: string; createdAt: Date; leadId: string; email: string; phone: string | null }[]>`
+    SELECT m."leadgenId", m."createdAt", f.id AS "leadId", f.email, f.phone
+    FROM meta_lead_events m
+    JOIN funnel_leads f ON lower(f.email) = lower(m.email)
+    WHERE m.email NOT LIKE '%@meta.com'
+      AND NOT EXISTS (SELECT 1 FROM lead_activities a WHERE a."leadId" = f.id
+                      AND a.text LIKE '📡%lead_received%' AND a.text LIKE '%' || m."leadgenId" || '%')
+    ORDER BY m."createdAt" DESC LIMIT ${limit}`;
+  let sent = 0, failed = 0;
+  for (const p of pending) {
+    // 1 s after we stored it, so it's never before Meta's own lead time.
+    const eventTime = Math.floor(p.createdAt.getTime() / 1000) + 1;
+    const r = await sendLeadStageToMeta({ stage: 'lead_received', leadgenId: p.leadgenId, email: p.email, phone: p.phone, eventTime });
+    if (r.reason === 'not_configured') break;
+    if (r.ok) sent++; else failed++;
+    await prisma.leadActivity.create({
+      data: {
+        leadId: p.leadId, type: 'system',
+        text: r.ok
+          ? `📡 Sent "lead_received" (raw lead) to Meta · lead ${p.leadgenId}`
+          : `📡 Meta did not accept "lead_received" for lead ${p.leadgenId}: ${r.reason}`,
+      },
+    }).catch(() => {});
+  }
+  return { sent, failed };
+}
+
 /** Send the Meta quality signal for this lead's new status, if it came from
  *  an Instant Form. Every status-changing code path calls this — the signal
  *  used to fire only from the admin dropdown, so it never fired at all. */

@@ -18,6 +18,7 @@ import { getPageAuth } from '@/lib/metaPage';
 import { normalizePhone, phoneKey } from '@/lib/phone';
 import { autoAssign } from '@/lib/team';
 import { adNamesFor } from '@/lib/metaAds';
+import { sendRawLeadSignals } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        console.log('meta lead', leadgenId, 'ad_id', lead.ad_id ?? 'none', 'ad_name', lead.ad_name ?? 'none');
         // The Page token returns ad_id but not the ad/campaign names — look them up with the ads token.
         if (lead.ad_id && (!lead.ad_name || !lead.campaign_name)) {
           const names = await adNamesFor(String(lead.ad_id));
@@ -220,6 +222,9 @@ export async function POST(req: NextRequest) {
       }
     }
   }
+
+  // Raw-lead stage to Meta for what just came in (the hourly cron retries anything missed).
+  if (results.some((r) => r.ok)) await sendRawLeadSignals(10).catch((e) => console.error('raw-lead CAPI failed:', e));
 
   // Always 200 so Meta doesn't retry-storm; failures are logged above.
   return NextResponse.json({ received: results.length, results });
