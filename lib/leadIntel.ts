@@ -83,7 +83,7 @@ export async function enrichMetaLeads(limit = 25): Promise<{ enriched: number; s
     FROM funnel_leads f JOIN meta_lead_events m ON lower(m.email) = lower(f.email)
     WHERE m.email NOT LIKE '%@meta.com' AND m."createdAt" > now() - interval '85 days'
       AND (f."leadIntel" IS NULL OR f."leadIntel"->'meta' IS NULL
-           OR (f."leadIntel"->'meta'->>'adId' IS NULL AND f."leadIntel"->'meta'->>'retried' IS NULL))
+           OR (f."leadIntel"->'meta'->>'adId' IS NULL AND coalesce(f."leadIntel"->'meta'->>'retried','') <> '2'))
     ORDER BY f.id, m."createdAt" DESC LIMIT ${limit}`;
   let enriched = 0;
   for (const r of rows) {
@@ -100,10 +100,16 @@ export async function enrichMetaLeads(limit = 25): Promise<{ enriched: number; s
       meta = { ...meta, adName: meta.adName || n.adName, campaignName: meta.campaignName || n.campaignName };
     }
     if (meta?.formId && !meta.formName) {
-      const { formNameFor } = await import('./metaAds');
-      meta = { ...meta, formName: await formNameFor(meta.formId) };
+      // Forms belong to the Page, so read the name with the Page token first.
+      let name: string | null = null;
+      if (auth?.token) {
+        try { const j = await (await fetch(`https://graph.facebook.com/v21.0/${meta.formId}?fields=name&access_token=${auth.token}`)).json(); name = j.name || null; if (!name) console.error('form name:', JSON.stringify(j).slice(0, 200)); } catch { /* ignore */ }
+      }
+      if (!name) { const { formNameFor } = await import('./metaAds'); name = await formNameFor(meta.formId); }
+      meta = { ...meta, formName: name };
     }
-    if (meta) (meta as Record<string, unknown>).retried = '1';
+    if (meta && !meta.adId) console.error('lead has no ad_id from Meta:', r.leadgenId);
+    if (meta) (meta as Record<string, unknown>).retried = '2';
     await saveLeadIntel(r.id, {
       ...(meta ? { meta } : {}),
       ...(emailInfo(r.email) ? { email: emailInfo(r.email) } : {}),

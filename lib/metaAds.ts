@@ -128,7 +128,7 @@ export async function syncBreakdown(dim: Dimension, since: string, until: string
 export async function syncBreakdowns(since: string, until: string) {
   const out: Record<string, number> = {};
   for (const dim of Object.keys(DIMENSIONS) as Dimension[]) {
-    out[dim] = await syncBreakdown(dim, since, until).catch(() => 0);
+    out[dim] = await syncBreakdown(dim, since, until).catch((e) => { console.error(`breakdown ${dim} failed:`, (e as Error).message.slice(0, 300)); return 0; });
   }
   return out;
 }
