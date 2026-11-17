@@ -215,6 +215,28 @@ export async function leadAdsMeta(leadgenId: string): Promise<Record<string, str
   } catch (e) { console.error('leadAdsMeta failed:', (e as Error).message.slice(0, 200)); return null; }
 }
 
+/** Per-ad lead counts by hour for one day (conversion time, account time zone). */
+export async function hourlyAdLeads(day: string) {
+  const out: { hour: string; adId: string; adName: string; adsetName: string | null; campaignName: string | null; leads: number }[] = [];
+  let params: Record<string, string> | null = {
+    level: 'ad', fields: 'ad_id,ad_name,adset_name,campaign_name,actions',
+    time_range: JSON.stringify({ since: day, until: day }),
+    breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone',
+    action_report_time: 'conversion', limit: '500',
+  };
+  for (let page = 0; page < 10 && params; page++) {
+    const res: { data: (BreakdownRow & { ad_id?: string; ad_name?: string; adset_name?: string; campaign_name?: string })[]; paging?: { cursors?: { after?: string } } } =
+      await graph(`act_${AD_ACCOUNT_ID}/insights`, params);
+    for (const r of res.data || []) {
+      const n = leadsOf(r);
+      if (n > 0 && r.ad_id) out.push({ hour: (r.hourly_stats_aggregated_by_advertiser_time_zone || '??').slice(0, 2), adId: r.ad_id, adName: r.ad_name || r.ad_id, adsetName: r.adset_name || null, campaignName: r.campaign_name || null, leads: n });
+    }
+    const after = res.paging?.cursors?.after;
+    params = after && (res.data || []).length ? { ...params, after } : null;
+  }
+  return out;
+}
+
 /** Form name by id (ads token). */
 export async function formNameFor(formId: string): Promise<string | null> {
   try { const j = await graph<{ name?: string }>(formId, { fields: 'name' }); return j.name || null; } catch { return null; }

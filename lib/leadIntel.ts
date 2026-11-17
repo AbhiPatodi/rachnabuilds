@@ -9,7 +9,7 @@ import { prisma } from './prisma';
 const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|mac|aol|proton|protonmail|gmx|mail|zoho|yandex)\./i;
 
 export type LeadIntel = {
-  meta?: { platform?: string | null; organic?: boolean | null; adId?: string | null; adName?: string | null; adsetId?: string | null; adsetName?: string | null; campaignId?: string | null; campaignName?: string | null; formId?: string | null; formName?: string | null; submittedAt?: string | null; fetchedAt?: string };
+  meta?: { platform?: string | null; organic?: boolean | null; adId?: string | null; adName?: string | null; adsetId?: string | null; adsetName?: string | null; campaignId?: string | null; campaignName?: string | null; formId?: string | null; formName?: string | null; attributedBy?: string; submittedAt?: string | null; fetchedAt?: string };
   email?: { domain: string; type: 'own' | 'free' };
   visits?: { at: string; device: string; os: string; browser: string; city?: string | null; region?: string | null; country?: string | null; path?: string }[];
 };
@@ -117,4 +117,51 @@ export async function enrichMetaLeads(limit = 25): Promise<{ enriched: number; s
     if (meta) enriched++;
   }
   return auth?.token ? { enriched } : { enriched, skipped: 'no page token' };
+}
+
+/**
+ * Which ad each Meta lead came from, without reading the lead itself (Meta
+ * blocks that while our app is in Development mode). Meta's own per-ad lead
+ * counts by hour (by conversion time, account time zone = IST) are matched to
+ * each lead's submit time. A lead is attributed only when exactly one ad has an
+ * unclaimed lead in that hour; otherwise it is left for a human. Returns a
+ * check of every recent lead (including ones already attributed by hand).
+ */
+export async function autoAttributeLeads(days = 7) {
+  const { hourlyAdLeads } = await import('./metaAds');
+  const leads = await prisma.$queryRaw<{ id: string; name: string; utmContent: string | null; submittedAt: string | null }[]>`
+    SELECT DISTINCT ON (f.id) f.id, f.name, f."utmContent", f."leadIntel"->'meta'->>'submittedAt' AS "submittedAt"
+    FROM funnel_leads f JOIN meta_lead_events m ON lower(m.email) = lower(f.email)
+    WHERE m.email NOT LIKE '%@meta.com' AND m."createdAt" > now() - make_interval(days => ${days})
+    ORDER BY f.id, m."createdAt" DESC`;
+  const istParts = (iso: string) => {
+    const d = new Date(new Date(iso).getTime() + 330 * 60_000);
+    return { day: d.toISOString().slice(0, 10), hour: d.toISOString().slice(11, 13) };
+  };
+  const withTime = leads.filter((l) => l.submittedAt).map((l) => ({ ...l, ...istParts(l.submittedAt as string) }));
+  const byDay = new Map<string, typeof withTime>();
+  for (const l of withTime) byDay.set(l.day, [...(byDay.get(l.day) || []), l]);
+  const report: { name: string; hourIst: string; matched: string | null; saved: boolean; current: string | null }[] = [];
+  for (const [day, list] of byDay) {
+    const slots = await hourlyAdLeads(day); // [{hour, adId, adName, adsetName, campaignName, leads}]
+    // Claim slots for leads in time order; a slot with N leads can take N.
+    const left = new Map<string, number>();
+    for (const s of slots) left.set(`${s.hour}|${s.adId}`, s.leads);
+    for (const l of list.sort((a, b) => (a.submittedAt! < b.submittedAt! ? -1 : 1))) {
+      const cands = slots.filter((s) => s.hour === l.hour && (left.get(`${s.hour}|${s.adId}`) || 0) > 0);
+      const pick = cands.length === 1 ? cands[0] : null;
+      if (pick) left.set(`${pick.hour}|${pick.adId}`, (left.get(`${pick.hour}|${pick.adId}`) || 1) - 1);
+      let saved = false;
+      if (pick && !l.utmContent) {
+        await prisma.funnelLead.update({ where: { id: l.id }, data: { utmCampaign: pick.campaignName, utmContent: pick.adName } });
+        const row = await prisma.funnelLead.findUnique({ where: { id: l.id }, select: { leadIntel: true } });
+        const cur = (row?.leadIntel as LeadIntel | null) || {};
+        await prisma.funnelLead.update({ where: { id: l.id }, data: { leadIntel: { ...cur, meta: { ...(cur.meta || {}), adId: pick.adId, adName: pick.adName, adsetName: pick.adsetName, campaignName: pick.campaignName, attributedBy: 'Meta per-ad lead count in that hour' } } as object } });
+        await prisma.leadActivity.create({ data: { leadId: l.id, type: 'system', text: `🎯 Ad matched from Meta's lead count for ${day} ${l.hour}:00 IST: ${pick.adName}` } }).catch(() => {});
+        saved = true;
+      }
+      report.push({ name: l.name, hourIst: `${day} ${l.hour}:00`, matched: pick?.adName || null, saved, current: l.utmContent });
+    }
+  }
+  return report;
 }
