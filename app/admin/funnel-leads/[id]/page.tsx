@@ -585,7 +585,7 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
                   <Field label="Ad" value={lead.leadIntel.meta.adName || '—'} />
                   <Field label="Ad set" value={lead.leadIntel.meta.adsetName || '—'} />
                   <Field label="Campaign" value={lead.leadIntel.meta.campaignName || '—'} />
-                  <Field label="Form ID" value={lead.leadIntel.meta.formId || '—'} />
+                  <Field label="Form" value={lead.leadIntel.meta.formName || lead.leadIntel.meta.formId || '—'} />
                   <Field label="Submitted (IST)" value={lead.leadIntel.meta.submittedAt ? new Date(lead.leadIntel.meta.submittedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) : '—'} />
                 </>)}
                 {lead.leadIntel.email && <Field label="Email" value={lead.leadIntel.email.type === 'own' ? `Own domain (${lead.leadIntel.email.domain})` : `Free mailbox (${lead.leadIntel.email.domain})`} />}

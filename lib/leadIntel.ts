@@ -9,7 +9,7 @@ import { prisma } from './prisma';
 const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|mac|aol|proton|protonmail|gmx|mail|zoho|yandex)\./i;
 
 export type LeadIntel = {
-  meta?: { platform?: string | null; organic?: boolean | null; adId?: string | null; adName?: string | null; adsetId?: string | null; adsetName?: string | null; campaignId?: string | null; campaignName?: string | null; formId?: string | null; submittedAt?: string | null; fetchedAt?: string };
+  meta?: { platform?: string | null; organic?: boolean | null; adId?: string | null; adName?: string | null; adsetId?: string | null; adsetName?: string | null; campaignId?: string | null; campaignName?: string | null; formId?: string | null; formName?: string | null; submittedAt?: string | null; fetchedAt?: string };
   email?: { domain: string; type: 'own' | 'free' };
   visits?: { at: string; device: string; os: string; browser: string; city?: string | null; region?: string | null; country?: string | null; path?: string }[];
 };
@@ -82,11 +82,28 @@ export async function enrichMetaLeads(limit = 25): Promise<{ enriched: number; s
     SELECT DISTINCT ON (f.id) f.id, f.email, f.phone, m."leadgenId", m."createdAt"
     FROM funnel_leads f JOIN meta_lead_events m ON lower(m.email) = lower(f.email)
     WHERE m.email NOT LIKE '%@meta.com' AND m."createdAt" > now() - interval '85 days'
-      AND (f."leadIntel" IS NULL OR f."leadIntel"->'meta' IS NULL)
+      AND (f."leadIntel" IS NULL OR f."leadIntel"->'meta' IS NULL
+           OR (f."leadIntel"->'meta'->>'adId' IS NULL AND f."leadIntel"->'meta'->>'retried' IS NULL))
     ORDER BY f.id, m."createdAt" DESC LIMIT ${limit}`;
   let enriched = 0;
   for (const r of rows) {
-    const meta = auth?.token ? await fetchMetaLeadMeta(r.leadgenId, auth.token) : null;
+    let meta = auth?.token ? await fetchMetaLeadMeta(r.leadgenId, auth.token) : null;
+    // The Page token often leaves ad / ad set / campaign empty: ask again with the ads token, then name the ad and form.
+    if (!meta?.adId) {
+      const { leadAdsMeta } = await import('./metaAds');
+      const a = await leadAdsMeta(r.leadgenId);
+      if (a) meta = { ...(meta || {}), ...toMeta(a as Record<string, unknown>), platform: meta?.platform ?? a.platform ?? null, organic: meta?.organic ?? (a.is_organic == null ? null : a.is_organic === 'true') };
+    }
+    if (meta?.adId && (!meta.adName || !meta.campaignName)) {
+      const { adNamesFor } = await import('./metaAds');
+      const n = await adNamesFor(meta.adId);
+      meta = { ...meta, adName: meta.adName || n.adName, campaignName: meta.campaignName || n.campaignName };
+    }
+    if (meta?.formId && !meta.formName) {
+      const { formNameFor } = await import('./metaAds');
+      meta = { ...meta, formName: await formNameFor(meta.formId) };
+    }
+    if (meta) (meta as Record<string, unknown>).retried = '1';
     await saveLeadIntel(r.id, {
       ...(meta ? { meta } : {}),
       ...(emailInfo(r.email) ? { email: emailInfo(r.email) } : {}),

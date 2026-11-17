@@ -57,14 +57,15 @@ export async function syncAdSpend(since: string, until: string) {
 
 interface BreakdownRow extends InsightRow {
   region?: string; publisher_platform?: string; age?: string; gender?: string;
-  impression_device?: string; platform_position?: string; hourly_stats_aggregated_by_advertiser_time_zone?: string;
+  impression_device?: string; platform_position?: string; dma?: string; hourly_stats_aggregated_by_advertiser_time_zone?: string;
 }
 
 const DIMENSIONS = {
   region: { breakdowns: 'region', key: (r: BreakdownRow) => r.region || 'Unknown' },
   platform: { breakdowns: 'publisher_platform', key: (r: BreakdownRow) => r.publisher_platform || 'unknown' },
   age_gender: { breakdowns: 'age,gender', key: (r: BreakdownRow) => `${r.age || '?'}|${r.gender || 'unknown'}` },
-  device: { breakdowns: 'impression_device', key: (r: BreakdownRow) => r.impression_device || 'unknown' },
+  device: { breakdowns: 'publisher_platform,impression_device', key: (r: BreakdownRow) => r.impression_device || 'unknown' },
+  dma: { breakdowns: 'dma', key: (r: BreakdownRow) => r.dma || 'Unknown' },
   placement: { breakdowns: 'publisher_platform,platform_position', key: (r: BreakdownRow) => `${r.publisher_platform || '?'}|${r.platform_position || '?'}` },
   hour: { breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone', key: (r: BreakdownRow) => (r.hourly_stats_aggregated_by_advertiser_time_zone || '?').slice(0, 2) },
 } as const;
@@ -90,6 +91,8 @@ export async function syncBreakdown(dim: Dimension, since: string, until: string
     limit: '500',
   };
   let rows = 0;
+  // Several Meta rows can share one key (device is paired with platform), so add them up first.
+  const acc = new Map<string, { date: Date; key: string; spend: number; impressions: number; reach: number; clicks: number; leads: number }>();
   // Breakdowns multiply the row count, so follow paging rather than trusting one page.
   for (let page = 0; page < 20 && params; page++) {
     const res: { data: BreakdownRow[]; paging?: { cursors?: { after?: string } } } =
@@ -101,15 +104,22 @@ export async function syncBreakdown(dim: Dimension, since: string, until: string
         spend: Number(r.spend) || 0, impressions: Number(r.impressions) || 0,
         reach: Number(r.reach) || 0, clicks: Number(r.clicks) || 0, leads: leadsOf(r),
       };
-      await prisma.adBreakdownDay.upsert({
-        where: { accountId_date_dimension_key: { accountId: AD_ACCOUNT_ID, date, dimension: dim, key } },
-        create: { accountId: AD_ACCOUNT_ID, date, dimension: dim, key, ...vals },
-        update: vals,
-      });
-      rows++;
+      const k = `${r.date_start}|${key}`;
+      const cur = acc.get(k);
+      if (cur) { cur.spend += vals.spend; cur.impressions += vals.impressions; cur.reach += vals.reach; cur.clicks += vals.clicks; cur.leads += vals.leads; }
+      else acc.set(k, { date, key, ...vals });
     }
     const after = res.paging?.cursors?.after;
     params = after && (res.data || []).length ? { ...params, after } : null;
+  }
+  for (const v of acc.values()) {
+    const { date, key, ...vals } = v;
+    await prisma.adBreakdownDay.upsert({
+      where: { accountId_date_dimension_key: { accountId: AD_ACCOUNT_ID, date, dimension: dim, key } },
+      create: { accountId: AD_ACCOUNT_ID, date, dimension: dim, key, ...vals },
+      update: vals,
+    });
+    rows++;
   }
   return rows;
 }
@@ -195,6 +205,21 @@ export function hasAdsToken() { return !!token(); }
 
 /** Ad + campaign name for a lead's ad_id. The lead webhook reads leads with the
  *  Page token, which can't see ad objects, so ad_name comes back empty there. */
+/** Read a lead's ad / ad set / campaign with the ads token (the Page token often returns no ad_id). */
+export async function leadAdsMeta(leadgenId: string): Promise<Record<string, string | null> | null> {
+  try {
+    const j = await graph<Record<string, unknown>>(leadgenId, { fields: 'ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id,platform,is_organic,created_time' });
+    const o: Record<string, string | null> = {};
+    for (const k of Object.keys(j)) o[k] = j[k] == null ? null : String(j[k]);
+    return o;
+  } catch (e) { console.error('leadAdsMeta failed:', (e as Error).message.slice(0, 200)); return null; }
+}
+
+/** Form name by id (ads token). */
+export async function formNameFor(formId: string): Promise<string | null> {
+  try { const j = await graph<{ name?: string }>(formId, { fields: 'name' }); return j.name || null; } catch { return null; }
+}
+
 export async function adNamesFor(adId: string): Promise<{ adName: string | null; campaignName: string | null }> {
   try {
     const ad = await graph<{ name?: string; campaign?: { name?: string } }>(adId, { fields: 'name,campaign{name}' });
