@@ -6,7 +6,12 @@ name: Meta ad spend sync
 on:
   schedule:
     - cron: '7 * * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      extra:
+        description: 'Extra query string, e.g. &apps=1'
+        required: false
+        default: ''
 
 jobs:
   sync:
@@ -16,6 +21,6 @@ jobs:
         run: |
           code=$(curl -s -o /tmp/out.json -w '%{http_code}' \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://rachnabuilds.com/api/cron/meta-spend?pulse=1")
+            "https://rachnabuilds.com/api/cron/meta-spend?pulse=1${{ github.event.inputs.extra }}")
           cat /tmp/out.json
           [ "$code" = "200" ] || exit 1

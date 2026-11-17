@@ -20,7 +20,15 @@ export async function GET(req: NextRequest) {
   const engaged = await sendEngagedSignals().catch((e) => ({ error: (e as Error).message }));
   const intel = await enrichMetaLeads().catch((e) => ({ error: (e as Error).message }));
   const attribution = await autoAttributeLeads().catch((e) => ({ error: (e as Error).message }));
-  if (!hasAdsToken()) return NextResponse.json({ skipped: 'no META_ADS_ACCESS_TOKEN', rawLeads, engaged, intel, attribution });
+  // ?apps=1: which Meta app each token belongs to (names/ids only, never the tokens).
+  let apps: unknown = undefined;
+  if (req.nextUrl.searchParams.get('apps')) {
+    const who = async (t?: string) => { if (!t) return null; try { return await (await fetch(`https://graph.facebook.com/v21.0/app?fields=id,name&access_token=${t}`)).json(); } catch (e) { return { error: (e as Error).message }; } };
+    const { getPageAuth } = await import('@/lib/metaPage');
+    const page = await getPageAuth(null).catch(() => null);
+    apps = { adsToken: await who(process.env.META_ADS_ACCESS_TOKEN), pageToken: await who(page?.token), pageEnvToken: await who(process.env.META_PAGE_ACCESS_TOKEN), capiToken: await who(process.env.META_CAPI_ACCESS_TOKEN) };
+  }
+  if (!hasAdsToken()) return NextResponse.json({ skipped: 'no META_ADS_ACCESS_TOKEN', rawLeads, engaged, intel, attribution, apps });
   try {
     // ?days=N re-pulls a longer window (backfill after adding a field); default 3.
     const back = Math.min(90, Math.max(1, Number(req.nextUrl.searchParams.get('days')) || 3));
@@ -33,7 +41,7 @@ export async function GET(req: NextRequest) {
     const alerted = await maybeLowBalanceAlert(balance);
     // ?pulse=1 (hourly run): push today's numbers to the owner's phones when they moved.
     const pulse = req.nextUrl.searchParams.get('pulse') ? await adsPulse(balance).catch(() => null) : null;
-    return NextResponse.json({ ok: true, days, breakdowns, topUps, balance, alerted, pulse, rawLeads, engaged, intel, attribution });
+    return NextResponse.json({ ok: true, days, breakdowns, topUps, balance, alerted, pulse, rawLeads, engaged, intel, attribution, apps });
   } catch (e) {
     // 200 on purpose: a Meta-side error shouldn't turn the scheduled workflow red every run.
     return NextResponse.json({ ok: false, error: (e as Error).message });
