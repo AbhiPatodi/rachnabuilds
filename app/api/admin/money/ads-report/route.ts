@@ -136,5 +136,8 @@ export async function GET(req: NextRequest) {
     states: rollup('region').map(withRates),
     platforms: rollup('platform').map((a) => withRates({ ...a, key: a.key === 'instagram' ? 'Instagram' : a.key === 'facebook' ? 'Facebook' : 'Unattributed' })),
     audience: rollup('age_gender').map((a) => ({ ...withRates(a), ...splitAgeGender(a.key) })),
+    devices: rollup('device').map((a) => withRates({ ...a, key: ({ iphone: 'iPhone', ipad: 'iPad', android_smartphone: 'Android phone', android_tablet: 'Android tablet', desktop: 'Desktop', ipod: 'iPod' } as Record<string, string>)[a.key] || a.key })),
+    placements: rollup('placement').map((a) => { const [pl, pos] = a.key.split('|'); return withRates({ ...a, key: `${pl === 'instagram' ? 'Instagram' : pl === 'facebook' ? 'Facebook' : pl} · ${(pos || '').replace(/_/g, ' ')}` }); }),
+    hours: rollup('hour').map(withRates).sort((x, y) => x.key.localeCompare(y.key)),
   });
 }

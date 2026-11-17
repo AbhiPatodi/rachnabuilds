@@ -19,6 +19,7 @@ import { normalizePhone, phoneKey } from '@/lib/phone';
 import { autoAssign } from '@/lib/team';
 import { adNamesFor } from '@/lib/metaAds';
 import { sendRawLeadSignals } from '@/lib/leadStatus';
+import { enrichMetaLeads } from '@/lib/leadIntel';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -225,6 +226,8 @@ export async function POST(req: NextRequest) {
 
   // Raw-lead stage to Meta for what just came in (the hourly cron retries anything missed).
   if (results.some((r) => r.ok)) await sendRawLeadSignals(10).catch((e) => console.error('raw-lead CAPI failed:', e));
+  // Save Meta's lead details (Facebook/Instagram, organic, ad/ad set/form, time) on the lead.
+  if (results.some((r) => r.ok)) await enrichMetaLeads(10).catch((e) => console.error('lead intel failed:', e));
 
   // Always 200 so Meta doesn't retry-storm; failures are logged above.
   return NextResponse.json({ received: results.length, results });

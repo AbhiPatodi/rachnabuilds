@@ -23,6 +23,9 @@ type Report = {
   states: Row[];
   platforms: Row[];
   audience: (Row & { age: string; gender: string })[];
+  devices?: Row[];
+  placements?: Row[];
+  hours?: Row[];
 };
 
 const inr = (v: number | null | undefined) => v == null ? '—' : '₹' + Math.round(v).toLocaleString('en-IN');
@@ -268,6 +271,33 @@ export default function AdsReport() {
                 <Table head={['Age', 'Gender', 'Spend', 'Impressions', 'CPM', 'Leads']}
                   rows={r.audience.filter((a) => a.gender !== 'Unknown').map((a) => [a.age, a.gender, inr(a.spend), num(a.impressions), inr(a.cpm), a.leads ? String(a.leads) : '—'])}
                   okCol={5} />
+              </Card>
+            </>)}
+
+            {(r.devices?.length || 0) > 0 && (<>
+              <H>By device</H>
+              <Card pad="4px 16px 0">
+                <Table head={['Device', 'Spend', 'Impressions', 'CPM', 'Clicks', 'Leads']}
+                  rows={(r.devices || []).filter((d) => d.spend > 0.5).map((d) => [d.key, inr(d.spend), num(d.impressions), inr(d.cpm), num(d.clicks), d.leads ? String(d.leads) : '—'])}
+                  okCol={5} />
+              </Card>
+            </>)}
+
+            {(r.placements?.length || 0) > 0 && (<>
+              <H>By placement</H>
+              <Card pad="4px 16px 0">
+                <Table head={['Placement', 'Spend', 'Impressions', 'CPM', 'Clicks', 'Leads']}
+                  rows={(r.placements || []).filter((d) => d.spend > 0.5).sort((x, y) => y.spend - x.spend).map((d) => [d.key, inr(d.spend), num(d.impressions), inr(d.cpm), num(d.clicks), d.leads ? String(d.leads) : '—'])}
+                  okCol={5} />
+              </Card>
+            </>)}
+
+            {(r.hours?.length || 0) > 0 && (<>
+              <H>By hour of day (IST, account time)</H>
+              <Card pad="4px 16px 0">
+                <Table head={['Hour', 'Spend', 'Impressions', 'Clicks', 'Leads']}
+                  rows={(r.hours || []).filter((d) => d.spend > 0.5).map((d) => [`${d.key}:00`, inr(d.spend), num(d.impressions), num(d.clicks), d.leads ? String(d.leads) : '—'])}
+                  okCol={4} />
               </Card>
             </>)}
 

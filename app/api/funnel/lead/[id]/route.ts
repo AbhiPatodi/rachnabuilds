@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { recordLeadVisit } from '@/lib/leadIntel';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +18,15 @@ const maskEmail = (e: string) => {
 };
 const maskPhone = (p: string | null) => (p ? `•••${p.slice(-2)}` : null);
 
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const lead = await prisma.funnelLead.findUnique({
     where: { id },
     select: { id: true, name: true, email: true, phone: true, whatsapp: true, stage: true },
   });
   if (!lead) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // The lead opened one of our links (welcome email, nudges): note the device and IP location.
+  await recordLeadVisit(lead.id, req.headers, '/training/apply').catch(() => {});
   return NextResponse.json({
     id: lead.id,
     name: lead.name,

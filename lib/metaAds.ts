@@ -57,12 +57,16 @@ export async function syncAdSpend(since: string, until: string) {
 
 interface BreakdownRow extends InsightRow {
   region?: string; publisher_platform?: string; age?: string; gender?: string;
+  impression_device?: string; platform_position?: string; hourly_stats_aggregated_by_advertiser_time_zone?: string;
 }
 
 const DIMENSIONS = {
   region: { breakdowns: 'region', key: (r: BreakdownRow) => r.region || 'Unknown' },
   platform: { breakdowns: 'publisher_platform', key: (r: BreakdownRow) => r.publisher_platform || 'unknown' },
   age_gender: { breakdowns: 'age,gender', key: (r: BreakdownRow) => `${r.age || '?'}|${r.gender || 'unknown'}` },
+  device: { breakdowns: 'impression_device', key: (r: BreakdownRow) => r.impression_device || 'unknown' },
+  placement: { breakdowns: 'publisher_platform,platform_position', key: (r: BreakdownRow) => `${r.publisher_platform || '?'}|${r.platform_position || '?'}` },
+  hour: { breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone', key: (r: BreakdownRow) => (r.hourly_stats_aggregated_by_advertiser_time_zone || '?').slice(0, 2) },
 } as const;
 
 export type Dimension = keyof typeof DIMENSIONS;

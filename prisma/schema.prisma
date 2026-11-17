@@ -523,6 +523,7 @@ model FunnelLead {
   utmContent    String?
   notes         String?
   formAnswers   Json?     // Instant Form qualifying answers: { "question text": "answer" }
+  leadIntel     Json?     // lib/leadIntel: Meta details, area-code state/time zone, email type, device/location visits
   callScript    String?   // generated SLOSHED call-prep JSON
   appliedAt     DateTime?
   createdAt     DateTime  @default(now())

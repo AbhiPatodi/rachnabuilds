@@ -59,6 +59,7 @@ interface FunnelLead {
   utmContent: string | null;
   notes: string | null;
   formAnswers: Record<string, string> | null;
+  leadIntel: import('@/lib/leadIntel').LeadIntel | null;
   callScript: string | null;
   appliedAt: string | null;
   createdAt: string;
@@ -572,6 +573,35 @@ export default function FunnelLeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
+
+          {lead.leadIntel && (lead.leadIntel.meta || lead.leadIntel.email || lead.leadIntel.visits?.length) && (
+            <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Lead details</h3>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>From Meta&apos;s lead record and from this lead opening our links. Meta doesn&apos;t share device or location per lead.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
+                {lead.leadIntel.meta && (<>
+                  <Field label="App" value={lead.leadIntel.meta.platform === 'ig' ? 'Instagram' : lead.leadIntel.meta.platform === 'fb' ? 'Facebook' : (lead.leadIntel.meta.platform || '—')} />
+                  <Field label="From an ad?" value={lead.leadIntel.meta.organic == null ? '—' : lead.leadIntel.meta.organic ? 'No (organic)' : 'Yes (paid)'} />
+                  <Field label="Ad" value={lead.leadIntel.meta.adName || '—'} />
+                  <Field label="Ad set" value={lead.leadIntel.meta.adsetName || '—'} />
+                  <Field label="Campaign" value={lead.leadIntel.meta.campaignName || '—'} />
+                  <Field label="Form ID" value={lead.leadIntel.meta.formId || '—'} />
+                  <Field label="Submitted (IST)" value={lead.leadIntel.meta.submittedAt ? new Date(lead.leadIntel.meta.submittedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) : '—'} />
+                </>)}
+                {lead.leadIntel.email && <Field label="Email" value={lead.leadIntel.email.type === 'own' ? `Own domain (${lead.leadIntel.email.domain})` : `Free mailbox (${lead.leadIntel.email.domain})`} />}
+                {(() => {
+                  const v = lead.leadIntel?.visits || [];
+                  if (!v.length) return <Field label="Device" value="Not seen yet (shows when they open one of our links)" />;
+                  const last = v[v.length - 1];
+                  return (<>
+                    <Field label="Device" value={`${last.device} · ${last.os} · ${last.browser}`} />
+                    <Field label="Location (from their internet connection)" value={[last.city, last.region, last.country].filter(Boolean).join(', ') || '—'} />
+                    <Field label="Opened our links" value={`${v.length} time${v.length === 1 ? '' : 's'}, last ${new Date(last.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })} IST`} />
+                  </>);
+                })()}
+              </div>
+            </div>
+          )}
 
           {/* ─── SCHEDULE CALL (Google Meet) ─── */}
           <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
