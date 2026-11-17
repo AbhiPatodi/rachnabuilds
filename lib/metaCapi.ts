@@ -102,7 +102,8 @@ export function clientIpFromHeaders(headers: Headers): string | undefined {
 // ---------------------------------------------------------------------------
 
 // lead_received = the raw lead (Meta: "send all stages … including the raw lead").
-export type LeadStage = 'lead_received' | 'lead_qualified' | 'lead_converted' | 'lead_disqualified';
+// lead_engaged = they replied to us (between raw lead and a booked call).
+export type LeadStage = 'lead_received' | 'lead_engaged' | 'lead_qualified' | 'lead_converted' | 'lead_disqualified';
 
 export async function sendLeadStageToMeta(opts: {
   stage: LeadStage;

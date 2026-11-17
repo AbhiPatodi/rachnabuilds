@@ -54,6 +54,36 @@ export async function sendRawLeadSignals(limit = 25): Promise<{ sent: number; fa
   return { sent, failed };
 }
 
+/** "lead_engaged" for Instant Form leads that replied to us. Picks up every
+ *  "✅ They replied" note (outcome button or logged by hand), once per lead,
+ *  with the reply's own time. Runs hourly and right after a Replied tap. */
+export async function sendEngagedSignals(limit = 25): Promise<{ sent: number; failed: number }> {
+  const pending = await prisma.$queryRaw<{ leadId: string; email: string; phone: string | null; leadgenId: string; repliedAt: Date }[]>`
+    SELECT DISTINCT ON (f.id) f.id AS "leadId", f.email, f.phone, m."leadgenId", a."createdAt" AS "repliedAt"
+    FROM lead_activities a
+    JOIN funnel_leads f ON f.id = a."leadId"
+    JOIN meta_lead_events m ON lower(m.email) = lower(f.email)
+    WHERE a.text LIKE '✅ They replied%'
+      AND m.email NOT LIKE '%@meta.com'
+      AND NOT EXISTS (SELECT 1 FROM lead_activities x WHERE x."leadId" = f.id AND x.text LIKE '📡%lead_engaged%')
+    ORDER BY f.id, a."createdAt" ASC LIMIT ${limit}`;
+  let sent = 0, failed = 0;
+  for (const p of pending) {
+    const eventTime = Math.min(Math.floor(p.repliedAt.getTime() / 1000), Math.floor(Date.now() / 1000));
+    const r = await sendLeadStageToMeta({ stage: 'lead_engaged', leadgenId: p.leadgenId, email: p.email, phone: p.phone, eventTime });
+    if (r.reason === 'not_configured') break;
+    if (r.ok) sent++; else failed++;
+    await prisma.leadActivity.create({
+      data: {
+        leadId: p.leadId, type: 'system',
+        text: r.ok ? `📡 Sent "lead_engaged" (they replied) to Meta · lead ${p.leadgenId}`
+                   : `📡 Meta did not accept "lead_engaged" for lead ${p.leadgenId}: ${r.reason}`,
+      },
+    }).catch(() => {});
+  }
+  return { sent, failed };
+}
+
 /** Send the Meta quality signal for this lead's new status, if it came from
  *  an Instant Form. Every status-changing code path calls this — the signal
  *  used to fire only from the admin dropdown, so it never fired at all. */
@@ -124,6 +154,10 @@ export async function applyOutcome(leadId: string, outcome: string, actor?: stri
   if (next) {
     await prisma.leadActivity.create({ data: { leadId, type: 'status', text: `Status: ${lead.status} → ${next}` } }).catch(() => {});
     queueMetaSignal(leadId, next);
+  }
+  if (outcome === 'replied') {
+    const run = () => sendEngagedSignals(5).catch((e) => console.error('lead_engaged CAPI failed:', e));
+    try { after(run); } catch { void run(); }
   }
   return updated;
 }

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { safeEqual } from '@/lib/auth';
 import { hasAdsToken, syncAdSpend, syncBalance, syncTopUps, maybeLowBalanceAlert, syncBreakdowns, adsPulse } from '@/lib/metaAds';
 import { dayKey } from '@/lib/money';
-import { sendRawLeadSignals } from '@/lib/leadStatus';
+import { sendRawLeadSignals, sendEngagedSignals } from '@/lib/leadStatus';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
   }
   // Raw-lead stage to Meta for any Instant Form lead not sent yet (needs only the CAPI token).
   const rawLeads = await sendRawLeadSignals().catch((e) => ({ error: (e as Error).message }));
-  if (!hasAdsToken()) return NextResponse.json({ skipped: 'no META_ADS_ACCESS_TOKEN', rawLeads });
+  const engaged = await sendEngagedSignals().catch((e) => ({ error: (e as Error).message }));
+  if (!hasAdsToken()) return NextResponse.json({ skipped: 'no META_ADS_ACCESS_TOKEN', rawLeads, engaged });
   try {
     // ?days=N re-pulls a longer window (backfill after adding a field); default 3.
     const back = Math.min(90, Math.max(1, Number(req.nextUrl.searchParams.get('days')) || 3));
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
     const alerted = await maybeLowBalanceAlert(balance);
     // ?pulse=1 (hourly run): push today's numbers to the owner's phones when they moved.
     const pulse = req.nextUrl.searchParams.get('pulse') ? await adsPulse(balance).catch(() => null) : null;
-    return NextResponse.json({ ok: true, days, breakdowns, topUps, balance, alerted, pulse, rawLeads });
+    return NextResponse.json({ ok: true, days, breakdowns, topUps, balance, alerted, pulse, rawLeads, engaged });
   } catch (e) {
     // 200 on purpose: a Meta-side error shouldn't turn the scheduled workflow red every run.
     return NextResponse.json({ ok: false, error: (e as Error).message });
