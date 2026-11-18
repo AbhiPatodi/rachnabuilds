@@ -163,8 +163,8 @@ export default function FullReport({
   const sections: { id: string; label: string; show: boolean }[] = [
     { id: 'questions', label: 'Your questions', show: !!payload.questions?.length },
     { id: 'shopper-test', label: 'Shopper test', show: steps.length > 0 },
-    { id: 'working', label: 'What works', show: !!payload.working?.length },
     { id: 'findings', label: 'Findings', show: findings.length > 0 },
+    { id: 'working', label: 'What works', show: !!payload.working?.length },
     { id: 'areas', label: 'Health by area', show: areas.length > 0 },
     { id: 'speed', label: 'Speed', show: !!speed },
     { id: 'competitors', label: 'Competitors', show: benchmark.length > 0 },
@@ -280,7 +280,13 @@ export default function FullReport({
         .fr-timeline { position:relative; padding-left:0; }
         .fr-timeline::before { content:''; position:absolute; left:19px; top:24px; bottom:24px; width:2px; background:linear-gradient(180deg, var(--line), var(--line) 85%, transparent); }
         .fr-step { position:relative; display:grid; grid-template-columns:40px 270px minmax(0,1fr); gap:20px; align-items:start; margin-bottom:22px; }
-        .fr-step.wide, .fr-step.noshot { grid-template-columns:40px minmax(0,1fr); }
+        .fr-step.wide, .fr-step.noshot, .fr-step.compact { grid-template-columns:40px minmax(0,1fr); }
+        .fr-step.compact { margin-bottom:12px; }
+        .fr-step.compact .fr-step-card { display:flex; gap:14px; align-items:flex-start; padding:12px 16px; background:#FAFBFB; }
+        .fr-step.compact .fr-step-head { margin-bottom:4px; }
+        .fr-step.compact .fr-step-head h4 { font-size:15px; }
+        .fr-step-thumb { width:54px; height:54px; object-fit:cover; object-position:top; border-radius:10px; border:1px solid var(--line); flex:0 0 54px; cursor:zoom-in; background:#fff; }
+        .fr-step-compact-text { font-size:13.5px; color:var(--muted); line-height:1.55; }
         .fr-step-num { position:relative; z-index:1; width:40px; height:40px; border-radius:50%; background:#fff; border:2px solid var(--line); color:var(--ink); font-family:var(--heading); font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--paper); margin-top:6px; }
         .fr-step[data-verdict="pass"] .fr-step-num { border-color:#06D6A0; }
         .fr-step[data-verdict="friction"] .fr-step-num { border-color:#F79009; }
@@ -386,7 +392,7 @@ export default function FullReport({
           .fr-stat b { font-size:26px; }
           .fr-sechead { margin:44px 0 16px; }
           .fr-timeline::before { left:15px; }
-          .fr-step, .fr-step.wide, .fr-step.noshot { grid-template-columns:32px minmax(0,1fr); gap:12px; }
+          .fr-step, .fr-step.wide, .fr-step.noshot, .fr-step.compact { grid-template-columns:32px minmax(0,1fr); gap:12px; }
           .fr-step-num { width:32px; height:32px; font-size:12.5px; }
           .fr-step > .fr-shotf { grid-column:2; max-width:250px; justify-self:center; }
           .fr-step-row { grid-template-columns:1fr; gap:3px; }
@@ -507,6 +513,23 @@ export default function FullReport({
                 const kind = s.shot?.kind || 'phone';
                 const inline = !!s.shot?.dataUri && kind !== 'phone';
                 const cls = !s.shot?.dataUri ? ' noshot' : inline ? ' wide' : '';
+                if (s.verdict === 'pass') {
+                  return (
+                    <div className="fr-step compact" key={i} data-verdict="pass">
+                      <span className="fr-step-num">{i + 1}</span>
+                      <div className="fr-step-card">
+                        {s.shot?.dataUri && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img className="fr-step-thumb" src={s.shot.dataUri} alt={s.shot.label} loading="lazy" data-lightbox="1" />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <div className="fr-step-head"><h4>{s.title}</h4><span className="fr-verdict" style={{ background: v.bg, color: v.color }}>{v.label}</span></div>
+                          <p className="fr-step-compact-text">{s.observed}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div className={`fr-step${cls}`} key={i} data-verdict={s.verdict}>
                     <span className="fr-step-num">{i + 1}</span>
@@ -525,17 +548,6 @@ export default function FullReport({
                   </div>
                 );
               })}
-            </div>
-          </div>
-        ) : null}
-
-        {payload.working?.length ? (
-          <div data-track="working">
-            <SectionHead id="working" n={num('working')} title="What's already working" sub="Credit where it's due — these are right, and we checked them rather than assumed." />
-            <div className="fr-card">
-              <ul className="fr-working">
-                {payload.working.map((w, i) => <li key={i}><span>{w}</span></li>)}
-              </ul>
             </div>
           </div>
         ) : null}
@@ -576,6 +588,17 @@ export default function FullReport({
             })}
           </div>
         )}
+
+        {payload.working?.length ? (
+          <div data-track="working">
+            <SectionHead id="working" n={num('working')} title="What we checked that is fine" sub="So you don't spend money fixing these." />
+            <div className="fr-card">
+              <ul className="fr-working">
+                {payload.working.map((w, i) => <li key={i}><span>{w}</span></li>)}
+              </ul>
+            </div>
+          </div>
+        ) : null}
 
         {areas.length > 0 && (
           <div data-track="areas">
