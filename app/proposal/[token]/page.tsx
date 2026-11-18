@@ -9,6 +9,7 @@ import { money, parseContent, visitorContext } from '@/lib/proposal';
 import { isPreviewBot, placeWithFlag } from '@/lib/flag';
 import ChoosePlan from './ChoosePlan';
 import ProposalPing from './ProposalPing';
+import { isInternalViewer } from '@/lib/internalViewer';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
 
   const h = await headers();
   const v = visitorContext(h);
-  const bot = isPreviewBot(h.get('user-agent'));
+  const bot = (isPreviewBot(h.get('user-agent'))) || await isInternalViewer(h);
   const view = bot ? null : await prisma.proposalView.create({ data: { proposalId: proposal.id, ...v } }).catch(() => null);
   if (!bot) {
     await prisma.proposal.update({

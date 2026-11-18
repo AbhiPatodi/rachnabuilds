@@ -10,6 +10,7 @@ import ProposalTab from '@/app/components/admin/ProposalTab';
 import LeadPayments from '@/app/components/admin/LeadPayments';
 import { countryFlag, placeWithFlag } from '@/lib/flag';
 import ContactIcons, { WhatsAppIcon, MessagesIcon, smsHref, logChatOpened } from '@/app/components/admin/ContactIcons';
+import { isInternalPlace } from '@/lib/internalViewer';
 
 interface AuditReport {
   id: string;
@@ -98,7 +99,7 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
   }
   for (const r of lead.spReports || []) {
     ev.push({ at: r.createdAt, icon: '🔍', text: `Store report generated — ${r.storeName}` });
-    for (const v of r.views) {
+    for (const v of r.views.filter((x) => !isInternalPlace(x.city, x.country))) {
       const where = placeWithFlag(v.city, v.country);
       const dev = [v.os, v.browser].filter(Boolean).join(' · ');
       const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;
@@ -110,8 +111,9 @@ function buildTimeline(lead: FunnelLead): TimelineEvent[] {
     }
   }
   for (const p of lead.proposals || []) {
-    p.views.forEach((v, idx) => {
-      const visitNo = p.views.length - idx;
+    const pv = p.views.filter((x) => !isInternalPlace(x.city, x.country));
+    pv.forEach((v, idx) => {
+      const visitNo = pv.length - idx;
       const where = placeWithFlag(v.city, v.country);
       const dev = [v.os, v.browser].filter(Boolean).join(' · ');
       const dur = v.durationSec ? (v.durationSec >= 60 ? `${Math.floor(v.durationSec / 60)}m ${v.durationSec % 60}s` : `${v.durationSec}s`) : null;

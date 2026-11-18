@@ -5,6 +5,7 @@
 // Only real data: Meta's own lead fields, and what we measure (email domain, link visits).
 // Meta never shares a lead's device or location per lead; a visit records them when the lead opens our link.
 import { prisma } from './prisma';
+import { isInternalViewer } from './internalViewer';
 
 const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|mac|aol|proton|protonmail|gmx|mail|zoho|yandex)\./i;
 
@@ -42,6 +43,7 @@ export async function saveLeadIntel(leadId: string, patch: Partial<LeadIntel>) {
 
 /** Record a visit from one of our links (device + IP location from Vercel's geo headers). Keeps the last 10. */
 export async function recordLeadVisit(leadId: string, headers: Headers, path?: string) {
+  if (await isInternalViewer(headers)) return; // our own clicks are not lead visits
   const ua = headers.get('user-agent') || '';
   if (!ua || /bot|crawler|spider|preview|facebookexternalhit|WhatsApp|Slack|Google-|Mediapartners/i.test(ua)) return;
   const dec = (v: string | null) => { try { return v ? decodeURIComponent(v) : null; } catch { return v; } };
