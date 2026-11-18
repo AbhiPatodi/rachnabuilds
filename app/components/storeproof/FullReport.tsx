@@ -733,7 +733,7 @@ export default function FullReport({
 
         {payload.design?.notes?.length ? (
           <div data-track="design">
-            <SectionHead id="design" n={num('design')} title="Design review — how the store reads to a shopper" sub="Beyond the automated checks: an expert pass over the store's first impression, hierarchy, and trust signals." />
+            <SectionHead id="design" n={num('design')} title="Design review — how the store reads to a shopper" sub="Beyond the measurements: what breaks the experience for a shopper. Not a redesign brief." />
             {(payload.design.shots || []).length > 0 && (
               <div className="fr-shots" style={{ marginBottom: 18 }}>
                 {payload.design.shots.map((s, i) => <ShotFrame key={i} shot={s} size="md" />)}
