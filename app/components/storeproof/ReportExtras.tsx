@@ -134,7 +134,6 @@ export function OffersSection({ offers }: { offers: Offers }) {
       <div className="fx-offer-grid">
         {offers.options.map((o, i) => (
           <div className={`fx-offer${o.featured ? ' featured' : ''}`} key={i}>
-            {o.featured && <div className="fx-offer-flag">Recommended</div>}
             <div className="fx-offer-name">{o.name}</div>
             <div className="fx-offer-price">{o.price}</div>
             <div className="fx-offer-delivery">{o.delivery}</div>
