@@ -135,7 +135,7 @@ export function OffersSection({ offers }: { offers: Offers }) {
         {offers.options.map((o, i) => (
           <div className={`fx-offer${o.featured ? ' featured' : ''}`} key={i}>
             <div className="fx-offer-name">{o.name}</div>
-            <div className="fx-offer-price">{o.price}</div>
+            {o.price && <div className="fx-offer-price">{o.price}</div>}
             <div className="fx-offer-delivery">{o.delivery}</div>
             <ul>{o.includes.map((x, j) => <li key={j}>{x}</li>)}</ul>
           </div>
