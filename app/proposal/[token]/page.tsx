@@ -10,6 +10,7 @@ import { isPreviewBot, placeWithFlag } from '@/lib/flag';
 import ChoosePlan from './ChoosePlan';
 import ProposalPing from './ProposalPing';
 import { isInternalViewer } from '@/lib/internalViewer';
+import { isAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ token
 
   const h = await headers();
   const v = visitorContext(h);
-  const bot = (isPreviewBot(h.get('user-agent'))) || await isInternalViewer(h);
+  const bot = (isPreviewBot(h.get('user-agent'))) || await isInternalViewer(h, await isAdmin());
   const view = bot ? null : await prisma.proposalView.create({ data: { proposalId: proposal.id, ...v } }).catch(() => null);
   if (!bot) {
     await prisma.proposal.update({

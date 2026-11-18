@@ -18,6 +18,7 @@ import RevokedReport from './RevokedReport';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
 import ShotLightbox from '@/app/components/storeproof/ShotLightbox';
 import { isInternalViewer } from '@/lib/internalViewer';
+import { isAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,7 +123,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
     /Instagram/.test(ua) ? 'Instagram in-app' : /FBAN|FBAV/.test(ua) ? 'Facebook in-app'
     : /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet'
     : /Chrome|CriOS/.test(ua) ? 'Chrome' : /Firefox|FxiOS/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : null;
-  const bot = isPreviewBot(ua) || await isInternalViewer(h); // our own opens are never tracked
+  const bot = isPreviewBot(ua) || await isInternalViewer(h, await isAdmin()); // our own opens are never tracked
   const view = bot ? null : await prisma.storeProofReportView.create({
     data: {
       reportId: report.id,

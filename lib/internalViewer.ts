@@ -5,7 +5,6 @@
 //   - the client IP is listed in INTERNAL_IPS (comma-separated).
 // Internal views are still rendered; they are just not recorded, counted,
 // pushed or shown on the timeline. Historical rows are hidden by city.
-import { currentSession } from './auth';
 
 const cities = () => (process.env.INTERNAL_CITIES || 'Indore').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 const ips = () => (process.env.INTERNAL_IPS || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -25,9 +24,11 @@ export function isInternalPlace(city?: string | null, country?: string | null): 
   return false;
 }
 
-/** Async check on an incoming request (server components / route handlers). */
-export async function isInternalViewer(h: Headers): Promise<boolean> {
-  try { if (await currentSession()) return true; } catch { /* no cookie store in this context */ }
+/** Check on an incoming request. `adminLoggedIn` is passed by App Router
+ *  callers (await isAdmin()); this module must not import next/headers itself
+ *  because lib/leadIntel is also bundled for Pages Router API routes. */
+export async function isInternalViewer(h: Headers, adminLoggedIn = false): Promise<boolean> {
+  if (adminLoggedIn) return true;
   const ip = (h.get('x-forwarded-for') || '').split(',')[0].trim();
   if (ip && ips().includes(ip)) return true;
   return isInternalPlace(decodeCity(h.get('x-vercel-ip-city')), h.get('x-vercel-ip-country'));
