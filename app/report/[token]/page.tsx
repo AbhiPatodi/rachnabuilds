@@ -16,6 +16,7 @@ import CompetitorAsk from './CompetitorAsk';
 import EngagementPing from './EngagementPing';
 import RevokedReport from './RevokedReport';
 import FullReport, { FullReportPayload } from '@/app/components/storeproof/FullReport';
+import ShotLightbox from '@/app/components/storeproof/ShotLightbox';
 
 export const dynamic = 'force-dynamic';
 
@@ -173,6 +174,7 @@ export default async function PublicReportPage({ params }: { params: Promise<{ t
           </a>
         )}
         <FullReport payload={payload} storeName={report.storeName} host={report.host} pdfUrl={hasPdf ? `/report/${token}/pdf` : null} hideEffort={prospect} />
+        <ShotLightbox />
       </>
     );
   }

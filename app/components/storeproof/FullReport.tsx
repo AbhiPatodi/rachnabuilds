@@ -6,15 +6,26 @@
 //
 // Visual system (18 Nov 2026 redesign): dark-forest hero that the summary card
 // overlaps, sticky section nav, numbered section eyebrows, the shopper test as
-// a vertical timeline with phone-framed screens, findings with a severity rail.
+// a vertical timeline with phone-framed screens, findings with a severity rail,
+// a PROOF strip of screenshots under every step and finding, and a
+// "how it hits a shopper" line per finding. Screenshots open full-size via
+// <ShotLightbox /> (client component, mounted once by the page).
 // Brand: ink #0B3D2E, emerald #06D6A0, Space Grotesk headings / Inter body
 // (both loaded by app/layout.tsx).
 import React from 'react';
 
-interface Finding { title?: string; merchant_copy?: string; effort?: string; severity?: string; fix_tier?: string; impact?: string | { assumption_note?: string; basis?: string }; outcome?: string; shot?: { label: string; dataUri: string } }
+interface Shot { label: string; dataUri: string; kind?: 'phone' | 'wide' | 'card' }
+interface Finding {
+  title?: string; merchant_copy?: string; effort?: string; severity?: string; fix_tier?: string;
+  impact?: string | { assumption_note?: string; basis?: string }; outcome?: string;
+  /** How the shopper experiences the problem — plain words, no jargon. */
+  effect?: string;
+  shot?: Shot;
+  /** One screenshot per claim in the copy, shown as a proof strip. */
+  proofs?: Shot[];
+}
 interface SpeedPage { label: string; score: number; lcpMs: number }
 interface SpeedWin { title: string; savingsMs: number }
-interface Shot { label: string; dataUri: string }
 interface BenchRow {
   host: string; isClient: boolean; error: string | null;
   lcpMs: number | null; inpMs: number | null; cls: number | null; lcpGoodPct: number | null;
@@ -38,7 +49,7 @@ export interface FullReportPayload {
   walkthrough?: {
     intro?: string;
     device?: string;
-    steps: { title: string; task: string; observed: string; verdict: 'pass' | 'friction' | 'blocker'; measure?: string; shot?: Shot }[];
+    steps: { title: string; task: string; observed: string; verdict: 'pass' | 'friction' | 'blocker'; measure?: string; shot?: Shot; proofs?: Shot[] }[];
   } | null;
   /** What is already right on the store, credited before the problems. */
   working?: string[];
@@ -81,15 +92,32 @@ function fmtS(ms: number | null) {
   return ms === null ? '—' : `${(ms / 1000).toFixed(1)}s`;
 }
 
-function PhoneShot({ shot, small = false }: { shot: Shot; small?: boolean }) {
+/** A screenshot in the frame that matches what it is: phone bezel, browser
+ *  window for landscape captures, plain card for measurement evidence. */
+function ShotFrame({ shot, size = 'md' }: { shot: Shot; size?: 'sm' | 'md' | 'lg' }) {
+  const kind = shot.kind || 'phone';
   return (
-    <figure className={`fr-phone${small ? ' small' : ''}`}>
-      <div className="fr-phone-bezel">
+    <figure className={`fr-shotf fr-shotf-${kind} fr-shotf-${size}`}>
+      <div className="fr-shotf-frame">
+        {kind === 'wide' && <div className="fr-shotf-bar"><i /><i /><i /></div>}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shot.dataUri} alt={shot.label} loading="lazy" />
+        <img src={shot.dataUri} alt={shot.label} loading="lazy" data-lightbox="1" />
       </div>
       <figcaption>{shot.label}</figcaption>
     </figure>
+  );
+}
+
+/** The proof strip: one screenshot per claim, each labelled with what it proves. */
+function Proofs({ shots, label = 'Proof' }: { shots?: Shot[]; label?: string }) {
+  if (!shots?.length) return null;
+  return (
+    <div className="fr-proofs">
+      <div className="fr-proofs-label">{label}<span>{shots.length} screenshot{shots.length > 1 ? 's' : ''} · tap to enlarge</span></div>
+      <div className="fr-proofs-row">
+        {shots.map((s, i) => <ShotFrame key={i} shot={s} size="sm" />)}
+      </div>
+    </div>
   );
 }
 
@@ -126,6 +154,8 @@ export default function FullReport({
     (acc, s) => { acc[s.verdict] = (acc[s.verdict] || 0) + 1; return acc; },
     {} as Record<string, number>,
   );
+  const proofCount = findings.reduce((n, f) => n + (f.shot ? 1 : 0) + (f.proofs?.length || 0), 0)
+    + steps.reduce((n, s) => n + (s.shot ? 1 : 0) + (s.proofs?.length || 0), 0);
 
   // Section registry drives the numbered eyebrows and the sticky nav.
   const sections: { id: string; label: string; show: boolean }[] = [
@@ -155,7 +185,7 @@ export default function FullReport({
         /* ── Hero ───────────────────────────────── */
         .fr-hero { background: radial-gradient(900px 420px at 85% -10%, rgba(6,214,160,0.28), transparent 60%), radial-gradient(600px 300px at 0% 110%, rgba(6,214,160,0.12), transparent 60%), linear-gradient(160deg, #0B3D2E 0%, #083226 100%); color:#fff; padding: 28px 0 120px; position:relative; overflow:hidden; }
         .fr-hero::after { content:''; position:absolute; inset:auto 0 0 0; height:1px; background:linear-gradient(90deg, transparent, rgba(6,214,160,0.6), transparent); }
-        .fr-container { max-width: 860px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+        .fr-container { max-width: 920px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
         .fr-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:44px; }
         .fr-clientlogo { background:#fff; border-radius:12px; padding:8px 14px; display:inline-flex; align-items:center; }
         .fr-clientlogo img { max-height:38px; max-width:160px; object-fit:contain; display:block; }
@@ -168,6 +198,9 @@ export default function FullReport({
         .fr-h1 em { font-style:normal; color:var(--mint); }
         .fr-intro { color:rgba(255,255,255,0.72); font-size:16px; max-width:58ch; line-height:1.6; }
         .fr-intro b { color:#fff; font-weight:600; }
+        .fr-method { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+        .fr-method span { font-size:12px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); border-radius:99px; padding:6px 12px; }
+        .fr-method span b { color:var(--mint); font-weight:700; }
 
         /* ── Summary card overlapping the hero ─── */
         .fr-summary { position:relative; z-index:2; margin:-84px auto 0; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:26px 28px; box-shadow: 0 24px 60px -24px rgba(11,61,46,0.35), 0 2px 6px rgba(16,24,40,0.04); }
@@ -199,7 +232,36 @@ export default function FullReport({
         .fr-h2sub { color:var(--muted); font-size:14px; margin:0; max-width:64ch; }
 
         .fr-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 22px; }
-        .fr-body { font-size:14px; color:var(--body); margin:0; line-height:1.65; }
+        .fr-body { font-size:14.5px; color:var(--body); margin:0; line-height:1.65; }
+
+        /* Screens in frames */
+        .fr-shotf { margin:0; min-width:0; }
+        .fr-shotf figcaption { font-size:11.5px; color:var(--muted); margin-top:8px; text-align:center; line-height:1.4; }
+        .fr-shotf img { width:100%; display:block; background:#fff; cursor:zoom-in; }
+        .fr-shotf-phone .fr-shotf-frame { background:#0F1412; border-radius:26px; padding:8px; box-shadow:0 14px 34px -14px rgba(11,61,46,0.5), inset 0 0 0 1px rgba(255,255,255,0.06); }
+        .fr-shotf-phone img { border-radius:19px; }
+        .fr-shotf-wide .fr-shotf-frame { background:#0F1412; border-radius:12px; padding:0 0 4px; box-shadow:0 14px 34px -14px rgba(11,61,46,0.45); overflow:hidden; }
+        .fr-shotf-bar { height:22px; display:flex; align-items:center; gap:6px; padding:0 12px; }
+        .fr-shotf-bar i { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.25); }
+        .fr-shotf-wide img { border-radius:0 0 8px 8px; }
+        .fr-shotf-card .fr-shotf-frame { border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:0 10px 26px -16px rgba(11,61,46,0.35); }
+        .fr-shotf-sm.fr-shotf-phone { width:150px; } .fr-shotf-sm.fr-shotf-phone .fr-shotf-frame { padding:5px; border-radius:18px; } .fr-shotf-sm.fr-shotf-phone img { border-radius:13px; }
+        .fr-shotf-sm.fr-shotf-card { width:200px; }
+        .fr-shotf-sm.fr-shotf-wide { width:300px; }
+        .fr-shotf-md.fr-shotf-phone { width:100%; }
+        .fr-shotf-md.fr-shotf-card { width:100%; }
+        .fr-shotf-md.fr-shotf-wide { width:100%; }
+        .fr-shotf-lg { width:100%; }
+
+        /* Proof strip */
+        .fr-proofs { margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); }
+        .fr-proofs-label { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink); font-weight:800; display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+        .fr-proofs-label::before { content:''; width:8px; height:8px; border-radius:2px; background:var(--mint); }
+        .fr-proofs-label span { font-weight:500; letter-spacing:0; text-transform:none; color:var(--muted); font-size:11.5px; }
+        .fr-proofs-row { display:flex; gap:16px; overflow-x:auto; padding-bottom:6px; align-items:flex-start; scrollbar-width:thin; }
+        .fr-proofs-row .fr-shotf { flex:0 0 auto; }
+        .fr-proofs-row figcaption { max-width:100%; }
+        .fr-proofs-row .fr-shotf-sm.fr-shotf-phone figcaption { width:150px; }
 
         /* Questions */
         .fr-qa { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-bottom:12px; display:grid; grid-template-columns:28px 1fr; gap:14px; }
@@ -215,47 +277,46 @@ export default function FullReport({
         .fr-verdict::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; opacity:0.85; }
         .fr-timeline { position:relative; padding-left:0; }
         .fr-timeline::before { content:''; position:absolute; left:19px; top:24px; bottom:24px; width:2px; background:linear-gradient(180deg, var(--line), var(--line) 85%, transparent); }
-        .fr-step { position:relative; display:grid; grid-template-columns:40px 190px minmax(0,1fr); gap:18px; align-items:start; margin-bottom:18px; }
+        .fr-step { position:relative; display:grid; grid-template-columns:40px 270px minmax(0,1fr); gap:20px; align-items:start; margin-bottom:22px; }
+        .fr-step.wide, .fr-step.noshot { grid-template-columns:40px minmax(0,1fr); }
         .fr-step-num { position:relative; z-index:1; width:40px; height:40px; border-radius:50%; background:#fff; border:2px solid var(--line); color:var(--ink); font-family:var(--heading); font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--paper); margin-top:6px; }
         .fr-step[data-verdict="pass"] .fr-step-num { border-color:#06D6A0; }
         .fr-step[data-verdict="friction"] .fr-step-num { border-color:#F79009; }
         .fr-step[data-verdict="blocker"] .fr-step-num { border-color:#F04438; background:#FFF5F4; }
-        .fr-step-card { grid-column: 3; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; min-width:0; box-shadow:0 1px 2px rgba(16,24,40,0.03); }
-        .fr-step.noshot .fr-step-card { grid-column: 2 / -1; }
+        .fr-step-card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; min-width:0; box-shadow:0 1px 2px rgba(16,24,40,0.03); }
+        .fr-step-card .fr-shotf-lg { margin-bottom:16px; }
         .fr-step-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-        .fr-step-head h4 { font-size:16.5px; color:var(--ink); margin:0; flex:1; min-width:160px; font-weight:700; line-height:1.3; }
-        .fr-step-row { display:grid; grid-template-columns:92px 1fr; gap:10px; font-size:14px; color:var(--body); padding:8px 0; border-top:1px dashed var(--line); }
+        .fr-step-head h4 { font-size:17px; color:var(--ink); margin:0; flex:1; min-width:160px; font-weight:700; line-height:1.3; }
+        .fr-step-row { display:grid; grid-template-columns:92px 1fr; gap:10px; font-size:14.5px; color:var(--body); padding:8px 0; border-top:1px dashed var(--line); }
         .fr-step-row:first-of-type { border-top:0; padding-top:0; }
         .fr-step-row b { font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); font-weight:700; padding-top:3px; }
         .fr-step-measure { font-size:13px; color:var(--ink); background:var(--mint-soft); border:1px solid #BDF2E1; border-radius:10px; padding:10px 12px; margin:12px 0 0; font-variant-numeric:tabular-nums; display:flex; gap:8px; align-items:flex-start; }
         .fr-step-measure::before { content:'⌁'; color:#067647; font-weight:700; }
 
-        /* Phone frame */
-        .fr-phone { margin:0; width:100%; }
-        .fr-phone-bezel { background:#0F1412; border-radius:22px; padding:7px; box-shadow:0 12px 30px -12px rgba(11,61,46,0.45), inset 0 0 0 1px rgba(255,255,255,0.06); }
-        .fr-phone-bezel img { width:100%; display:block; border-radius:16px; background:#fff; }
-        .fr-phone figcaption { font-size:11.5px; color:var(--muted); margin-top:8px; text-align:center; line-height:1.4; }
-        .fr-phone.small { max-width:220px; margin-top:14px; }
-        .fr-phone.small .fr-phone-bezel { border-radius:18px; padding:6px; } .fr-phone.small img { border-radius:13px; }
-
         /* Working */
         .fr-working { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; }
         .fr-working li { display:flex; gap:10px; font-size:14px; color:var(--body); line-height:1.55; }
         .fr-working li::before { content:'✓'; flex:0 0 22px; height:22px; border-radius:50%; background:#D1FADF; color:#067647; font-weight:800; font-size:12px; display:inline-flex; align-items:center; justify-content:center; margin-top:2px; }
+        .fr-working li:first-child { grid-column:1 / -1; background:var(--mint-soft); border:1px solid #BDF2E1; border-radius:12px; padding:12px 14px; }
 
         /* Findings */
-        .fr-finding { position:relative; display:grid; grid-template-columns:44px minmax(0,1fr); gap:16px; border:1px solid var(--line); background:var(--card); border-radius:16px; padding:20px 22px 20px 20px; margin-bottom:12px; overflow:hidden; }
+        .fr-finding { position:relative; display:grid; grid-template-columns:44px minmax(0,1fr); gap:16px; border:1px solid var(--line); background:var(--card); border-radius:16px; padding:20px 22px 20px 20px; margin-bottom:14px; overflow:hidden; }
         .fr-finding::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--rail, var(--line)); }
         .fr-rank { font-family:var(--heading); font-size:26px; font-weight:700; color:var(--ink); letter-spacing:-0.03em; line-height:1; padding-top:2px; font-variant-numeric:tabular-nums; }
         .fr-rank small { display:block; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-top:4px; font-family:var(--sans); font-weight:700; }
         .fr-fhead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-        .fr-fhead h4 { font-size:16.5px; color:var(--ink); margin:0; flex:1 1 100%; font-weight:700; line-height:1.3; }
+        .fr-fhead h4 { font-size:17px; color:var(--ink); margin:0; flex:1 1 100%; font-weight:700; line-height:1.3; }
         .fr-sev { font-size:10px; font-weight:800; padding:4px 9px; border-radius:6px; text-transform:uppercase; letter-spacing:0.07em; }
         .fr-tag { font-size:11px; font-weight:600; padding:4px 9px; border-radius:6px; background:#F2F4F7; color:#475467; }
         .fr-effort { font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:6px; white-space:nowrap; text-transform:uppercase; letter-spacing:0.05em; }
         .fr-effort.quick { background:#D1FADF; color:#067647; }
         .fr-effort.small { background:#FEF0C7; color:#B54708; }
-        .fr-outcome { margin:12px 0 0; padding:12px 14px; background:var(--mint-soft); border:1px solid #BDF2E1; border-radius:10px; font-size:13.5px; color:var(--ink); }
+        .fr-fgrid { display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:20px; align-items:start; }
+        .fr-fgrid.card, .fr-fgrid.wide, .fr-fgrid.noshot { grid-template-columns:minmax(0,1fr); }
+        .fr-fgrid.card .fr-shotf, .fr-fgrid.wide .fr-shotf { margin-top:14px; }
+        .fr-effect { margin:14px 0 0; padding:12px 14px; background:#FFF8EB; border:1px solid #FEDF89; border-radius:10px; font-size:14px; color:#7A4A05; }
+        .fr-effect b { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:#B54708; margin-bottom:4px; }
+        .fr-outcome { margin:12px 0 0; padding:12px 14px; background:var(--mint-soft); border:1px solid #BDF2E1; border-radius:10px; font-size:14px; color:var(--ink); }
         .fr-outcome b { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:#067647; margin-bottom:4px; }
         .fr-impact { font-size:12.5px; color:var(--muted); margin:10px 0 0; padding-left:12px; border-left:2px solid var(--line); }
 
@@ -282,13 +343,17 @@ export default function FullReport({
         .fr-wins { margin:14px 0 0; font-size:13.5px; color:var(--body); }
 
         /* Galleries */
-        .fr-shots { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:18px; }
-        .fr-shot { margin:0; }
-        .fr-shot img { width:100%; border-radius:14px; border:1px solid var(--line); box-shadow:0 10px 26px -14px rgba(11,61,46,0.35); display:block; background:#fff; }
-        .fr-shot figcaption { font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
+        .fr-shots { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:20px; }
+        .fr-shots .fr-shotf-wide { grid-column:1 / -1; }
         .fr-design-note { display:grid; grid-template-columns:36px 1fr; gap:14px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-bottom:12px; }
         .fr-design-ic { width:36px; height:36px; border-radius:10px; background:var(--ink); color:var(--mint); display:grid; place-items:center; font-size:15px; }
         .fr-design-note h4 { margin:0 0 6px; font-size:15.5px; color:var(--ink); font-weight:700; }
+
+        /* Lightbox (mounted by ShotLightbox) */
+        .fr-lb { position:fixed; inset:0; z-index:50; background:rgba(8,20,16,0.88); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; cursor:zoom-out; }
+        .fr-lb img { max-width:min(96vw, 1100px); max-height:84vh; width:auto; height:auto; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,0.5); cursor:default; background:#fff; }
+        .fr-lb-cap { color:#fff; font-size:13px; margin-top:14px; text-align:center; max-width:70ch; }
+        .fr-lb-close { position:absolute; top:14px; right:18px; background:rgba(255,255,255,0.1); color:#fff; border:0; width:40px; height:40px; border-radius:50%; font-size:26px; line-height:1; cursor:pointer; }
 
         /* Developer / closer / footer */
         .fr-pdf { display:inline-flex; align-items:center; gap:10px; background:var(--ink); color:#fff; font-weight:700; font-size:14px; padding:13px 22px; border-radius:12px; text-decoration:none; font-family:var(--heading); letter-spacing:-0.01em; transition:transform .15s, box-shadow .15s; box-shadow:0 10px 24px -12px rgba(11,61,46,0.6); }
@@ -317,18 +382,19 @@ export default function FullReport({
           .fr-stat b { font-size:26px; }
           .fr-sechead { margin:44px 0 16px; }
           .fr-timeline::before { left:15px; }
-          .fr-step { grid-template-columns:32px minmax(0,1fr); gap:12px; }
+          .fr-step, .fr-step.wide, .fr-step.noshot { grid-template-columns:32px minmax(0,1fr); gap:12px; }
           .fr-step-num { width:32px; height:32px; font-size:12.5px; }
-          .fr-step-card { grid-column: 2; }
-          .fr-step.noshot .fr-step-card { grid-column: 2; }
-          .fr-step .fr-phone { grid-column:2; max-width:220px; justify-self:center; }
+          .fr-step > .fr-shotf { grid-column:2; max-width:250px; justify-self:center; }
           .fr-step-row { grid-template-columns:1fr; gap:3px; }
           .fr-working { grid-template-columns:1fr; }
           .fr-finding { grid-template-columns:36px minmax(0,1fr); gap:12px; padding:16px 16px 16px 18px; }
+          .fr-fgrid { grid-template-columns:minmax(0,1fr); }
+          .fr-fgrid > .fr-shotf-phone { max-width:250px; margin:14px auto 0; }
           .fr-rank { font-size:22px; }
           .fr-table th, .fr-table td { padding:10px 10px; font-size:12.5px; }
           .fr-shots { grid-template-columns:repeat(2,1fr); gap:12px; }
           .fr-closer { padding:24px 20px; }
+          .fr-lb { padding:12px; } .fr-lb img { max-height:80vh; }
         }
       `}</style>
 
@@ -355,8 +421,16 @@ export default function FullReport({
           <p className="fr-intro">
             We went through <b>{host}</b> the way a real shopper does — on a phone, from first visit to
             checkout — and the way Google and your ad platforms see it. Every finding below names
-            your actual products and pages.
+            your actual products and pages, and every claim comes with the screenshot that shows it.
           </p>
+          {(proofCount > 0 || stats) && (
+            <div className="fr-method">
+              {proofCount > 0 && <span><b>{proofCount}</b> screenshots as proof</span>}
+              {steps.length > 0 && <span><b>{steps.length}</b>-step shopper test on a real phone</span>}
+              {stats && <span><b>{stats.run}</b> automated checks</span>}
+              <span>Every finding <b>re-tested</b> before publishing</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -426,11 +500,15 @@ export default function FullReport({
             <div className="fr-timeline">
               {steps.map((s, i) => {
                 const v = VERDICT[s.verdict] || VERDICT.friction;
+                const kind = s.shot?.kind || 'phone';
+                const inline = !!s.shot?.dataUri && kind !== 'phone';
+                const cls = !s.shot?.dataUri ? ' noshot' : inline ? ' wide' : '';
                 return (
-                  <div className={`fr-step${s.shot?.dataUri ? '' : ' noshot'}`} key={i} data-verdict={s.verdict}>
+                  <div className={`fr-step${cls}`} key={i} data-verdict={s.verdict}>
                     <span className="fr-step-num">{i + 1}</span>
-                    {s.shot?.dataUri && <PhoneShot shot={s.shot} />}
+                    {s.shot?.dataUri && !inline && <ShotFrame shot={s.shot} size="md" />}
                     <div className="fr-step-card">
+                      {s.shot?.dataUri && inline && <ShotFrame shot={s.shot} size="lg" />}
                       <div className="fr-step-head">
                         <h4>{s.title}</h4>
                         <span className="fr-verdict" style={{ background: v.bg, color: v.color }}>{v.label}</span>
@@ -438,6 +516,7 @@ export default function FullReport({
                       <div className="fr-step-row"><b>The task</b><span>{s.task}</span></div>
                       <div className="fr-step-row"><b>What happened</b><span>{s.observed}</span></div>
                       {s.measure && <p className="fr-step-measure"><span>{s.measure}</span></p>}
+                      <Proofs shots={s.proofs} label="More proof" />
                     </div>
                   </div>
                 );
@@ -459,11 +538,13 @@ export default function FullReport({
 
         {findings.length > 0 && (
           <div data-track="findings">
-            <SectionHead id="findings" n={num('findings')} title={`All ${findings.length} findings, ranked by impact`} sub="Top of the list = costing you the most, fix first." />
+            <SectionHead id="findings" n={num('findings')} title={`All ${findings.length} findings, ranked by impact`} sub="Top of the list = costing you the most, fix first. Each one: what we found, the proof, how it hits a shopper, and what changes when it's fixed." />
             {findings.map((f, i) => {
               const e = effortOf(f);
               const sv = f.severity ? (SEVERITY_STYLE[f.severity.toLowerCase()] || SEVERITY_STYLE.low) : null;
               const impactText = typeof f.impact === 'string' ? f.impact : f.impact?.assumption_note;
+              const kind = f.shot?.kind || 'phone';
+              const gridCls = !f.shot?.dataUri ? 'noshot' : kind;
               return (
                 <div className="fr-finding" key={i} style={{ ['--rail' as string]: sv?.rail || '#E4E7EC' }}>
                   <div className="fr-rank">{String(i + 1).padStart(2, '0')}<small>rank</small></div>
@@ -474,12 +555,16 @@ export default function FullReport({
                       {!hideEffort && f.fix_tier && <span className="fr-tag">{FIX_TIER[f.fix_tier.toLowerCase()] || f.fix_tier}</span>}
                       {!hideEffort && <span className={`fr-effort ${e.cls}`}>{e.label}</span>}
                     </div>
-                    <p className="fr-body">{f.merchant_copy}</p>
-                    {f.shot?.dataUri && <PhoneShot shot={f.shot} small />}
-                    {f.outcome && (
-                      <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>
-                    )}
-                    {impactText && <p className="fr-impact">{impactText}</p>}
+                    <div className={`fr-fgrid ${gridCls}`}>
+                      <div style={{ minWidth: 0 }}>
+                        <p className="fr-body">{f.merchant_copy}</p>
+                        {f.effect && <div className="fr-effect"><b>How it hits a shopper</b>{f.effect}</div>}
+                        {f.outcome && <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>}
+                        {impactText && <p className="fr-impact">{impactText}</p>}
+                      </div>
+                      {f.shot?.dataUri && <ShotFrame shot={f.shot} size="md" />}
+                    </div>
+                    <Proofs shots={f.proofs} />
                   </div>
                 </div>
               );
@@ -593,13 +678,7 @@ export default function FullReport({
             <SectionHead id="design" n={num('design')} title="Design review — how the store reads to a shopper" sub="Beyond the automated checks: an expert pass over the store's first impression, hierarchy, and trust signals." />
             {(payload.design.shots || []).length > 0 && (
               <div className="fr-shots" style={{ marginBottom: 18 }}>
-                {payload.design.shots.map((s, i) => (
-                  <figure className="fr-shot" key={i}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.dataUri} alt={s.label} loading="lazy" />
-                    <figcaption>{s.label}</figcaption>
-                  </figure>
-                ))}
+                {payload.design.shots.map((s, i) => <ShotFrame key={i} shot={s} size="md" />)}
               </div>
             )}
             {payload.design.notes.map((n, i) => (
@@ -618,13 +697,7 @@ export default function FullReport({
           <div data-track="screens">
             <SectionHead id="screens" n={num('screens')} title="What we saw on your store" sub="Captured during the audit — including the cart and checkout walk a real buyer takes." />
             <div className="fr-shots">
-              {screenshots.map((s, i) => (
-                <figure className="fr-shot" key={i}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.dataUri} alt={s.label} loading="lazy" />
-                  <figcaption>{s.label}</figcaption>
-                </figure>
-              ))}
+              {screenshots.map((s, i) => <ShotFrame key={i} shot={{ ...s, kind: s.kind || 'card' }} size="md" />)}
             </div>
           </div>
         )}
