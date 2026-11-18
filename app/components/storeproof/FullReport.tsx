@@ -501,9 +501,9 @@ export default function FullReport({
             />
             <div className="fr-tally">
               <span className="fr-tally-total">{steps.length} steps:</span>
-              {(['pass', 'friction', 'blocker'] as const).map((v) => (
+              {(['pass', 'friction', 'blocker'] as const).filter((v) => stepCounts[v]).map((v) => (
                 <span key={v} className="fr-verdict" style={{ background: VERDICT[v].bg, color: VERDICT[v].color }}>
-                  {stepCounts[v] || 0} {VERDICT[v].label}
+                  {stepCounts[v]} {VERDICT[v].label}
                 </span>
               ))}
             </div>
