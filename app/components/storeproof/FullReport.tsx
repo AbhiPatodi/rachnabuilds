@@ -20,6 +20,8 @@ interface Finding {
   impact?: string | { assumption_note?: string; basis?: string }; outcome?: string;
   /** How the shopper experiences the problem — plain words, no jargon. */
   effect?: string;
+  /** Where in the buying journey the leak is (First impression, Product page, Trust…). */
+  stage?: string;
   shot?: Shot;
   /** One screenshot per claim in the copy, shown as a proof strip. */
   proofs?: Shot[];
@@ -306,6 +308,8 @@ export default function FullReport({
         .fr-rank small { display:block; font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-top:4px; font-family:var(--sans); font-weight:700; }
         .fr-fhead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
         .fr-fhead h4 { font-size:17px; color:var(--ink); margin:0; flex:1 1 100%; font-weight:700; line-height:1.3; }
+        .fr-stage { flex:1 1 100%; font-size:11px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--mint); display:flex; align-items:center; gap:8px; margin-bottom:-2px; }
+        .fr-stage::before { content:''; width:16px; height:2px; background:var(--mint); border-radius:2px; }
         .fr-sev { font-size:10px; font-weight:800; padding:4px 9px; border-radius:6px; text-transform:uppercase; letter-spacing:0.07em; }
         .fr-tag { font-size:11px; font-weight:600; padding:4px 9px; border-radius:6px; background:#F2F4F7; color:#475467; }
         .fr-effort { font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:6px; white-space:nowrap; text-transform:uppercase; letter-spacing:0.05em; }
@@ -538,7 +542,7 @@ export default function FullReport({
 
         {findings.length > 0 && (
           <div data-track="findings">
-            <SectionHead id="findings" n={num('findings')} title={`All ${findings.length} findings, ranked by impact`} sub="Top of the list = costing you the most, fix first. Each one: what we found, the proof, how it hits a shopper, and what changes when it's fixed." />
+            <SectionHead id="findings" n={num('findings')} title={`Where the sales leak — ${findings.length} findings, ranked by impact`} sub="Each one names the moment in the buying journey where a shopper is lost, shows the proof, says how it hits them, and what changes when it's fixed. Top of the list = fix first." />
             {findings.map((f, i) => {
               const e = effortOf(f);
               const sv = f.severity ? (SEVERITY_STYLE[f.severity.toLowerCase()] || SEVERITY_STYLE.low) : null;
@@ -550,6 +554,7 @@ export default function FullReport({
                   <div className="fr-rank">{String(i + 1).padStart(2, '0')}<small>rank</small></div>
                   <div style={{ minWidth: 0 }}>
                     <div className="fr-fhead">
+                      {f.stage && <span className="fr-stage">{f.stage}</span>}
                       <h4>{f.title}</h4>
                       {sv && f.severity && <span className="fr-sev" style={{ background: sv.bg, color: sv.color }}>{f.severity}</span>}
                       {!hideEffort && f.fix_tier && <span className="fr-tag">{FIX_TIER[f.fix_tier.toLowerCase()] || f.fix_tier}</span>}
