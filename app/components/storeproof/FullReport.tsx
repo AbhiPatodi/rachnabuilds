@@ -26,7 +26,23 @@ export interface FullReportPayload {
   design?: { notes: { title: string; note: string }[]; shots: Shot[] } | null;
   /** The merchant's own questions, answered from their store (shown first). */
   questions?: { q: string; a: string }[];
+  /** The shopper test: one real buying journey on a phone, step by step, each
+   *  step with the task we gave the "shopper", the screen they saw, what we
+   *  observed and a verdict. Rendered before the findings when present. */
+  walkthrough?: {
+    intro?: string;
+    device?: string;
+    steps: { title: string; task: string; observed: string; verdict: 'pass' | 'friction' | 'blocker'; measure?: string; shot?: Shot }[];
+  } | null;
+  /** What is already right on the store, credited before the problems. */
+  working?: string[];
 }
+
+const VERDICT: Record<string, { label: string; bg: string; color: string; border: string }> = {
+  pass: { label: 'Works', bg: '#D1FADF', color: '#067647', border: '#06D6A0' },
+  friction: { label: 'Friction', bg: '#FEF0C7', color: '#B54708', border: '#F79009' },
+  blocker: { label: 'Stops the sale', bg: '#FEE4E2', color: '#B42318', border: '#F04438' },
+};
 
 const SEVERITY_STYLE: Record<string, { bg: string; color: string }> = {
   blocker: { bg: '#B42318', color: '#fff' },
@@ -133,8 +149,23 @@ export default function FullReport({
         .fr-closer { background:#fff; border:2px solid #171717; border-radius:16px; padding:22px 24px; margin-top:34px; }
         .fr-closer h2 { color:#0B3D2E; font-size:17px; margin:0 0 6px; }
         .fr-closer p { font-size:14px; color:#344054; margin:0; }
+        .fr-legend { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px; }
+        .fr-verdict { font-size:10.5px; font-weight:800; padding:4px 10px; border-radius:99px; text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap; }
+        .fr-step { display:flex; gap:18px; align-items:flex-start; background:#fff; border:1px solid #E4E7EC; border-left:4px solid #E4E7EC; border-radius:14px; padding:16px 18px; margin-bottom:14px; }
+        .fr-step-shot { margin:0; flex:0 0 200px; max-width:200px; }
+        .fr-step-shot img { width:100%; display:block; border-radius:12px; border:1px solid #E4E7EC; box-shadow:0 4px 18px rgba(16,24,40,0.08); }
+        .fr-step-shot figcaption { font-size:11.5px; color:#667085; margin-top:6px; text-align:center; }
+        .fr-step-body { flex:1; min-width:0; }
+        .fr-step-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+        .fr-step-head h4 { font-size:15.5px; color:#0B3D2E; margin:0; flex:1; min-width:160px; font-weight:700; }
+        .fr-step-num { background:#171717; color:#fff; font-weight:800; min-width:26px; height:26px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
+        .fr-step-task { font-size:13px; color:#475467; margin:0 0 6px; }
+        .fr-step-measure { font-size:12.5px; color:#0B3D2E; background:#F0FDF9; border-radius:8px; padding:8px 10px; margin:10px 0 0; font-variant-numeric:tabular-nums; }
+        .fr-working { margin:0; padding-left:20px; font-size:13.5px; color:#344054; display:flex; flex-direction:column; gap:8px; }
         @media (max-width: 640px) {
           .fr-wrap { padding: 24px 14px 60px; }
+          .fr-step { flex-direction: column; gap: 12px; padding: 13px; }
+          .fr-step-shot { flex-basis: auto; max-width: 220px; align-self: center; }
           .fr-h1 { font-size: 21px; }
           .fr-masthead { gap: 10px; }
           .fr-logo { max-height: 38px; max-width: 130px; }
@@ -183,6 +214,57 @@ export default function FullReport({
                 {x.a.split('\n').filter(Boolean).map((para, j) => <p key={j}>{para}</p>)}
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {payload.walkthrough?.steps?.length ? (
+          <div data-track="walkthrough">
+            <h2 className="fr-h2">The shopper test — one real buying journey, step by step</h2>
+            <p className="fr-h2sub">
+              {payload.walkthrough.intro || `We gave a shopper one job: buy your bestseller on a phone. Each step shows the screen they saw, what we asked them to do, and what happened.`}
+              {payload.walkthrough.device ? ` Device: ${payload.walkthrough.device}.` : ''}
+            </p>
+            <div className="fr-legend">
+              {(['pass', 'friction', 'blocker'] as const).map((v) => (
+                <span key={v} className="fr-verdict" style={{ background: VERDICT[v].bg, color: VERDICT[v].color }}>{VERDICT[v].label}</span>
+              ))}
+            </div>
+            {payload.walkthrough.steps.map((s, i) => {
+              const v = VERDICT[s.verdict] || VERDICT.friction;
+              return (
+                <div className="fr-step" key={i} style={{ borderLeftColor: v.border }}>
+                  {s.shot?.dataUri && (
+                    <figure className="fr-step-shot">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.shot.dataUri} alt={s.shot.label} loading="lazy" />
+                      <figcaption>{s.shot.label}</figcaption>
+                    </figure>
+                  )}
+                  <div className="fr-step-body">
+                    <div className="fr-step-head">
+                      <span className="fr-step-num">{i + 1}</span>
+                      <h4>{s.title}</h4>
+                      <span className="fr-verdict" style={{ background: v.bg, color: v.color }}>{v.label}</span>
+                    </div>
+                    <p className="fr-step-task"><b>The task:</b> {s.task}</p>
+                    <p className="fr-body"><b>What happened:</b> {s.observed}</p>
+                    {s.measure && <p className="fr-step-measure">{s.measure}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {payload.working?.length ? (
+          <div data-track="working">
+            <h2 className="fr-h2">What&apos;s already working</h2>
+            <p className="fr-h2sub">Credit where it&apos;s due — these are right, and we checked them rather than assumed.</p>
+            <div className="fr-card">
+              <ul className="fr-working">
+                {payload.working.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
           </div>
         ) : null}
 
