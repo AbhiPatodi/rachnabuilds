@@ -75,6 +75,8 @@ export interface FullReportPayload {
   clientVersion?: boolean;
   /** One line at the bottom: date tested, phone size, "public pages only". */
   footerLine?: string;
+  /** Short version: three-line "In short" per issue with the long copy folded away. Off = full layout. */
+  shortVersion?: boolean;
 }
 
 const VERDICT: Record<string, { label: string; bg: string; color: string; border: string }> = {
@@ -177,6 +179,7 @@ export default function FullReport({
     {} as Record<string, number>,
   );
   const client = !!payload.clientVersion;
+  const short = !!payload.shortVersion;
   const proofCount = findings.reduce((n, f) => n + (f.shot ? 1 : 0) + (f.proofs?.length || 0), 0)
     + steps.reduce((n, s) => n + (s.shot ? 1 : 0) + (s.proofs?.length || 0), 0);
 
@@ -611,21 +614,21 @@ export default function FullReport({
                     </div>
                     <div className={`fr-fgrid ${gridCls}`}>
                       <div style={{ minWidth: 0 }}>
-                        {f.inShort?.length ? (
+                        {short && f.inShort?.length ? (
                           <ol className="fr-inshort">
                             {f.inShort.map((line, k) => <li key={k}><b>{['Shopper sees', 'Why it costs a sale', 'The fix'][k] || ''}</b><span>{line}</span></li>)}
                           </ol>
                         ) : (
                           <p className="fr-body">{f.merchant_copy}</p>
                         )}
-                        {!f.inShort?.length && <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />}
+                        {!(short && f.inShort?.length) && <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />}
                         {!client && f.effect && <div className="fr-effect"><b>How it hits a shopper</b>{f.effect}</div>}
                         {!client && f.outcome && <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>}
                         {!client && impactText && <p className="fr-impact">{impactText}</p>}
                       </div>
                       {f.shot?.dataUri && <ShotFrame shot={f.shot} size="md" />}
                     </div>
-                    {f.inShort?.length ? (
+                    {short && f.inShort?.length ? (
                       <details className="fr-details">
                         <summary>Details and proof</summary>
                         <p className="fr-body" style={{ marginTop: 10 }}>{f.merchant_copy}</p>
