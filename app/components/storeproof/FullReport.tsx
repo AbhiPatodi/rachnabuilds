@@ -29,6 +29,8 @@ interface Finding {
   verify?: string;
   /** The fix in one or two sentences; effort comes from `effort` (s/m/l). */
   fix?: string;
+  /** Three lines to read aloud: what the shopper sees · why it costs a sale · the fix. */
+  inShort?: string[];
   shot?: Shot;
   /** One screenshot per claim in the copy, shown as a proof strip. */
   proofs?: Shot[];
@@ -351,6 +353,17 @@ export default function FullReport({
         .fr-outcome { margin:12px 0 0; padding:12px 14px; background:var(--mint-soft); border:1px solid #BDF2E1; border-radius:10px; font-size:14px; color:var(--ink); }
         .fr-outcome b { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:#067647; margin-bottom:4px; }
         .fr-impact { font-size:12.5px; color:var(--muted); margin:10px 0 0; padding-left:12px; border-left:2px solid var(--line); }
+        .fr-inshort { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+        .fr-inshort li { display:grid; grid-template-columns:132px 1fr; gap:12px; font-size:16px; line-height:1.5; color:var(--text); padding:10px 0; border-bottom:1px dashed var(--line); }
+        .fr-inshort li:last-child { border-bottom:0; }
+        .fr-inshort li b { font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--mint); font-weight:800; padding-top:5px; }
+        .fr-inshort li:nth-child(2) b { color:#B54708; }
+        .fr-inshort li:nth-child(3) b { color:#067647; }
+        .fr-details { margin-top:14px; border-top:1px dashed var(--line); padding-top:6px; }
+        .fr-details summary { cursor:pointer; font-size:12.5px; font-weight:700; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; padding:8px 0; list-style:none; display:flex; align-items:center; gap:8px; }
+        .fr-details summary::-webkit-details-marker { display:none; }
+        .fr-details summary::before { content:'+'; width:18px; height:18px; border-radius:5px; background:#F2F4F7; color:var(--ink); display:inline-grid; place-items:center; font-size:14px; }
+        .fr-details[open] summary::before { content:'–'; }
 
         /* Tables */
         .fr-tablewrap { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
@@ -424,6 +437,7 @@ export default function FullReport({
           .fr-fgrid { grid-template-columns:minmax(0,1fr); }
           .fr-fgrid > .fr-shotf-phone { max-width:250px; margin:14px auto 0; }
           .fr-rank { font-size:22px; }
+          .fr-inshort li { grid-template-columns:1fr; gap:3px; font-size:15px; }
           .fr-table th, .fr-table td { padding:10px 10px; font-size:12.5px; }
           .fr-shots { grid-template-columns:repeat(2,1fr); gap:12px; }
           .fr-closer { padding:24px 20px; }
@@ -597,15 +611,30 @@ export default function FullReport({
                     </div>
                     <div className={`fr-fgrid ${gridCls}`}>
                       <div style={{ minWidth: 0 }}>
-                        <p className="fr-body">{f.merchant_copy}</p>
-                        <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />
+                        {f.inShort?.length ? (
+                          <ol className="fr-inshort">
+                            {f.inShort.map((line, k) => <li key={k}><b>{['Shopper sees', 'Why it costs a sale', 'The fix'][k] || ''}</b><span>{line}</span></li>)}
+                          </ol>
+                        ) : (
+                          <p className="fr-body">{f.merchant_copy}</p>
+                        )}
+                        {!f.inShort?.length && <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />}
                         {!client && f.effect && <div className="fr-effect"><b>How it hits a shopper</b>{f.effect}</div>}
                         {!client && f.outcome && <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>}
                         {!client && impactText && <p className="fr-impact">{impactText}</p>}
                       </div>
                       {f.shot?.dataUri && <ShotFrame shot={f.shot} size="md" />}
                     </div>
-                    <Proofs shots={f.proofs} />
+                    {f.inShort?.length ? (
+                      <details className="fr-details">
+                        <summary>Details and proof</summary>
+                        <p className="fr-body" style={{ marginTop: 10 }}>{f.merchant_copy}</p>
+                        <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />
+                        <Proofs shots={f.proofs} />
+                      </details>
+                    ) : (
+                      <Proofs shots={f.proofs} />
+                    )}
                   </div>
                 </div>
               );
