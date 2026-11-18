@@ -34,11 +34,11 @@ async function main() {
   const existing = JSON.parse(report.findingsJson || '{}');
   const incoming = JSON.parse(readFileSync(file, 'utf8'));
   const merged = { ...existing };
-  for (const k of ['findings', 'opener', 'working', 'walkthrough', 'design'] as const) {
+  for (const k of ['findings', 'opener', 'working', 'walkthrough', 'design', 'opportunities', 'plan', 'method'] as const) {
     if (incoming[k] !== undefined) merged[k] = incoming[k];
   }
   const findingsJson = JSON.stringify(merged);
   await prisma.storeProofReport.update({ where: { id: report.id }, data: { findingsJson } });
-  console.log(`updated ${report.storeName} (${report.id}): ${merged.findings?.length} findings, ${merged.walkthrough?.steps?.length} steps, ${(findingsJson.length / 1024 / 1024).toFixed(2)} MB; kept: ${Object.keys(existing).filter((k) => !['findings', 'opener', 'working', 'walkthrough', 'design'].includes(k)).join(', ')}`);
+  console.log(`updated ${report.storeName} (${report.id}): ${merged.findings?.length} findings, ${merged.walkthrough?.steps?.length} steps, ${(findingsJson.length / 1024 / 1024).toFixed(2)} MB; kept: ${Object.keys(existing).filter((k) => !['findings', 'opener', 'working', 'walkthrough', 'design', 'opportunities', 'plan', 'method'].includes(k)).join(', ')}`);
 }
 main().finally(() => prisma.$disconnect());
