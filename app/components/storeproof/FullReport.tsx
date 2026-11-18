@@ -13,6 +13,7 @@
 // Brand: ink #0B3D2E, emerald #06D6A0, Space Grotesk headings / Inter body
 // (both loaded by app/layout.tsx).
 import React from 'react';
+import { EvidenceRows, Opportunities, PlanSection, MethodSection, EXTRAS_CSS, type Opportunity, type Plan, type Method } from './ReportExtras';
 
 interface Shot { label: string; dataUri: string; kind?: 'phone' | 'wide' | 'card' }
 interface Finding {
@@ -22,6 +23,12 @@ interface Finding {
   effect?: string;
   /** Where in the buying journey the leak is (First impression, Product page, Trust…). */
   stage?: string;
+  /** Exact URL / element (evidence part 1). */
+  where?: string;
+  /** How the owner can see it on their own phone in under a minute (evidence part 4). */
+  verify?: string;
+  /** The fix in one or two sentences; effort comes from `effort` (s/m/l). */
+  fix?: string;
   shot?: Shot;
   /** One screenshot per claim in the copy, shown as a proof strip. */
   proofs?: Shot[];
@@ -55,6 +62,12 @@ export interface FullReportPayload {
   } | null;
   /** What is already right on the store, credited before the problems. */
   working?: string[];
+  /** How this store can get more buyers (prompt §5b), kept separate from problems. */
+  opportunities?: Opportunity[];
+  /** What we would do first: three stages, before/after previews, call to action (§8.6). */
+  plan?: Plan | null;
+  /** How this was tested (§8.7). */
+  method?: Method | null;
 }
 
 const VERDICT: Record<string, { label: string; bg: string; color: string; border: string }> = {
@@ -166,11 +179,14 @@ export default function FullReport({
     { id: 'findings', label: 'Findings', show: findings.length > 0 },
     { id: 'working', label: 'What works', show: !!payload.working?.length },
     { id: 'areas', label: 'Health by area', show: areas.length > 0 },
+    { id: 'grow', label: 'More buyers', show: !!payload.opportunities?.length },
     { id: 'speed', label: 'Speed', show: !!speed },
     { id: 'competitors', label: 'Competitors', show: benchmark.length > 0 },
     { id: 'design', label: 'Design', show: !!payload.design?.notes?.length },
     { id: 'screens', label: 'Screens', show: screenshots.length > 0 },
+    { id: 'plan', label: 'What we would do first', show: !!payload.plan?.stages?.length },
     { id: 'developer', label: 'For your developer', show: !!pdfUrl },
+    { id: 'method', label: 'How this was tested', show: !!payload.method },
   ].filter((s) => s.show);
   const num = (id: string) => String(sections.findIndex((s) => s.id === id) + 1).padStart(2, '0');
 
@@ -376,6 +392,7 @@ export default function FullReport({
         .fr-footer { margin-top:28px; font-size:12px; color:var(--muted); line-height:1.6; display:flex; gap:16px; align-items:flex-start; }
         .fr-footer img { height:16px; opacity:0.75; flex:0 0 auto; margin-top:2px; }
         @media print { .fr-nav, .fr-pdf { display:none; } .fr-hero { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+        ${EXTRAS_CSS}
 
         /* ── Mobile ─────────────────────────────── */
         @media (max-width: 720px) {
@@ -575,6 +592,7 @@ export default function FullReport({
                     <div className={`fr-fgrid ${gridCls}`}>
                       <div style={{ minWidth: 0 }}>
                         <p className="fr-body">{f.merchant_copy}</p>
+                        <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />
                         {f.effect && <div className="fr-effect"><b>How it hits a shopper</b>{f.effect}</div>}
                         {f.outcome && <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>}
                         {impactText && <p className="fr-impact">{impactText}</p>}
@@ -628,6 +646,13 @@ export default function FullReport({
             </div>
           </div>
         )}
+
+        {payload.opportunities?.length ? (
+          <div data-track="grow">
+            <SectionHead id="grow" n={num('grow')} title="How to get more buyers" sub="Separate from the problems above: things this store does not do yet that would bring in or convert more shoppers. Each one is tied to something we saw on your store." />
+            <Opportunities items={payload.opportunities} Frame={ShotFrame} />
+          </div>
+        ) : null}
 
         {speed && (
           <div data-track="speed">
@@ -730,10 +755,24 @@ export default function FullReport({
           </div>
         )}
 
+        {payload.plan?.stages?.length ? (
+          <div data-track="plan">
+            <SectionHead id="plan" n={num('plan')} title="What we would do first" sub="Three stages. Each says what we do, how long it takes, what access we need, and how we prove it worked — the same test re-run before and after." />
+            <PlanSection plan={payload.plan} Frame={ShotFrame} />
+          </div>
+        ) : null}
+
         {pdfUrl && (
           <div data-track="developer">
             <SectionHead id="developer" n={num('developer')} title="For your developer" sub="The complete technical report — every check, with evidence." />
             <a className="fr-pdf" href={pdfUrl}>Download Technical Report (PDF) <i>↓</i></a>
+          </div>
+        )}
+
+        {payload.method && (
+          <div data-track="method">
+            <SectionHead id="method" n={num('method')} title="How this was tested" sub="So you can repeat it, and so you know what we could not see from outside." />
+            <MethodSection method={payload.method} />
           </div>
         )}
 
