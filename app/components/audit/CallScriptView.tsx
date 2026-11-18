@@ -38,10 +38,12 @@ export default function CallScriptView({ script }: { script: CallScriptData }) {
         </div>
       ))}
 
+      {script.tempCheck.length > 0 && (
       <div style={S.card}>
         <div style={S.tag}>Temp check (before price)</div>
         {script.tempCheck.map((t, i) => <p key={i} style={S.q}>☐ &ldquo;{t}&rdquo;</p>)}
       </div>
+      )}
 
       {script.issueGuide && script.issueGuide.length > 0 && (
         <div style={S.card}>
@@ -60,6 +62,7 @@ export default function CallScriptView({ script }: { script: CallScriptData }) {
         </div>
       )}
 
+      {(script.pitch.steps.length > 0 || script.pitch.eaglesEye) && (
       <div style={{ ...S.card, borderColor: '#0E8A6E', borderWidth: 2 }}>
         <div style={S.tag}>The pitch — Eagle&apos;s eye</div>
         <p style={S.talk}>{script.pitch.eaglesEye}</p>
@@ -73,6 +76,7 @@ export default function CallScriptView({ script }: { script: CallScriptData }) {
           <strong style={{ fontSize: 14, color: '#141821' }}>💰 {script.pitch.price}</strong>
         </div>
       </div>
+      )}
 
       <div style={S.card}>
         <div style={S.tag}>Objection prep</div>
