@@ -44,7 +44,7 @@ export interface FullReportPayload {
   findings?: Finding[];
   opener?: string;
   brand?: { logoUrl?: string };
-  speed?: { pages: SpeedPage[]; wins: SpeedWin[] } | null;
+  speed?: { pages: SpeedPage[]; wins: SpeedWin[]; /** how/when measured (lab vs field, runs, date) */ note?: string; /** Google's own PageSpeed screens */ proofs?: Shot[] } | null;
   screenshots?: Shot[];
   benchmark?: BenchRow[];
   checkStats?: { run: number; failures: number; warnings: number; passing: number };
@@ -656,7 +656,7 @@ export default function FullReport({
 
         {speed && (
           <div data-track="speed">
-            <SectionHead id="speed" n={num('speed')} title="Speed — measured with Google's own engine" sub="On a typical phone, the same test Google ranks you by. 90+ is good." />
+            <SectionHead id="speed" n={num('speed')} title="Speed — measured with Google's own engine" sub={speed.note || "On a typical phone, the same test Google ranks you by. 90+ is good."} />
             <div className="fr-speedgrid">
               {speed.pages.map((p, i) => {
                 const m = scoreMeta(p.score);
@@ -680,6 +680,11 @@ export default function FullReport({
                 </p>
               </div>
             )}
+            {speed.proofs?.length ? (
+              <div className="fr-card" style={{ marginTop: 12 }}>
+                <Proofs shots={speed.proofs} label="Google's own screens" />
+              </div>
+            ) : null}
           </div>
         )}
 
