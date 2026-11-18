@@ -34,7 +34,7 @@ async function main() {
   const existing = JSON.parse(report.findingsJson || '{}');
   const incoming = JSON.parse(readFileSync(file, 'utf8'));
   const merged = { ...existing };
-  for (const k of ['findings', 'opener', 'working', 'walkthrough', 'design', 'opportunities', 'plan', 'method', 'speed', 'screenshots', 'healthByArea', 'checkStats'] as const) {
+  for (const k of ['findings', 'opener', 'working', 'walkthrough', 'design', 'opportunities', 'plan', 'method', 'speed', 'screenshots', 'healthByArea', 'checkStats', 'clientVersion', 'footerLine'] as const) {
     if (incoming[k] !== undefined) merged[k] = incoming[k];
   }
   const findingsJson = JSON.stringify(merged);

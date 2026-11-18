@@ -68,6 +68,11 @@ export interface FullReportPayload {
   plan?: Plan | null;
   /** How this was tested (§8.7). */
   method?: Method | null;
+  /** Client-facing version (merge brief 18 Nov): issues, proof, fixes, plan, next step only —
+   *  no severity badges, no method chips, no impact/effect/outcome boxes, one footer line. */
+  clientVersion?: boolean;
+  /** One line at the bottom: date tested, phone size, "public pages only". */
+  footerLine?: string;
 }
 
 const VERDICT: Record<string, { label: string; bg: string; color: string; border: string }> = {
@@ -169,6 +174,7 @@ export default function FullReport({
     (acc, s) => { acc[s.verdict] = (acc[s.verdict] || 0) + 1; return acc; },
     {} as Record<string, number>,
   );
+  const client = !!payload.clientVersion;
   const proofCount = findings.reduce((n, f) => n + (f.shot ? 1 : 0) + (f.proofs?.length || 0), 0)
     + steps.reduce((n, s) => n + (s.shot ? 1 : 0) + (s.proofs?.length || 0), 0);
 
@@ -176,7 +182,7 @@ export default function FullReport({
   const sections: { id: string; label: string; show: boolean }[] = [
     { id: 'questions', label: 'Your questions', show: !!payload.questions?.length },
     { id: 'shopper-test', label: 'Shopper test', show: steps.length > 0 },
-    { id: 'findings', label: 'Findings', show: findings.length > 0 },
+    { id: 'findings', label: client ? 'The issues' : 'Findings', show: findings.length > 0 },
     { id: 'working', label: 'What works', show: !!payload.working?.length },
     { id: 'areas', label: 'Health by area', show: areas.length > 0 },
     { id: 'grow', label: 'More buyers', show: !!payload.opportunities?.length },
@@ -184,7 +190,7 @@ export default function FullReport({
     { id: 'competitors', label: 'Competitors', show: benchmark.length > 0 },
     { id: 'design', label: 'Design', show: !!payload.design?.notes?.length },
     { id: 'screens', label: 'Screens', show: screenshots.length > 0 },
-    { id: 'plan', label: 'What we would do first', show: !!payload.plan?.stages?.length },
+    { id: 'plan', label: client ? 'The plan' : 'What we would do first', show: !!payload.plan?.stages?.length },
     { id: 'developer', label: 'For your developer', show: !!pdfUrl },
     { id: 'method', label: 'How this was tested', show: !!payload.method },
   ].filter((s) => s.show);
@@ -446,11 +452,11 @@ export default function FullReport({
           <div className="fr-kicker">Store Health Report · Full</div>
           <h1 className="fr-h1">What&apos;s quietly costing <em>{storeName}</em> sales</h1>
           <p className="fr-intro">
-            We went through <b>{host}</b> the way a real shopper does — on a phone, from first visit to
+            {client ? <>We shopped <b>{host}</b> on a phone the way a first-time buyer does. Every issue below names your actual pages and products and comes with the screenshot that shows it.</> : <>We went through <b>{host}</b> the way a real shopper does — on a phone, from first visit to
             checkout — and the way Google and your ad platforms see it. Every finding below names
-            your actual products and pages, and every claim comes with the screenshot that shows it.
+            your actual products and pages, and every claim comes with the screenshot that shows it.</>}
           </p>
-          {(proofCount > 0 || stats) && (
+          {!client && (proofCount > 0 || stats) && (
             <div className="fr-method">
               {proofCount > 0 && <span><b>{proofCount}</b> screenshots as proof</span>}
               {steps.length > 0 && <span><b>{steps.length}</b>-step shopper test on a real phone</span>}
@@ -571,7 +577,7 @@ export default function FullReport({
 
         {findings.length > 0 && (
           <div data-track="findings">
-            <SectionHead id="findings" n={num('findings')} title={`Where the sales leak — ${findings.length} findings, ranked by impact`} sub="Each one names the moment in the buying journey where a shopper is lost, shows the proof, says how it hits them, and what changes when it's fixed. Top of the list = fix first." />
+            <SectionHead id="findings" n={num('findings')} title={client ? `The issues — ${findings.length}, in the order to fix them` : `Where the sales leak — ${findings.length} findings, ranked by impact`} sub={client ? 'Each one: what a shopper sees, the screenshot, how to check it on your own phone, the fix and the effort. Top of the list first.' : "Each one names the moment in the buying journey where a shopper is lost, shows the proof, says how it hits them, and what changes when it's fixed. Top of the list = fix first."} />
             {findings.map((f, i) => {
               const e = effortOf(f);
               const sv = f.severity ? (SEVERITY_STYLE[f.severity.toLowerCase()] || SEVERITY_STYLE.low) : null;
@@ -585,7 +591,7 @@ export default function FullReport({
                     <div className="fr-fhead">
                       {f.stage && <span className="fr-stage">{f.stage}</span>}
                       <h4>{f.title}</h4>
-                      {sv && f.severity && <span className="fr-sev" style={{ background: sv.bg, color: sv.color }}>{f.severity}</span>}
+                      {!client && sv && f.severity && <span className="fr-sev" style={{ background: sv.bg, color: sv.color }}>{f.severity}</span>}
                       {!hideEffort && f.fix_tier && <span className="fr-tag">{FIX_TIER[f.fix_tier.toLowerCase()] || f.fix_tier}</span>}
                       {!hideEffort && <span className={`fr-effort ${e.cls}`}>{e.label}</span>}
                     </div>
@@ -593,9 +599,9 @@ export default function FullReport({
                       <div style={{ minWidth: 0 }}>
                         <p className="fr-body">{f.merchant_copy}</p>
                         <EvidenceRows where={f.where} verify={f.verify} fix={f.fix} effort={f.fix ? f.effort : undefined} />
-                        {f.effect && <div className="fr-effect"><b>How it hits a shopper</b>{f.effect}</div>}
-                        {f.outcome && <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>}
-                        {impactText && <p className="fr-impact">{impactText}</p>}
+                        {!client && f.effect && <div className="fr-effect"><b>How it hits a shopper</b>{f.effect}</div>}
+                        {!client && f.outcome && <div className="fr-outcome"><b>What changes when it&apos;s fixed</b>{f.outcome}</div>}
+                        {!client && impactText && <p className="fr-impact">{impactText}</p>}
                       </div>
                       {f.shot?.dataUri && <ShotFrame shot={f.shot} size="md" />}
                     </div>
@@ -762,7 +768,7 @@ export default function FullReport({
 
         {payload.plan?.stages?.length ? (
           <div data-track="plan">
-            <SectionHead id="plan" n={num('plan')} title="What we would do first" sub="Three stages. Each says what we do, how long it takes, what access we need, and how we prove it worked — the same test re-run before and after." />
+            <SectionHead id="plan" n={num('plan')} title={client ? 'The plan' : 'What we would do first'} sub="Three stages. Each says what is fixed, how long it takes, what access is needed, and how it is proven — the same test repeated, screenshot before and after." />
             <PlanSection plan={payload.plan} Frame={ShotFrame} />
           </div>
         ) : null}
@@ -781,6 +787,7 @@ export default function FullReport({
           </div>
         )}
 
+        {!client && (
         <section className="fr-closer">
           <h2>The honest bottom line<em>.</em></h2>
           <p>
@@ -790,14 +797,13 @@ export default function FullReport({
             store, not promises.
           </p>
         </section>
+        )}
 
         <footer className="fr-footer">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/branding/rachna-builds-wordmark.svg" alt="Rachna Builds" />
           <span>
-            Prepared by Rachna Builds using an automated public review of {host} — no store access
-            was used. Impact statements reference industry benchmarks; we never estimate your
-            private revenue.
+            {payload.footerLine || `Prepared by Rachna Builds using an automated public review of ${host} — no store access was used. Impact statements reference industry benchmarks; we never estimate your private revenue.`}
           </span>
         </footer>
       </main>
