@@ -33,7 +33,12 @@ export interface Plan {
   /** Before/after previews made in the browser only (§5c). */
   previews?: { title: string; note: string; before: Shot; after: Shot }[];
   cta?: { title: string; body: string; button?: { label: string; href: string } };
+  /** "Two ways to start": the offer options shown at the end of the plan (replaces cta when present). */
+  offers?: Offers;
 }
+
+export interface OfferOption { name: string; price: string; delivery: string; includes: string[]; featured?: boolean }
+export interface Offers { title: string; options: OfferOption[]; howTitle?: string; how: string[]; nextStep: { text: string; href?: string; label?: string } }
 
 export interface Method {
   device: string;
@@ -110,13 +115,41 @@ export function PlanSection({ plan, Frame }: { plan: Plan; Frame: React.Componen
           ))}
         </div>
       ) : null}
-      {plan.cta && (
+      {plan.offers && <OffersSection offers={plan.offers} />}
+      {!plan.offers && plan.cta && (
         <div className="fx-cta">
           <h3>{plan.cta.title}</h3>
           <p>{plan.cta.body}</p>
           {plan.cta.button && <a className="fr-pdf" href={plan.cta.button.href}>{plan.cta.button.label} <i>→</i></a>}
         </div>
       )}
+    </div>
+  );
+}
+
+export function OffersSection({ offers }: { offers: Offers }) {
+  return (
+    <div className="fx-offers">
+      <h3 className="fx-offers-title">{offers.title}</h3>
+      <div className="fx-offer-grid">
+        {offers.options.map((o, i) => (
+          <div className={`fx-offer${o.featured ? ' featured' : ''}`} key={i}>
+            {o.featured && <div className="fx-offer-flag">Recommended</div>}
+            <div className="fx-offer-name">{o.name}</div>
+            <div className="fx-offer-price">{o.price}</div>
+            <div className="fx-offer-delivery">{o.delivery}</div>
+            <ul>{o.includes.map((x, j) => <li key={j}>{x}</li>)}</ul>
+          </div>
+        ))}
+      </div>
+      <div className="fx-offer-how">
+        <h4>{offers.howTitle || 'How it works'}</h4>
+        <ul>{offers.how.map((x, i) => <li key={i}>{x}</li>)}</ul>
+      </div>
+      <div className="fx-offer-next">
+        <span>{offers.nextStep.text}</span>
+        {offers.nextStep.href && <a className="fr-pdf" href={offers.nextStep.href}>{offers.nextStep.label || 'Book a time'} <i>→</i></a>}
+      </div>
     </div>
   );
 }
@@ -169,6 +202,22 @@ export const EXTRAS_CSS = `
   .fx-cta p { color:rgba(255,255,255,0.8); font-size:14.5px; margin:0 0 14px; max-width:62ch; }
   .fx-cta .fr-pdf { background:var(--mint); color:var(--ink); }
   .fx-method .fx-row { grid-template-columns:110px 1fr; }
+  .fx-offers { margin-top:26px; }
+  .fx-offers-title { font-size:22px; color:var(--ink); margin:0 0 14px; font-weight:700; letter-spacing:-0.02em; }
+  .fx-offer-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .fx-offer { position:relative; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px 22px 18px; display:flex; flex-direction:column; }
+  .fx-offer.featured { border:2px solid var(--ink); box-shadow:0 18px 40px -24px rgba(11,61,46,0.45); }
+  .fx-offer-flag { position:absolute; top:-11px; left:18px; background:var(--mint); color:var(--ink); font-size:10.5px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; padding:4px 10px; border-radius:99px; }
+  .fx-offer-name { font-family:var(--heading); font-size:18px; font-weight:700; color:var(--ink); }
+  .fx-offer-price { font-family:var(--heading); font-size:34px; font-weight:700; color:var(--ink); letter-spacing:-0.03em; line-height:1.1; margin:8px 0 2px; }
+  .fx-offer-delivery { font-size:13px; color:var(--muted); font-weight:600; margin-bottom:12px; }
+  .fx-offer ul { margin:0; padding-left:18px; font-size:14px; color:var(--body); display:flex; flex-direction:column; gap:7px; }
+  .fx-offer-how { margin-top:14px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 22px; }
+  .fx-offer-how h4 { margin:0 0 8px; font-size:15px; color:var(--ink); font-weight:700; }
+  .fx-offer-how ul { margin:0; padding-left:18px; font-size:14px; color:var(--body); display:flex; flex-direction:column; gap:6px; }
+  .fx-offer-next { margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background: radial-gradient(500px 220px at 100% 0%, rgba(6,214,160,0.25), transparent 60%), var(--ink); color:#fff; border-radius:16px; padding:18px 22px; font-size:15px; }
+  .fx-offer-next .fr-pdf { background:var(--mint); color:var(--ink); }
+  @media (max-width: 720px) { .fx-offer-grid { grid-template-columns:1fr; } }
   @media (max-width: 720px) {
     .fx-row, .fx-opp .fx-row, .fx-method .fx-row { grid-template-columns:1fr; gap:3px; }
     .fx-opp { grid-template-columns:30px minmax(0,1fr); }

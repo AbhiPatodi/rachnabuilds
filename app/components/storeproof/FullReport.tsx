@@ -133,7 +133,7 @@ function Proofs({ shots, label = 'Proof' }: { shots?: Shot[]; label?: string }) 
   if (!shots?.length) return null;
   return (
     <div className="fr-proofs">
-      <div className="fr-proofs-label">{label}<span>{shots.length} screenshot{shots.length > 1 ? 's' : ''} · tap to enlarge</span></div>
+      <div className="fr-proofs-label">{label}<span>tap any screenshot to enlarge</span></div>
       <div className="fr-proofs-row">
         {shots.map((s, i) => <ShotFrame key={i} shot={s} size="sm" />)}
       </div>
