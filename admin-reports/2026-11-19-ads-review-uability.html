@@ -1,0 +1,228 @@
+<title>Rachna Builds Ads Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6F7F5; --surface:#FFFFFF; --ink:#0B0F1A; --mut:#5B6577; --line:#E2E6EA;
+  --accent:#0E8A6E; --accent-soft:#E2F5EE; --warn:#9A5B0B; --warn-soft:#FDF1DC; --bad:#B42318; --bad-soft:#FDE8E7;
+  --display:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B0F1A; --surface:#141922; --ink:#F0F4F8; --mut:#94A3B8; --line:#1E2736;
+  --accent:#06D6A0; --accent-soft:#0F2E28; --warn:#FBBF24; --warn-soft:#2E2412; --bad:#FF8A80; --bad-soft:#3A1A1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0F1A; --surface:#141922; --ink:#F0F4F8; --mut:#94A3B8; --line:#1E2736;
+  --accent:#06D6A0; --accent-soft:#0F2E28; --warn:#FBBF24; --warn-soft:#2E2412; --bad:#FF8A80; --bad-soft:#3A1A1A; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:34px}
+header{display:flex;flex-direction:column;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:20px}
+.brand{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand i{font-style:normal;color:var(--accent)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,5vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:21px;letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:15.5px;margin:0 0 6px}
+.meta{font-family:var(--mono);font-size:12px;color:var(--mut);letter-spacing:.02em}
+p{margin:0;max-width:72ch}
+.lede{font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+.tile .v{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12.5px;color:var(--mut)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+tr.total td{font-weight:600;background:var(--accent-soft)}
+td.l,th.l{text-align:left;white-space:normal}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.p-good{background:var(--accent-soft);color:var(--accent)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.p-mut{background:var(--line);color:var(--mut)}
+.timeline{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.timeline div{position:relative;padding:0 0 18px 20px}
+.timeline div::before{content:'';position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.timeline b{font-family:var(--mono);font-weight:500;font-size:11.5px;color:var(--mut);display:block;margin-bottom:2px;letter-spacing:.04em}
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.setup div{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:0}
+.setup b{font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut)}
+.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.list li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.list li strong{font-family:var(--display);font-weight:600}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.note{font-size:12.5px;color:var(--mut)}
+footer{font-family:var(--mono);font-size:11.5px;color:var(--mut);border-top:1px solid var(--line);padding-top:14px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand">Rachna Builds<i>.</i></div>
+  <h1>Meta ads, from the first rupee to today</h1>
+  <div class="meta">Account 1054469927180158 "Rachnabuilds New" (INR) · 26 Aug → 19 Nov 2026 morning IST · prepared for the UAbility team</div>
+  <p class="lede">Lifetime: ₹36,192 spent, 20 form leads (+2 from ad comments), ₹1,810 per lead; one paying client so far (Empire Lumina). Since the 16 Nov restart (new videos, new form, ₹3,000/day): ₹9,751 spent, 8 leads, ₹1,219 per lead — and the two new videos bring leads at about ₹700 each while the old ad costs ₹2,700. One call held (Kris, Tallow &amp; Vine), proposal sent at $700 / $500, decision due today. Nothing closed yet from this restart.</p>
+</header>
+
+<section>
+  <h2>1 · The numbers at a glance</h2>
+  <div class="tiles">
+    <div class="tile"><div class="k">Lifetime spend</div><div class="v">₹36,192</div><div class="s">26 Aug → 19 Nov · 7,068 impressions · 83 clicks</div></div>
+    <div class="tile"><div class="k">Lifetime leads</div><div class="v">20</div><div class="s">₹1,810 per lead · all Instant Form</div></div>
+    <div class="tile"><div class="k">Since restart (16 Nov)</div><div class="v">₹9,751</div><div class="s">3.5 days · 1,382 impressions · 24 clicks</div></div>
+    <div class="tile"><div class="k">Leads since restart</div><div class="v">8</div><div class="s">₹1,219 per lead · 7 in the CRM, 1 to reconcile</div></div>
+    <div class="tile"><div class="k">New videos' cost per lead</div><div class="v">₹716</div><div class="s">Video 1 ₹708 · Video 2 ₹733 · old ad ₹2,727</div></div>
+    <div class="tile"><div class="k">Revenue from ads</div><div class="v">₹6,540</div><div class="s">Empire Lumina, Aug–Oct phase · ₹0 yet from the restart</div></div>
+  </div>
+  <p class="note" style="margin-top:10px">Spend is media spend as Meta reports it; 18% GST is charged on top of top-ups. The closed first account (1034127622546300, VSL campaign, Aug) is not reported by the API and is not in any total. Today's figures (19 Nov) are partial — Meta's API lags Ads Manager by a few hours.</p>
+</section>
+
+<section>
+  <h2>2 · What happened, in order</h2>
+  <div class="timeline">
+    <div><b>25–26 AUG</b>First account "Rachna" runs a VSL lead campaign for two days, then is switched off; deactivated 9 Sep. Spend not visible to the API.</div>
+    <div><b>26 AUG</b>Current account starts. "New Leads campaign" · 1 ad set · "New Leads ad" (static) + 4 "Copy" ads that error with <i>invalid promoted post</i> and never work. Targeting: 5 US states (CA FL TX UT WA), 3 interests (E-commerce, Shopify, Online advertising), 25–45, Advantage Audience OFF, FB + IG. Budget ₹1,000/day. Form "US Leads 17.08.2026" (ad spend + conversion rate, no store URL).</div>
+    <div><b>26 AUG → 13 OCT</b>₹23,201 spent over 49 days, 11 leads at ₹2,109. CPM ₹4,723 — 5–10× normal; every lead came from Instagram, Facebook spent ₹6,287 for none. California gave 7 of 11 leads. One client closed from this phase: Empire Lumina (₹6,540 banked).</div>
+    <div><b>1 &amp; 12 OCT</b>"Shopify 1% – Oct" ad + a copy added: ₹8,045 for 3 leads (₹2,681 each). They took budget away from the better "New Leads ad".</div>
+    <div><b>17–18 OCT · 26 OCT → 16 NOV</b>Account out of funds — ₹0 spend. Top-up 19 Oct lasted a week.</div>
+    <div><b>11 NOV</b>Audit of the setup against the UAbility ($10/day) rulebook: mostly fails — 5 states not one city, interests, no iOS filter, 7 ads not 5 videos, no price in copy, Advantage+ enhancements on. Lead quality problem named: mostly NRIs expecting Indian pricing.</div>
+    <div><b>12 NOV</b>Relaunch plan written (1 campaign, 1 ad set, 5 videos, LA only, no interests, iOS, $1,500 offer, CPL target ≤ $12). <span class="pill p-warn">Not applied yet</span> — videos were filmed but the targeting was never changed.</div>
+    <div><b>16 NOV</b>Restart: ₹15,000 added; budget ₹1,000 → ₹3,000/day; "Ad Video 1" and "Ad Video 2" added to the same old ad set; Shopify 1% ads paused. New form "Lead form v2 – store URL" (adds "What's your Shopify store URL?") on the two videos only; the old ad stays on the old form. First lead 10:17 PM IST.</div>
+    <div><b>16–19 NOV</b>8 leads in 3.5 days. Every lead gets a WhatsApp/SMS within hours, a site read, and a call ask — no free written reports. Kris (Tallow &amp; Vine) books a call for 18 Nov.</div>
+    <div><b>18 NOV</b>Full store review of tallowandvine.com (11 issues, each re-verified and screenshotted), shown on screen on the call. Kris quoted $500 (Full Fix Sprint) / $700 (Fix and Grow), 50/50. Proposal PDF sent by email + WhatsApp. He said he'd decide by his end of day.</div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · The account as it runs today</h2>
+  <div class="setup">
+    <div><b>Campaign / ad set</b><span>"New Leads campaign" · "New Leads ad set" · Leads objective, Instant Form</span></div>
+    <div><b>Daily budget</b><span>₹3,000 (~$33) at ad-set level since 16 Nov 6:47 PM IST</span></div>
+    <div><b>Targeting (unchanged since Aug)</b><span>US · CA FL TX UT WA · 25–45 · 3 interests · Advantage Audience OFF · FB + IG, all placements</span></div>
+    <div><b>Active ads</b><span>Ad Video 1 · Ad Video 2 (form v2 with store URL) · old "New Leads ad" (old form)</span></div>
+    <div><b>Not serving</b><span>4 "Copy" ads WITH_ISSUES (₹2,210 lifetime, 0 leads) · 2 Shopify 1% ads PAUSED · 3 video drafts</span></div>
+    <div><b>Balance (estimated)</b><span>≈ ₹5,200 of the ₹15,000 added 16 Nov — about 1.5 days at ₹3,000/day. Top-up due today.</span></div>
+    <div><b>CRM → Meta signals</b><span>lead_received (auto) → lead_engaged (replied) → lead_qualified (call booked) → converted / disqualified. Live since 16–17 Nov.</span></div>
+    <div><b>Known gap</b><span>Ads app "Rachna Ads Reader" is in Development mode, so Meta won't give the ad per lead; we match leads to ads by submit hour (verified correct on all 7).</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · Every ad, lifetime</h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Ad</th><th>Status</th><th>Created</th><th>Spend</th><th>Impr.</th><th>Clicks</th><th>CTR</th><th>CPM</th><th>Leads</th><th>₹ / lead</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Ad Video 1 | 16 Nov <span class="note">form v2</span></td><td><span class="pill p-good">Active</span></td><td>16 Nov</td><td>₹2,832</td><td>370</td><td>10</td><td>5.41%</td><td>₹7,654</td><td>4</td><td><b>₹708</b></td></tr>
+      <tr><td class="l">Ad Video 2 | 16 Nov <span class="note">form v2</span></td><td><span class="pill p-good">Active</span></td><td>16 Nov</td><td>₹1,466</td><td>169</td><td>4</td><td>5.33%</td><td>₹8,676</td><td>2</td><td><b>₹733</b></td></tr>
+      <tr><td class="l">New Leads ad <span class="note">old form, static</span></td><td><span class="pill p-good">Active</span></td><td>26 Aug</td><td>₹21,639</td><td>4,494</td><td>54</td><td>2.27%</td><td>₹4,815</td><td>11</td><td>₹1,967</td></tr>
+      <tr><td class="l">Shopify 1% – Oct</td><td><span class="pill p-mut">Paused</span></td><td>1 Oct</td><td>₹5,476</td><td>936</td><td>5</td><td>1.18%</td><td>₹5,851</td><td>2</td><td>₹2,738</td></tr>
+      <tr><td class="l">Shopify 1% – Oct – Copy</td><td><span class="pill p-mut">Paused</span></td><td>12 Oct</td><td>₹2,568</td><td>588</td><td>6</td><td>2.72%</td><td>₹4,368</td><td>1</td><td>₹2,568</td></tr>
+      <tr><td class="l">New Leads ad – Copy / 2 / 3 / 4</td><td><span class="pill p-bad">With issues</span></td><td>26 Aug</td><td>₹2,210</td><td>511</td><td>4</td><td>0.78%</td><td>₹4,325</td><td>0</td><td>—</td></tr>
+      <tr class="total"><td class="l">All ads</td><td></td><td></td><td>₹36,192</td><td>7,068</td><td>83</td><td>1.17%</td><td>₹5,120</td><td>20</td><td>₹1,810</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin-top:8px">The two videos have more than 2× the click-through rate of every earlier ad and a quarter of the cost per lead. The old "New Leads ad" still takes 56% of the daily spend because all three ads share one ad set.</p>
+</section>
+
+<section>
+  <h2>5 · Since the restart, day by day</h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Day (IST)</th><th>New Leads ad</th><th>Ad Video 1</th><th>Ad Video 2</th><th>Spend</th><th>Impr.</th><th>Leads</th><th>₹ / lead</th><th class="l">Who</th></tr></thead>
+    <tbody>
+      <tr><td class="l">16 Nov (from 8:45 PM)</td><td>₹245</td><td>₹282 · 2 leads</td><td>₹146</td><td>₹673</td><td>63</td><td>2</td><td>₹336</td><td class="l">Bhairavi Desai, Sarah Holder</td></tr>
+      <tr><td class="l">17 Nov</td><td>₹1,958 · 1 lead</td><td>₹798</td><td>₹775 · 2 leads</td><td>₹3,532</td><td>491</td><td>3</td><td>₹1,177</td><td class="l">Chasity Young, Kris F., Jemelia Hill</td></tr>
+      <tr><td class="l">18 Nov</td><td>₹1,927 · 1 lead</td><td>₹949 · 1 lead</td><td>₹334</td><td>₹3,210</td><td>446</td><td>2</td><td>₹1,605</td><td class="l">Harmat Gehlon, Brahamdeep Singh Malhi</td></tr>
+      <tr><td class="l">19 Nov (partial)</td><td>₹1,323</td><td>₹803 · 1 lead</td><td>₹211</td><td>₹2,336</td><td>382</td><td>1</td><td>₹2,336</td><td class="l"><span class="pill p-warn">not in CRM yet — check Leads Center</span></td></tr>
+      <tr class="total"><td class="l">Total</td><td>₹5,453 · 2</td><td>₹2,832 · 4</td><td>₹1,466 · 2</td><td>₹9,751</td><td>1,382</td><td>8</td><td>₹1,219</td><td class="l"></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin-top:8px">Meta counts 8 leads since the restart; the CRM holds 7. The 8th (Ad Video 1, 19 Nov) has not arrived through the webhook — it may be a duplicate submission or a missed webhook; it needs a look in Meta's Leads Center before today's follow-ups.</p>
+</section>
+
+<section>
+  <h2>6 · Every lead and where it stands</h2>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Lead</th><th class="l">Store</th><th>Ad · platform</th><th class="l">Form answers</th><th class="l">Contact so far</th><th>Status</th><th class="l">Next</th></tr></thead>
+    <tbody>
+      <tr><td class="l"><b>Kris F.</b><br><span class="note">hello@tallowandvine.com · +1 805</span></td><td class="l">Tallow &amp; Vine<br><span class="note">tallowandvine.com · tallow skincare, US</span></td><td>New Leads ad · IG<br><span class="note">old form</span></td><td class="l">&lt;$5k ad spend · &lt;1% CR · (no URL Q) · WhatsApp: "more sales / CRO"</td><td class="l">WA 17 Nov → replied → call booked → <b>call held 18 Nov</b> (full review on screen, ~$30/day ad spend learned) → proposal PDF emailed + WhatsApp'd</td><td><span class="pill p-good">proposal sent</span></td><td class="l">He decides by his EOD (≈ 19 Nov morning IST). Options: Fix and Grow $700 / 10 days · Full Fix Sprint $500 / 3–4 days · 50/50.</td></tr>
+      <tr><td class="l"><b>Bhairavi Desai</b><br><span class="note">abiirskincare@gmail.com · +1 818</span></td><td class="l">ABiiR<br><span class="note">abiirskincare.com · Ayurvedic skincare, LA</span></td><td>Ad Video 1 · IG<br><span class="note">form v2</span></td><td class="l">&lt;$5k · &lt;1% · URL given</td><td class="l">WA 16 Nov → replied ("more sales from the traffic you already get, and more traffic") → qualifying questions 18 Nov 11 AM IST, no reply yet</td><td><span class="pill p-good">in conversation</span></td><td class="l">Nudge 19 Nov evening her time if silent; then the call ask.</td></tr>
+      <tr><td class="l"><b>Chasity Young</b><br><span class="note">chaosncaffeine@gmail.com · +1 619</span></td><td class="l">Beauty Oasis<br><span class="note">bathmebeautiful.myshopify.com · still on myshopify domain, 38 products, no reviews</span></td><td>Ad Video 2 · IG<br><span class="note">form v2</span></td><td class="l">&lt;$5k · &lt;1% · URL given</td><td class="l">Not on WhatsApp/iMessage → SMS from US number 17 Nov + email 17 Nov + SMS 18 Nov. No reply.</td><td><span class="pill p-warn">contacted, no reply</span></td><td class="l">One call today (9 AM PT = 10:30 PM IST). If dead by 21 Nov → not interested.</td></tr>
+      <tr><td class="l"><b>Sarah Holder</b><br><span class="note">holdersarah47@gmail.com · +1 205</span></td><td class="l">"Sunshine"<br><span class="note">no link given</span></td><td>Ad Video 1 · FB<br><span class="note">form v2</span></td><td class="l"><b>$5k–10k</b> · <b>&gt;2% CR</b> · URL "Sunshine"</td><td class="l">Not on WhatsApp; first SMS from Rachna's iPhone "Not Delivered" → email 16 Nov → SMS from US number 17 Nov + 18 Nov. No reply.</td><td><span class="pill p-warn">contacted, no reply</span></td><td class="l">One call today (10 AM CT). Possible low-intent / mistyped lead.</td></tr>
+      <tr><td class="l"><b>Jemelia Hill</b><br><span class="note">awesomeblossum2021@gmail.com · +1 214</span></td><td class="l">Unknown<br><span class="note">URL answer "I don't know"</span></td><td>Ad Video 2 · FB<br><span class="note">form v2</span></td><td class="l">&lt;$5k · &lt;1% · no store yet?</td><td class="l">Not on WhatsApp → SMS 17 Nov + email 17 Nov + SMS 18 Nov. No reply.</td><td><span class="pill p-warn">contacted, no reply</span></td><td class="l">One call today (10 AM CT). Likely pre-launch; keep warm, don't chase.</td></tr>
+      <tr><td class="l"><b>Harmat Gehlon</b><br><span class="note">connect@salientbrands.com · +1 209</span></td><td class="l">Salient Brands (agency)<br><span class="note">store "will share next"</span></td><td>Ad Video 1 · IG<br><span class="note">form v2</span></td><td class="l">&lt;$5k · &lt;1%</td><td class="l">First WhatsApp 18 Nov 8:28 AM IST. No reply yet. Chat has 24-h disappearing messages.</td><td><span class="pill p-mut">contacted</span></td><td class="l">One call today (9 AM PT). Ask which store — his or a client's.</td></tr>
+      <tr><td class="l"><b>Brahamdeep Singh Malhi</b><br><span class="note">braham978008@gmail.com · +1 925</span></td><td class="l">Unknown<br><span class="note">old form, no URL Q</span></td><td>New Leads ad · IG<br><span class="note">old form</span></td><td class="l">&lt;$5k · &lt;1%</td><td class="l">First WhatsApp 18 Nov 12:13 PM IST. No reply yet.</td><td><span class="pill p-mut">contacted</span></td><td class="l">One call today (9 AM PT). Ask for the store link.</td></tr>
+      <tr><td class="l"><b>Shade Onabanjo</b><br><span class="note">IG @shadieonabanjo · not in CRM</span></td><td class="l">—</td><td>IG ad comment "Interested"</td><td class="l">—</td><td class="l">Private DM + public reply 17 Nov from Business Suite. No reply.</td><td><span class="pill p-mut">DM sent</span></td><td class="l">One nudge, then leave.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin-top:8px">Pattern in the answers: 6 of 7 say ad spend under $5k and conversion under 1%; the one exception (Sarah) gave no store link and no deliverable number. Two leads have no store URL at all. Three of seven are not on WhatsApp — a US texting number (+1 412 265 5893) was bought on 17 Nov for them.</p>
+</section>
+
+
+<section>
+  <h2>6b · All 22 ad leads since August — the funnel so far</h2>
+  <div class="tiles">
+    <div class="tile"><div class="k">Leads from ads</div><div class="v">22</div><div class="s">20 instant-form (12 Aug–Oct, 8 since 16 Nov) + 2 from ad comments</div></div>
+    <div class="tile"><div class="k">Contacted</div><div class="v">20</div><div class="s">2 never contacted: Darshana (13 Oct) and today's 8th lead</div></div>
+    <div class="tile"><div class="k">Replied</div><div class="v">8</div><div class="s">Kris, Bhairavi, Sagar, Monika, Kalyani, Empire Lumina, Minimal Jewel, Silk Artist (after report)</div></div>
+    <div class="tile"><div class="k">Calls held</div><div class="v">3</div><div class="s">Minimal Jewel (Sep), Kalyani (Oct), Kris (18 Nov)</div></div>
+    <div class="tile"><div class="k">Proposals</div><div class="v">4</div><div class="s">Minimal Jewel · Sagar · Monika · Kris</div></div>
+    <div class="tile"><div class="k">Closed won</div><div class="v">1</div><div class="s">Empire Lumina · $150 Fix Sprint · $75 paid</div></div>
+  </div>
+  <h3 style="margin-top:18px">The 12 instant-form leads from the first phase (26 Aug – 13 Oct) and 2 ad-comment leads</h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="l">Lead</th><th>Date</th><th class="l">Store</th><th class="l">Form answers</th><th class="l">What happened</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="l"><b>Empire Lumina</b> <span class="note">(IG ad comment)</span></td><td>25 Sep</td><td class="l">theempirelumina.com · Turkish linen</td><td class="l">—</td><td class="l">Audit → proposal → <b>$150 Fix Sprint agreed, $75 advance paid via PayPal</b>, $75 on completion</td><td><span class="pill p-good">closed won</span></td></tr>
+      <tr><td class="l"><b>KanyaIndya — Monika</b></td><td>2 Oct</td><td class="l">kanyaindya.com · US jewellery</td><td class="l"><b>$5k–10k</b> · 1–2% CR</td><td class="l">Highest-value lead so far. Audit + proposal; went quiet; close-out 11 Oct → replied 12 Oct "actually thinking and planning transitioning…". Warm, not lost.</td><td><span class="pill p-warn">proposal sent</span></td></tr>
+      <tr><td class="l"><b>Kalyani / Bala — Amaara World</b></td><td>7 Oct</td><td class="l">amaaraworld.com · 8,750 products</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Call held; silence was a trade-show booth; replied 12 Oct "no time to review yet". Still open.</td><td><span class="pill p-warn">call booked</span></td></tr>
+      <tr><td class="l"><b>Bhargav — Minimal Jewel</b></td><td>22 Sep</td><td class="l">minimaljewel.com</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Call held, full report + proposal; <b>on hold since 26 Sep</b> (report locked back to teaser).</td><td><span class="pill p-warn">proposal sent · on hold</span></td></tr>
+      <tr><td class="l"><b>Sagar Chopra — Snap Gadgets</b></td><td>24 Sep</td><td class="l">accessories-store-290280.myshopify.com</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Replied same day, wanted a call (Bay Area); store pre-launch, no brand/policies; proposal-style report sent. No decision.</td><td><span class="pill p-warn">proposal sent</span></td></tr>
+      <tr><td class="l"><b>Silk Artist</b></td><td>2 Oct</td><td class="l">silkpaintingstudio.com</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Report link sent on WhatsApp 4 Oct; no reply since.</td><td><span class="pill p-mut">no reply</span></td></tr>
+      <tr><td class="l"><b>Darshana Jodatti — MulMulBaby</b></td><td>13 Oct</td><td class="l">MulMulBaby.com</td><td class="l">&lt;$5k · &lt;1% · URL given</td><td class="l"><b>Never contacted</b> — arrived from "Shopify 1% – Copy" the day the account ran dry.</td><td><span class="pill p-bad">new · untouched</span></td></tr>
+      <tr><td class="l">Prahatish Sathyamurthy</td><td>22 Sep</td><td class="l">— (no store given)</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Messaged; no reply; break-up text 6 Oct; silent.</td><td><span class="pill p-bad">closed lost</span></td></tr>
+      <tr><td class="l">Dickens Lezin</td><td>22 Sep</td><td class="l">diatreasure.store</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Messaged; no reply; break-up text 6 Oct; silent.</td><td><span class="pill p-bad">closed lost</span></td></tr>
+      <tr><td class="l">COSI COSI Religious Jewelry</td><td>22 Sep</td><td class="l">cosicosijewelry.com</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Messaged; no reply; break-up text 6 Oct; silent.</td><td><span class="pill p-bad">closed lost</span></td></tr>
+      <tr><td class="l">Akshata Rao — Gentle Bear</td><td>22 Sep</td><td class="l">gentlebearbody.com</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Messaged; no reply; break-up text 6 Oct; silent.</td><td><span class="pill p-bad">closed lost</span></td></tr>
+      <tr><td class="l">Sana</td><td>22 Sep</td><td class="l">— (no store given)</td><td class="l">&lt;$5k · &lt;1%</td><td class="l">Messaged; no reply; break-up text 6 Oct; silent.</td><td><span class="pill p-bad">closed lost</span></td></tr>
+      <tr><td class="l">Kridha Collective (Etsy)</td><td>25 Sep</td><td class="l">etsy.com/shop/KridhaCollective</td><td class="l">&lt;$5k · 1–2% CR</td><td class="l">Etsy, not Shopify; messaged; no reply; break-up 6 Oct.</td><td><span class="pill p-bad">closed lost</span></td></tr>
+      <tr><td class="l">Shade Onabanjo <span class="note">(IG ad comment)</span></td><td>17 Nov</td><td class="l">—</td><td class="l">—</td><td class="l">DM + public reply 17 Nov; no reply.</td><td><span class="pill p-mut">DM sent</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin-top:8px">Of the 12 first-phase form leads: 1 became a paying client via the ad's comments (Empire Lumina), 3 are still warm (Monika, Kalyani, Sagar), 1 is on hold (Minimal Jewel), 6 never replied and were closed on 6 Oct, 1 was never contacted. 11 of 12 answered "under $5k, under 1%" — the same profile as the current batch. Upwork and manual leads in the CRM are not ad leads and are not counted here.</p>
+</section>
+
+<section>
+  <h2>7 · Kris / Tallow &amp; Vine — the one that reached a call</h2>
+  <div class="two">
+    <div class="card"><h3>What was done</h3><p>Full review of tallowandvine.com on a phone, every claim re-tested the same day in fresh sessions, 11 issues each with its own screenshot (popup over the Add-to-Cart button, "nothing synthetic" vs a peptide product, guarantee with three names contradicted by the FAQ, reviews hidden in a corner pop-up, sold-out dead ends, missing Google product data, public vendor data, four competing discounts, soft photos, homepage weight, 21 placeholder posts). One claim from the morning pass did not reproduce by evening and was dropped. Shown on screen on the call; the report itself was not sent.</p></div>
+    <div class="card"><h3>The offer and where it stands</h3><p>Kris spends about $30/day on ads. Quoted on the call: <b>Full Fix Sprint $500</b> (all 11 fixed, 3–4 days, re-test report) and <b>Fix and Grow $700</b> (the sprint plus offer clean-up, free-shipping add-on, email flows checked, 30-day before/after report; 10 days). 50% to start, 50% on delivery. Proposal PDF sent by email and WhatsApp on 18 Nov night. He said he'd come back by his end of day — i.e. this morning IST. If yes at $700: the first client from the restart, and the ads are ₹9,751 in for ₹61,000 of work.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>8 · What the data says</h2>
+  <ul class="list">
+    <li><strong>The creative problem is solved; the structure problem is not.</strong> Both new videos sit above 5% CTR with ₹700-ish leads. But they share one ad set with the old static ad, which still takes more than half the budget at ₹2,700 per lead. Meta is pacing by its own history, not by what works now.</li>
+    <li><strong>Targeting is still the August setup.</strong> Five states, three interests, Advantage Audience off, Facebook placements on — the exact settings the 11 Nov audit failed and the 12 Nov plan replaced. CPM is ₹7,600–8,700 (~$85–100). That is in the range UAbility calls normal for US leads, so the lever now is lead quality, not CPM.</li>
+    <li><strong>Lead quality is the real cost.</strong> 6 of 7 leads are sub-$5k, sub-1% stores; two have no store yet; three can't be reached on WhatsApp. The form has no budget-qualifying question (the 12 Nov plan had "projects start at $1,500 — fits your budget?").</li>
+    <li><strong>Speed to contact is fixed.</strong> Every lead got a personal message within hours (median under 2 h for the last five), a site read before the message, and a call ask instead of a free report. One in seven reached a call in under 48 h.</li>
+    <li><strong>Money:</strong> ₹36,192 media spend lifetime plus GST, ₹6,540 banked, one proposal open. The restart's break-even is a single $500 sale.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>9 · Decisions to take on this call</h2>
+  <ul class="list">
+    <li><strong>1. Budget split.</strong> Move the old "New Leads ad" to the new form or pause it, so the ₹3,000/day flows to the two videos (expected: ₹700–900 per lead instead of ₹1,200). Owner approval needed before any change in Meta.</li>
+    <li><strong>2. Qualify in the form.</strong> Add the budget question ("our projects start at $500 — does that fit?") and turn phone verification on, as a fresh form on a fresh ad set so the live one keeps learning. Fewer leads, reachable ones.</li>
+    <li><strong>3. Apply the 12 Nov structure</strong> as a new campaign alongside the current one for 7 days: one city, no interests, iOS, IG only, 5 videos — then compare CPL and reply rate, not just CPL.</li>
+    <li><strong>4. Top up today.</strong> ≈ ₹5,200 left at ₹3,000/day.</li>
+    <li><strong>5. Reconcile the 8th lead</strong> in Meta Leads Center and switch the "Rachna Ads Reader" app to Live mode so each lead carries its ad ID.</li>
+    <li><strong>6. Kris:</strong> if he says yes, start the popup fix within 24 h of access and run the 30-day before/after as the first case study of this funnel.</li>
+  </ul>
+</section>
+
+<footer>Sources: Meta Ads API (account 1054469927180158, lifetime and 16–19 Nov by day, read 19 Nov ~9 AM IST), Rachna Builds CRM (funnel_leads + lead_activities), Meta activity log for 16 Nov changes, Shopify-side verification for Tallow &amp; Vine. Closed account 1034127622546300 excluded (API does not report it). Today's figures are partial.</footer>
+</div>

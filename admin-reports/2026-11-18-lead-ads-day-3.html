@@ -1,0 +1,146 @@
+<title>Rachna Builds Lead Ads Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, summary first, then setup, ad and day tables, lead pipeline, learnings, next steps. Rachna Builds palette. */
+:root{
+  --bg:#F6F7F5; --surface:#FFFFFF; --ink:#0B0F1A; --mut:#5B6577; --line:#E2E6EA;
+  --accent:#0E8A6E; --accent-soft:#E2F5EE; --warn:#9A5B0B; --warn-soft:#FDF1DC; --bad:#B42318; --bad-soft:#FDE8E7;
+  --display:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B0F1A; --surface:#141922; --ink:#F0F4F8; --mut:#94A3B8; --line:#1E2736;
+  --accent:#06D6A0; --accent-soft:#0F2E28; --warn:#FBBF24; --warn-soft:#2E2412; --bad:#FF8A80; --bad-soft:#3A1A1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0F1A; --surface:#141922; --ink:#F0F4F8; --mut:#94A3B8; --line:#1E2736;
+  --accent:#06D6A0; --accent-soft:#0F2E28; --warn:#FBBF24; --warn-soft:#2E2412; --bad:#FF8A80; --bad-soft:#3A1A1A; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-direction:column;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:20px}
+.brand{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.brand i{font-style:normal;color:var(--accent)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,5vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:21px;letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+.meta{font-family:var(--mono);font-size:12px;color:var(--mut);letter-spacing:.02em}
+p{margin:0;max-width:70ch}
+.lede{font-size:16px;color:var(--ink)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile .k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+.tile .v{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12.5px;color:var(--mut)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+tr.total td{font-weight:600;background:var(--accent-soft)}
+td.l,th.l{text-align:left;white-space:normal}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.p-good{background:var(--accent-soft);color:var(--accent)}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)}
+.p-mut{background:var(--line);color:var(--mut)}
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.setup div{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:0}
+.setup b{font-family:var(--mono);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut)}
+.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.list li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.list li strong{font-family:var(--display);font-weight:600}
+.note{font-size:12.5px;color:var(--mut)}
+footer{font-family:var(--mono);font-size:11.5px;color:var(--mut);border-top:1px solid var(--line);padding-top:14px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand">Rachna Builds<i>.</i></div>
+  <h1>Meta lead ads: day 3 update</h1>
+  <div class="meta">US Instant Form campaign · 16 Nov 8:45 PM IST (delivery start) → 18 Nov 9:15 AM IST · prepared for the UAbility team</div>
+  <p class="lede">In about 60 hours the campaign spent ₹5,990 and brought 6 leads, ₹998 per lead. The first call is booked for tonight (Kris, Tallow &amp; Vine). The two new videos bring leads at about ₹550 each. The old image ad has taken 54% of the spend for 1 lead. We now text US leads from a US number, which fixes the delivery problem from the last report.</p>
+</header>
+
+<section>
+  <h2>Summary</h2>
+  <div class="tiles">
+    <div class="tile"><span class="k">Ad spend</span><span class="v">₹5,990</span><span class="s">budget ₹3,000/day</span></div>
+    <div class="tile"><span class="k">Leads</span><span class="v">6</span><span class="s">all US, Instant Form</span></div>
+    <div class="tile"><span class="k">Cost per lead</span><span class="v">₹998</span><span class="s">new videos ₹550</span></div>
+    <div class="tile"><span class="k">CTR (clicks ÷ reach)</span><span class="v">5.2%</span><span class="s">32 clicks · 616 reach</span></div>
+    <div class="tile"><span class="k">Replied</span><span class="v">2 of 6</span><span class="s">5 contacted · 1 new</span></div>
+    <div class="tile"><span class="k">Calls · sales</span><span class="v">1 · 0</span><span class="s">call tonight 11 PM IST</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>By ad</h2>
+  <div class="scroll"><table>
+    <tr><th class="l">Ad</th><th>Spend</th><th>Share</th><th>Impr</th><th>Reach</th><th>CPM</th><th>Clicks</th><th>CTR</th><th>CPC</th><th>Leads</th><th>Lead cost</th><th>Leads ÷ clicks</th></tr>
+    <tr><td class="l">Ad Video 1 (new form)</td><td>₹1,629</td><td>27%</td><td>191</td><td>155</td><td>₹8,530</td><td>13</td><td>8.4%</td><td>₹125</td><td>3</td><td>₹543</td><td>23%</td></tr>
+    <tr><td class="l">Ad Video 2 (new form)</td><td>₹1,123</td><td>19%</td><td>108</td><td>94</td><td>₹10,402</td><td>6</td><td>6.4%</td><td>₹187</td><td>2</td><td>₹562</td><td>33%</td></tr>
+    <tr><td class="l">New Leads ad (old form)</td><td>₹3,238</td><td>54%</td><td>458</td><td>367</td><td>₹7,069</td><td>13</td><td>3.5%</td><td>₹249</td><td>1</td><td>₹3,238</td><td>8%</td></tr>
+    <tr class="total"><td class="l">Total</td><td>₹5,990</td><td>100%</td><td>757</td><td>616</td><td>₹7,913</td><td>32</td><td>5.2%</td><td>₹187</td><td>6</td><td>₹998</td><td>19%</td></tr>
+  </table></div>
+  <p class="note" style="margin-top:8px">Same formulas as the UAbility tracking sheet: CTR = clicks ÷ reach, CPM = spend ÷ impressions × 1,000, lead cost = spend ÷ leads. Reach is added across ads, so a person who saw two ads counts twice. Source: Meta Ads, account "Rachnabuilds New", pulled 18 Nov 9:15 AM IST.</p>
+</section>
+
+<section>
+  <h2>By day</h2>
+  <div class="scroll"><table>
+    <tr><th class="l">Day (IST)</th><th>Spend</th><th>Impr</th><th>Reach</th><th>CPM</th><th>Clicks</th><th>CTR</th><th>Leads</th><th>Lead cost</th></tr>
+    <tr><td class="l">16 Nov (from 8:45 PM)</td><td>₹673</td><td>63</td><td>56</td><td>₹10,681</td><td>6</td><td>10.7%</td><td>2</td><td>₹336</td></tr>
+    <tr><td class="l">17 Nov (full day)</td><td>₹3,532</td><td>491</td><td>423</td><td>₹7,194</td><td>17</td><td>4.0%</td><td>3</td><td>₹1,177</td></tr>
+    <tr><td class="l">18 Nov (to 9:15 AM)</td><td>₹1,785</td><td>203</td><td>180</td><td>₹8,795</td><td>9</td><td>5.0%</td><td>1</td><td>₹1,785</td></tr>
+  </table></div>
+  <p class="note" style="margin-top:8px">18 Nov is a part day. ₹1,785 by 9 AM means today will likely spend more than the ₹3,000 budget; Meta allows up to 75% over on a single day and evens it out across the week.</p>
+</section>
+
+<section>
+  <h2>By device</h2>
+  <div class="scroll"><table>
+    <tr><th class="l">Device</th><th>Spend</th><th>Share of spend</th><th>Impr</th><th>Reach</th><th>Clicks</th><th>CTR</th><th>Leads</th><th>Lead cost</th></tr>
+    <tr><td class="l">iPhone</td><td>₹4,231</td><td>71%</td><td>602</td><td>395</td><td>20</td><td>5.1%</td><td>3</td><td>₹1,410</td></tr>
+    <tr><td class="l">Android phone</td><td>₹1,723</td><td>29%</td><td>151</td><td>106</td><td>12</td><td>11.3%</td><td>3</td><td>₹574</td></tr>
+    <tr><td class="l">Tablets (iPad, Android)</td><td>₹36</td><td>1%</td><td>4</td><td>4</td><td>0</td><td>–</td><td>0</td><td>–</td></tr>
+    <tr><td class="l">Desktop</td><td>₹0</td><td>0%</td><td>0</td><td>0</td><td>0</td><td>–</td><td>0</td><td>–</td></tr>
+  </table></div>
+  <p class="note" style="margin-top:8px">Device is where the ad was shown, from Meta's breakdown for the whole account (16–18 Nov). Android leads have been cheaper, but six leads is too few to judge quality by device. The one booked call came from an iPhone-heavy ad.</p>
+</section>
+
+<section>
+  <h2>Lead pipeline</h2>
+  <div class="scroll"><table>
+    <tr><th class="l">Lead</th><th class="l">Business</th><th class="l">Ad</th><th class="l">Ad spend</th><th class="l">Conv. rate</th><th class="l">Reached by</th><th class="l">Stage</th></tr>
+    <tr><td class="l">Kris</td><td class="l">Tallow &amp; Vine, tallow skincare</td><td class="l">Old ad</td><td class="l">&lt; $5k</td><td class="l">&lt; 1%</td><td class="l">WhatsApp + email invite</td><td class="l"><span class="pill p-good">Call booked · 18 Nov 11:30 AM CST</span></td></tr>
+    <tr><td class="l">Bhairavi</td><td class="l">ABiiR, Ayurvedic skincare</td><td class="l">Video 1</td><td class="l">&lt; $5k</td><td class="l">&lt; 1%</td><td class="l">WhatsApp</td><td class="l"><span class="pill p-good">Replied · qualifying</span></td></tr>
+    <tr><td class="l">Sarah</td><td class="l">Unknown (typed "Sunshine")</td><td class="l">Video 1 or 2</td><td class="l">$5k–10k</td><td class="l">&gt; 2%</td><td class="l">Email + US text</td><td class="l"><span class="pill p-warn">No reply yet</span></td></tr>
+    <tr><td class="l">Chasity</td><td class="l">Beauty Oasis, anti-aging skincare</td><td class="l">Video 2</td><td class="l">&lt; $5k</td><td class="l">&lt; 1%</td><td class="l">Email + US text</td><td class="l"><span class="pill p-warn">No reply yet</span></td></tr>
+    <tr><td class="l">Jemelia</td><td class="l">Unknown (typed "I don't know")</td><td class="l">Video 2</td><td class="l">&lt; $5k</td><td class="l">&lt; 1%</td><td class="l">Email + US text</td><td class="l"><span class="pill p-warn">No reply yet</span></td></tr>
+    <tr><td class="l">Harmat</td><td class="l">Salient Brands, a California marketing agency</td><td class="l">Video 1</td><td class="l">&lt; $5k</td><td class="l">&lt; 1%</td><td class="l">Not yet (came in 4:51 AM IST)</td><td class="l"><span class="pill p-mut">New · contact today</span></td></tr>
+  </table></div>
+  <p class="note" style="margin-top:8px">First names only; contact details stay in our CRM. Texts to Sarah, Chasity and Jemelia went out on 17 Nov from our new US number. Follow-up is due 19 Nov.</p>
+</section>
+
+<section>
+  <h2>What we're seeing</h2>
+  <ul class="list">
+    <li><strong>The new videos keep beating the old ad.</strong> Videos 1 and 2 brought 5 of the 6 leads at ₹543 and ₹562 each. The old image ad has spent ₹3,238 (54% of the budget) for 1 lead. That lead did book the first call, so it isn't worthless, but per lead it costs about 6 times more.</li>
+    <li><strong>Meta keeps pushing budget to the old ad.</strong> It has the cheapest CPM (₹7,069), so the algorithm favours it even though it converts worst (8% of clicks become leads vs 23–33% on the videos).</li>
+    <li><strong>The US number solved reachability.</strong> 3 leads aren't on WhatsApp, and texts from the Indian number didn't deliver. Since 17 Nov they've had a text from a US number plus an email. No reply yet, which is normal within 24 hours.</li>
+    <li><strong>Lead quality is still mixed.</strong> 5 of 6 say under $5k a month on ads and under 1% conversion. 3 of 6 typed something other than a store link. One lead (Harmat) is an agency, which may be a partner opportunity rather than a store.</li>
+    <li><strong>Every lead goes to a call.</strong> We don't send free written reports. Leads are offered a short call where Rachna shows what she found on screen.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Next steps</h2>
+  <ul class="list">
+    <li><strong>Today:</strong> prepare the Tallow &amp; Vine store audit to show on tonight's call (11:00 PM IST). Contact Harmat by text and email and ask for a call time.</li>
+    <li><strong>19 Nov:</strong> follow up with Sarah, Chasity and Jemelia. Top up the ad balance (about ₹7,900 left, roughly two days at the current pace).</li>
+    <li><strong>21–23 Nov:</strong> after 5–7 days of learning, decide on the old image ad. If it still costs over ₹2,000 per lead, turn it off and let the two videos take the full budget.</li>
+    <li><strong>Next fresh campaign (planned, not live):</strong> broad audience instead of stacked interests, a higher-intent form, and a question asking how they prefer to be contacted (WhatsApp, text, call or email).</li>
+  </ul>
+</section>
+
+<footer>Rachna Builds · rachnabuilds.com · data from Meta Ads Manager and our CRM, 18 Nov 2026 9:15 AM IST</footer>
+</div>

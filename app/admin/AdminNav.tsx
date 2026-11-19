@@ -174,6 +174,14 @@ export default function AdminNav({ rep = false }: { rep?: boolean }) {
         Money
       </Link>
 
+      <Link
+        href="/admin/money/ads-reviews"
+        className={pathname.startsWith('/admin/money/ads-reviews') ? 'active' : ''}
+        style={{ paddingLeft: 36, fontSize: 13 }}
+      >
+        Ads reviews
+      </Link>
+
       {/* SETTINGS */}
       <div className="admin-nav-section">Settings</div>
 
