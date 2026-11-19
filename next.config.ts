@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
   // Pin the workspace root: a stray package-lock.json in the parent folder
   // makes Turbopack pick the wrong root and 404 every route in dev.
   turbopack: { root: process.cwd() },
+  // Internal HTML reports read from disk at request time by /admin/money/ads-reviews.
+  outputFileTracingIncludes: {
+    '/admin/money/ads-reviews': ['./admin-reports/**'],
+    '/admin/money/ads-reviews/[slug]': ['./admin-reports/**'],
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
