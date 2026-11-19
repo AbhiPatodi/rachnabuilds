@@ -312,3 +312,55 @@ export async function spendByAd(since?: string, until?: string): Promise<{ adNam
   }
   return out;
 }
+
+
+/** What the account looks like right now: campaigns, ad sets (budget + targeting
+ *  summary) and every ad with its delivery status. Three Graph calls; callers
+ *  should treat a failure as "unknown", never block a page on it. */
+export interface LiveAd { id: string; name: string; status: string; effectiveStatus: string; createdAt: string; adSet: string; issues: string | null }
+export interface LiveSnapshot {
+  at: string;
+  campaigns: { name: string; status: string; effectiveStatus: string; objective: string | null; dailyBudget: number | null }[];
+  adSets: { name: string; campaign: string; status: string; effectiveStatus: string; dailyBudget: number | null; updatedAt: string | null; targeting: string }[];
+  ads: LiveAd[];
+}
+export async function liveAccountSnapshot(): Promise<LiveSnapshot> {
+  type Any = Record<string, unknown>;
+  const [camps, sets, ads] = await Promise.all([
+    graph<{ data: Any[] }>(`act_${AD_ACCOUNT_ID}/campaigns`, { fields: 'name,status,effective_status,objective,daily_budget', limit: '50' }),
+    graph<{ data: Any[] }>(`act_${AD_ACCOUNT_ID}/adsets`, { fields: 'name,status,effective_status,daily_budget,targeting,updated_time,campaign{name}', limit: '50' }),
+    graph<{ data: Any[] }>(`act_${AD_ACCOUNT_ID}/ads`, { fields: 'name,status,effective_status,created_time,adset{name},issues_info', limit: '200' }),
+  ]);
+  // INR budgets come back in paise-like minor units (offset 100).
+  const money = (v: unknown) => v != null && v !== '' ? Number(v) / 100 : null;
+  const summarize = (t: Any | undefined): string => {
+    if (!t) return '';
+    const geo = (t.geo_locations || {}) as Any;
+    const parts: string[] = [];
+    const countries = (geo.countries as string[] | undefined) || [];
+    const regions = ((geo.regions as { name?: string }[] | undefined) || []).map((r) => r.name).filter(Boolean) as string[];
+    if (countries.length) parts.push(countries.join(' '));
+    if (regions.length) parts.push(regions.map((r) => ({ California: 'CA', Florida: 'FL', Texas: 'TX', Utah: 'UT', Washington: 'WA', 'New York': 'NY' } as Record<string, string>)[r] || r).join(' '));
+    if (t.age_min || t.age_max) parts.push(`${t.age_min || 18}–${t.age_max || 65}`);
+    const flex = (t.flexible_spec as Any[] | undefined) || [];
+    const interests = flex.reduce((n, f) => n + (((f.interests as unknown[]) || []).length), 0);
+    if (interests) parts.push(`${interests} interest${interests === 1 ? '' : 's'}`);
+    const auto = (t.targeting_automation as Any | undefined)?.advantage_audience;
+    if (auto != null) parts.push(`Advantage Audience ${Number(auto) ? 'ON' : 'OFF'}`);
+    const pubs = (t.publisher_platforms as string[] | undefined) || [];
+    parts.push(pubs.length ? pubs.map((p) => p === 'facebook' ? 'FB' : p === 'instagram' ? 'IG' : p).join(' + ') : 'all platforms');
+    const pos = (t.facebook_positions as string[] | undefined) || [];
+    parts.push(pos.length ? `${pos.length} placements` : 'all placements');
+    return parts.join(' · ');
+  };
+  return {
+    at: new Date().toISOString(),
+    campaigns: (camps.data || []).map((c) => ({ name: String(c.name), status: String(c.status), effectiveStatus: String(c.effective_status), objective: (c.objective as string) || null, dailyBudget: money(c.daily_budget) })),
+    adSets: (sets.data || []).map((a) => ({ name: String(a.name), campaign: String((a.campaign as Any | undefined)?.name || ''), status: String(a.status), effectiveStatus: String(a.effective_status), dailyBudget: money(a.daily_budget), updatedAt: (a.updated_time as string) || null, targeting: summarize(a.targeting as Any | undefined) })),
+    ads: (ads.data || []).map((a) => ({
+      id: String(a.id), name: String(a.name), status: String(a.status), effectiveStatus: String(a.effective_status), createdAt: String(a.created_time || ''),
+      adSet: String((a.adset as Any | undefined)?.name || ''),
+      issues: ((a.issues_info as { error_summary?: string }[] | undefined) || []).map((i) => i.error_summary).filter(Boolean).join('; ') || null,
+    })),
+  };
+}

@@ -28,8 +28,14 @@ type Report = {
   };
   leadList?: LeadRow[];
   syncedAt?: string | null;
-  ads?: (Row & { cpl: number | null; crmLeads: number })[];
-  funnel?: { leads: number; contacted: number; replied: number; calls: number; proposals: number; won: number; lost: number; noStore: number; underFive: number };
+  ads?: (Row & { cpl: number | null; crmLeads: number; status: string | null; createdAt: string | null; issues: string | null })[];
+  live?: {
+    at: string; balance: number | null; balanceAt: string | null;
+    campaigns: { name: string; status: string; effectiveStatus: string; objective: string | null; dailyBudget: number | null }[];
+    adSets: { name: string; campaign: string; status: string; effectiveStatus: string; dailyBudget: number | null; updatedAt: string | null; targeting: string }[];
+    ads: { id: string; name: string; status: string; effectiveStatus: string; createdAt: string; adSet: string; issues: string | null }[];
+  } | null;
+  funnel?: { names?: Record<'untouched' | 'replied' | 'calls' | 'proposals' | 'won' | 'lost', string[]>; leads: number; contacted: number; replied: number; calls: number; proposals: number; won: number; lost: number; noStore: number; underFive: number };
   states: Row[];
   platforms: Row[];
   audience: (Row & { age: string; gender: string })[];
@@ -211,22 +217,44 @@ export default function AdsReport() {
               <H>What happened to the leads</H>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 20 }}>
                 <Tile k="Leads in CRM" v={String(r.funnel.leads)} n="from these ads, this range" />
-                <Tile k="Contacted" v={String(r.funnel.contacted)} n={`${r.funnel.leads - r.funnel.contacted} untouched`} bad={r.funnel.leads - r.funnel.contacted > 0} />
-                <Tile k="Replied" v={String(r.funnel.replied)} n={r.funnel.contacted ? `${Math.round((r.funnel.replied / r.funnel.contacted) * 100)}% of contacted` : '—'} />
-                <Tile k="Calls" v={String(r.funnel.calls)} n="booked or held" />
-                <Tile k="Proposals" v={String(r.funnel.proposals)} n="sent" />
-                <Tile k="Won" v={String(r.funnel.won)} n={`${r.funnel.lost} closed lost`} />
+                <Tile k="Contacted" v={String(r.funnel.contacted)} n={r.funnel.leads - r.funnel.contacted ? `never contacted: ${(r.funnel.names?.untouched || []).join(', ')}` : 'everyone has had a first message'} bad={r.funnel.leads - r.funnel.contacted > 0} />
+                <Tile k="Replied" v={String(r.funnel.replied)} n={(r.funnel.names?.replied || []).join(', ') || '—'} />
+                <Tile k="Calls" v={String(r.funnel.calls)} n={(r.funnel.names?.calls || []).join(', ') || 'none booked yet'} />
+                <Tile k="Proposals" v={String(r.funnel.proposals)} n={(r.funnel.names?.proposals || []).join(', ') || 'none sent yet'} />
+                <Tile k="Won" v={String(r.funnel.won)} n={(r.funnel.names?.won || []).join(', ') || (r.funnel.lost ? `${r.funnel.lost} closed lost` : 'none yet')} />
                 <Tile k="No usable store link" v={String(r.funnel.noStore)} n="blank, 'I don't know', 'will share'" bad={r.funnel.noStore > 0} />
                 <Tile k="Under $5k ad spend" v={String(r.funnel.underFive)} n="by their own answer" />
               </div>
             </>)}
 
+            {r.live && (() => {
+              const L = r.live;
+              const liveSets = L.adSets.filter((a) => a.effectiveStatus === 'ACTIVE');
+              const set = liveSets[0] || L.adSets[0];
+              const camp = L.campaigns.find((c) => c.name === set?.campaign) || L.campaigns[0];
+              const activeAds = L.ads.filter((a) => a.effectiveStatus === 'ACTIVE');
+              const notServing = L.ads.filter((a) => a.effectiveStatus !== 'ACTIVE');
+              const byStatus = notServing.reduce<Record<string, number>>((m, a) => { m[a.effectiveStatus] = (m[a.effectiveStatus] || 0) + 1; return m; }, {});
+              const burn = r.days.slice(-3).reduce((s, d) => s + d.spend, 0) / Math.max(1, r.days.slice(-3).length);
+              return (<>
+                <H>The account as it runs right now <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· read from Meta at {new Date(L.at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST</span></H>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 20 }}>
+                  <Fact k="Campaign / ad set" v={`${camp?.name || '—'} · ${set?.name || '—'}`} n={[camp?.objective?.replace(/^OUTCOME_/, '').toLowerCase(), set?.effectiveStatus?.toLowerCase()].filter(Boolean).join(' · ')} />
+                  <Fact k="Daily budget" v={set?.dailyBudget ? inr(set.dailyBudget) : camp?.dailyBudget ? inr(camp.dailyBudget) : '—'} n={set?.dailyBudget ? `at ad-set level${set.updatedAt ? ` · last changed ${new Date(set.updatedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST` : ''}` : camp?.dailyBudget ? 'at campaign level' : 'no daily budget set'} />
+                  <Fact k="Targeting" v={set?.targeting || '—'} n={liveSets.length > 1 ? `${liveSets.length} ad sets live` : ''} />
+                  <Fact k="Active ads" v={activeAds.length ? activeAds.map((a) => a.name).join(' · ') : 'none'} n={`${activeAds.length} of ${L.ads.length} ads delivering`} />
+                  <Fact k="Not serving" v={notServing.length ? Object.entries(byStatus).map(([s, n]) => `${n} ${s.toLowerCase().replace(/_/g, ' ')}`).join(' · ') : 'everything live is delivering'} n={notServing.filter((a) => a.issues).map((a) => `${a.name}: ${a.issues}`).join(' · ').slice(0, 160)} bad={notServing.some((a) => a.effectiveStatus === 'WITH_ISSUES')} />
+                  <Fact k="Balance on the account" v={L.balance != null ? inr(L.balance) : '—'} n={L.balance != null && burn > 0 ? `about ${(L.balance / burn).toFixed(1)} days at ${inr(burn)}/day${L.balanceAt ? ` · Meta read ${new Date(L.balanceAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST` : ''}` : ''} bad={L.balance != null && burn > 0 && L.balance / burn < 2} />
+                </div>
+              </>);
+            })()}
+
             {(r.ads?.length || 0) > 0 && (<>
               <H>Each ad and its numbers</H>
               <Card pad="4px 16px 0">
-                <Table head={['Ad', 'Spend', 'Impressions', 'CPM', 'Clicks', 'CTR', 'Leads (Meta)', 'Cost / lead', 'In CRM']}
-                  rows={(r.ads || []).filter((a) => a.spend > 0.5).map((a) => [a.key, inr(a.spend), num(a.impressions), inr(a.cpm), num(a.clicks), pct(a.ctr), a.leads ? String(a.leads) : '—', inr(a.cpl), a.crmLeads ? String(a.crmLeads) : '—'])}
-                  okCol={6} limit={5} />
+                <Table head={['Ad', 'Status', 'Created', 'Spend', 'Impressions', 'CPM', 'Clicks', 'CTR', 'Leads (Meta)', 'Cost / lead', 'In CRM']}
+                  rows={(r.ads || []).filter((a) => a.spend > 0.5).map((a) => [a.key, a.status ? a.status.toLowerCase().replace(/_/g, ' ') : '—', a.createdAt ? dlabel(a.createdAt.slice(0, 10)) : '—', inr(a.spend), num(a.impressions), inr(a.cpm), num(a.clicks), pct(a.ctr), a.leads ? String(a.leads) : '—', inr(a.cpl), a.crmLeads ? String(a.crmLeads) : '—'])}
+                  okCol={8} limit={5} />
               </Card>
               <p style={{ fontSize: 12, color: MUT, margin: '-10px 0 20px' }}>
                 Leads (Meta) is what Meta counts on the ad; In CRM is how many of our lead records carry that ad name. They differ when a lead was attributed later or a form submit never reached the webhook.
@@ -428,6 +456,15 @@ function Tile({ k, v, n, bad }: { k: string; v: string; n: string; bad?: boolean
       <div style={{ fontSize: 10.5, color: MUT, textTransform: 'uppercase', letterSpacing: '.05em' }}>{k}</div>
       <div style={{ fontSize: 22, fontWeight: 600, margin: '5px 0 3px', letterSpacing: '-.02em', fontVariantNumeric: 'tabular-nums', color: bad ? BAD : INK }}>{v}</div>
       <div style={{ fontSize: 11, color: MUT }}>{n}</div>
+    </div>
+  );
+}
+function Fact({ k, v, n, bad }: { k: string; v: string; n?: string; bad?: boolean }) {
+  return (
+    <div style={{ border: `1px solid ${LINE}`, borderRadius: 11, padding: '12px 13px 10px', minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, color: MUT, textTransform: 'uppercase', letterSpacing: '.05em' }}>{k}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, margin: '5px 0 3px', lineHeight: 1.35, color: bad ? BAD : INK, overflowWrap: 'anywhere' }}>{v}</div>
+      {n ? <div style={{ fontSize: 11, color: MUT, lineHeight: 1.4 }}>{n}</div> : null}
     </div>
   );
 }

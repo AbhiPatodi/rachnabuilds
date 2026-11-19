@@ -3,7 +3,7 @@
 // totals, a day series, top-ups, and the state / platform / audience cuts.
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AD_ACCOUNT_ID, hasAdsToken } from '@/lib/metaAds';
+import { AD_ACCOUNT_ID, hasAdsToken, liveAccountSnapshot, type LiveSnapshot } from '@/lib/metaAds';
 import { getMoneySettings, channelOf, toInr } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +29,10 @@ export async function GET(req: NextRequest) {
   if (from > to) return NextResponse.json({ error: 'from is after to' }, { status: 400 });
 
   const range = { gte: utc(from), lte: utc(to) };
+  // Live account shape straight from Meta, capped so a slow Graph API can't stall the page.
+  const livePromise: Promise<LiveSnapshot | null> = hasAdsToken()
+    ? Promise.race([liveAccountSnapshot(), new Promise<null>((ok) => setTimeout(() => ok(null), 8000))]).catch(() => null)
+    : Promise.resolve(null);
   const [days, topUps, breakdowns, settings, syncAgg, adLeads] = await Promise.all([
     prisma.adSpendDay.findMany({
       where: { accountId: AD_ACCOUNT_ID, date: range },
@@ -138,7 +142,16 @@ export async function GET(req: NextRequest) {
       paid: l.payments.some((p) => p.status === 'received'),
     };
   });
+  const names = (f: (x: typeof leadRows[number]) => boolean) => leadRows.filter(f).map((x) => x.name.split(/\s+/).slice(0, 2).join(' '));
   const funnel = {
+    names: {
+      untouched: names((x) => !(x.touches > 0 || rank[x.status] >= 1)),
+      replied: names((x) => x.replied),
+      calls: names((x) => rank[x.status] >= 3),
+      proposals: names((x) => rank[x.status] >= 5 || !!x.proposal),
+      won: names((x) => x.status === 'closed_won'),
+      lost: names((x) => x.status === 'closed_lost' || x.status === 'disqualified'),
+    },
     leads: leadRows.length,
     contacted: leadRows.filter((x) => x.touches > 0 || rank[x.status] >= 1).length,
     replied: leadRows.filter((x) => x.replied).length,
@@ -150,6 +163,7 @@ export async function GET(req: NextRequest) {
     underFive: leadRows.filter((x) => /less_than_\$5k/i.test(x.adSpend || '')).length,
   };
 
+  const live = await livePromise;
   const spend = days.reduce((s, d) => s + d.spend, 0);
   const impressions = days.reduce((s, d) => s + d.impressions, 0);
   const clicks = days.reduce((s, d) => s + d.clicks, 0);
@@ -188,7 +202,12 @@ export async function GET(req: NextRequest) {
     funnel,
     syncedAt: syncAgg._max.updatedAt?.toISOString() || null,
     // Per ad, Meta's numbers plus how many CRM leads carry that ad name.
-    ads: rollup('ad').map((a) => ({ ...withRates(a), cpl: a.leads ? a.spend / a.leads : null, crmLeads: leadRows.filter((x) => x.ad === a.key).length })),
+    ads: rollup('ad').map((a) => {
+      const la = live?.ads.find((x) => x.name === a.key);
+      return { ...withRates(a), cpl: a.leads ? a.spend / a.leads : null, crmLeads: leadRows.filter((x) => x.ad === a.key).length,
+        status: la?.effectiveStatus || null, createdAt: la?.createdAt || null, issues: la?.issues || null };
+    }),
+    live: live ? { ...live, balance: settings.metaBalance, balanceAt: settings.metaBalanceAt } : null,
     states: rollup('region').map(withRates),
     platforms: rollup('platform').map((a) => withRates({ ...a, key: a.key === 'instagram' ? 'Instagram' : a.key === 'facebook' ? 'Facebook' : 'Unattributed' })),
     audience: rollup('age_gender').map((a) => ({ ...withRates(a), ...splitAgeGender(a.key) })),
