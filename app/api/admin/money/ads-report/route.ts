@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   if (from > to) return NextResponse.json({ error: 'from is after to' }, { status: 400 });
 
   const range = { gte: utc(from), lte: utc(to) };
-  const [days, topUps, breakdowns, settings, adLeads] = await Promise.all([
+  const [days, topUps, breakdowns, settings, syncAgg, adLeads] = await Promise.all([
     prisma.adSpendDay.findMany({
       where: { accountId: AD_ACCOUNT_ID, date: range },
       orderBy: { date: 'asc' },
@@ -45,14 +45,20 @@ export async function GET(req: NextRequest) {
       select: { dimension: true, key: true, spend: true, impressions: true, reach: true, clicks: true, leads: true },
     }),
     getMoneySettings(),
+    // When the synced tables were last written, so the page can say how fresh it is.
+    prisma.adSpendDay.aggregate({ where: { accountId: AD_ACCOUNT_ID }, _max: { updatedAt: true } }),
     // What the ads actually earned. Attribution is the same channelOf() rule the
     // Money page uses, and "received" is what reached the bank: the recorded
     // INR where we have it, otherwise the amount less the payment fee.
     prisma.funnelLead.findMany({
       where: { NOT: { id: { startsWith: 'demo' } } },
       select: {
-        id: true, name: true, status: true, utmSource: true, utmMedium: true, utmCampaign: true,
+        id: true, name: true, email: true, phone: true, status: true, subStatus: true, createdAt: true, lastTouchAt: true,
+        utmSource: true, utmMedium: true, utmCampaign: true, utmContent: true, storeUrl: true, formAnswers: true, leadIntel: true,
         payments: { select: { amount: true, currency: true, status: true, fee: true, inrReceived: true, date: true, method: true, note: true } },
+        activities: { orderBy: { createdAt: 'desc' }, take: 40, select: { type: true, text: true, createdAt: true } },
+        bookings: { select: { startTime: true, status: true }, orderBy: { startTime: 'desc' }, take: 1 },
+        proposals: { select: { status: true, acceptedTier: true, sentAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
       },
     }),
   ]);
@@ -99,6 +105,51 @@ export async function GET(req: NextRequest) {
   }
   clients.sort((a, b) => b.bookedInr - a.bookedInr);
 
+  // Every lead the ads produced inside the window, with what we know about them.
+  type Intel = { meta?: { adName?: string; platform?: string; formName?: string; organic?: boolean }; visits?: { at: string; device?: string; os?: string; browser?: string; city?: string | null; region?: string | null; country?: string | null }[] };
+  const repliedRe = /they replied|✅ replied|replied \(|^✅/i;
+  const touchRe = /^(💬|📧|📵|📞|📤|📄)/;
+  const rank: Record<string, number> = { new: 0, contacted: 1, no_reply: 1, confirmed: 2, call_booked: 3, showed: 4, proposal_sent: 5, closed_won: 6, closed_lost: 1, disqualified: 1 };
+  const inWindow = metaLeads.filter((l) => l.createdAt >= range.gte && l.createdAt <= new Date(range.lte.getTime() + 86400_000 - 1));
+  const leadRows = inWindow.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map((l) => {
+    const intel = (l.leadIntel as Intel | null) || {};
+    const fa = (l.formAnswers as Record<string, string> | null) || {};
+    const pick = (k: RegExp) => { const key = Object.keys(fa).find((x) => k.test(x)); return key ? fa[key] : null; };
+    const visits = intel.visits || [];
+    const last = visits[visits.length - 1];
+    const notes = l.activities.filter((a) => a.type === 'note');
+    const touches = notes.filter((a) => touchRe.test(a.text)).length;
+    const replied = notes.some((a) => repliedRe.test(a.text)) || rank[l.status] >= 2;
+    const lastTouch = notes.find((a) => touchRe.test(a.text));
+    return {
+      id: l.id, name: l.name, email: l.email, phone: l.phone, createdAt: l.createdAt.toISOString(),
+      status: l.status, subStatus: l.subStatus,
+      ad: l.utmContent || intel.meta?.adName || null, platform: intel.meta?.platform || null, form: intel.meta?.formName || null,
+      store: l.storeUrl || pick(/store url/i) || null,
+      adSpend: pick(/ad spend/i), conversion: pick(/conversion/i),
+      device: last ? [last.device, last.os, last.browser].filter(Boolean).join(' · ') : null,
+      place: last ? [last.city, last.region || last.country].filter(Boolean).join(', ') : null,
+      visits: visits.length,
+      touches, replied,
+      callAt: l.bookings[0]?.startTime?.toISOString() || null,
+      proposal: l.proposals[0] ? `${l.proposals[0].status}${l.proposals[0].acceptedTier ? ` · ${l.proposals[0].acceptedTier}` : ''}` : null,
+      lastTouch: lastTouch ? { at: lastTouch.createdAt.toISOString(), text: lastTouch.text.slice(0, 160) } : null,
+      lastNote: notes[0] ? { at: notes[0].createdAt.toISOString(), text: notes[0].text.slice(0, 160) } : null,
+      paid: l.payments.some((p) => p.status === 'received'),
+    };
+  });
+  const funnel = {
+    leads: leadRows.length,
+    contacted: leadRows.filter((x) => x.touches > 0 || rank[x.status] >= 1).length,
+    replied: leadRows.filter((x) => x.replied).length,
+    calls: leadRows.filter((x) => rank[x.status] >= 3).length,
+    proposals: leadRows.filter((x) => rank[x.status] >= 5 || x.proposal).length,
+    won: leadRows.filter((x) => x.status === 'closed_won').length,
+    lost: leadRows.filter((x) => x.status === 'closed_lost' || x.status === 'disqualified').length,
+    noStore: leadRows.filter((x) => !x.store || /^(sunshine|i don.t know|will share next)$/i.test(x.store)).length,
+    underFive: leadRows.filter((x) => /less_than_\$5k/i.test(x.adSpend || '')).length,
+  };
+
   const spend = days.reduce((s, d) => s + d.spend, 0);
   const impressions = days.reduce((s, d) => s + d.impressions, 0);
   const clicks = days.reduce((s, d) => s + d.clicks, 0);
@@ -133,6 +184,11 @@ export async function GET(req: NextRequest) {
       netVsSpend: received - (spend + spend * (gstPct / 100)),
       clients,
     },
+    leadList: leadRows,
+    funnel,
+    syncedAt: syncAgg._max.updatedAt?.toISOString() || null,
+    // Per ad, Meta's numbers plus how many CRM leads carry that ad name.
+    ads: rollup('ad').map((a) => ({ ...withRates(a), cpl: a.leads ? a.spend / a.leads : null, crmLeads: leadRows.filter((x) => x.ad === a.key).length })),
     states: rollup('region').map(withRates),
     platforms: rollup('platform').map((a) => withRates({ ...a, key: a.key === 'instagram' ? 'Instagram' : a.key === 'facebook' ? 'Facebook' : 'Unattributed' })),
     audience: rollup('age_gender').map((a) => ({ ...withRates(a), ...splitAgeGender(a.key) })),

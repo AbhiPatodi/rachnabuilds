@@ -58,6 +58,7 @@ export async function syncAdSpend(since: string, until: string) {
 interface BreakdownRow extends InsightRow {
   region?: string; publisher_platform?: string; age?: string; gender?: string;
   impression_device?: string; platform_position?: string; dma?: string; hourly_stats_aggregated_by_advertiser_time_zone?: string;
+  ad_name?: string; campaign_name?: string;
 }
 
 const DIMENSIONS = {
@@ -68,6 +69,8 @@ const DIMENSIONS = {
   dma: { breakdowns: 'dma', key: (r: BreakdownRow) => r.dma || 'Unknown' },
   placement: { breakdowns: 'publisher_platform,platform_position', key: (r: BreakdownRow) => `${r.publisher_platform || '?'}|${r.platform_position || '?'}` },
   hour: { breakdowns: 'hourly_stats_aggregated_by_advertiser_time_zone', key: (r: BreakdownRow) => (r.hourly_stats_aggregated_by_advertiser_time_zone || '?').slice(0, 2) },
+  // Per ad: no breakdown, level=ad; key is the ad name (what the lead webhook stores in utmContent).
+  ad: { breakdowns: '', level: 'ad', fields: 'ad_name,campaign_name', key: (r: BreakdownRow) => r.ad_name || '(no name)' },
 } as const;
 
 export type Dimension = keyof typeof DIMENSIONS;
@@ -80,16 +83,16 @@ function leadsOf(r: InsightRow): number {
 
 /** Pull one dimension's per-day rows for [since, until] and upsert them. */
 export async function syncBreakdown(dim: Dimension, since: string, until: string) {
-  const cfg = DIMENSIONS[dim];
+  const cfg = DIMENSIONS[dim] as { breakdowns: string; level?: string; fields?: string; key: (r: BreakdownRow) => string };
   let path = `act_${AD_ACCOUNT_ID}/insights`;
   let params: Record<string, string> | null = {
-    fields: 'spend,impressions,reach,clicks,actions',
+    fields: `spend,impressions,reach,clicks,actions${cfg.fields ? `,${cfg.fields}` : ''}`,
     time_increment: '1',
     time_range: JSON.stringify({ since, until }),
-    level: 'account',
-    breakdowns: cfg.breakdowns,
+    level: cfg.level || 'account',
     limit: '500',
   };
+  if (cfg.breakdowns) params.breakdowns = cfg.breakdowns;
   let rows = 0;
   // Several Meta rows can share one key (device is paired with platform), so add them up first.
   const acc = new Map<string, { date: Date; key: string; spend: number; impressions: number; reach: number; clicks: number; leads: number }>();

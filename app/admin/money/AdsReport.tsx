@@ -10,6 +10,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 const INK = '#0B3D2E', EM = '#06D6A0', MUT = '#6B7C74', LINE = '#E3E9E6', BAD = '#C0392B';
 
 type Row = { key: string; spend: number; impressions: number; reach: number; clicks: number; leads: number; cpm: number | null; ctr: number | null; cpl: number | null };
+type LeadRow = {
+  id: string; name: string; email: string; phone: string | null; createdAt: string; status: string; subStatus: string | null;
+  ad: string | null; platform: string | null; form: string | null; store: string | null; adSpend: string | null; conversion: string | null;
+  device: string | null; place: string | null; visits: number; touches: number; replied: boolean; callAt: string | null; proposal: string | null;
+  lastTouch: { at: string; text: string } | null; lastNote: { at: string; text: string } | null; paid: boolean;
+};
 type Report = {
   range: { from: string; to: string; days: number };
   connected: boolean;
@@ -20,6 +26,10 @@ type Report = {
     booked: number; received: number; fees: number; netVsSpend: number;
     clients: { name: string; status: string; bookedInr: number; receivedInr: number; feesInr: number; pending: number }[];
   };
+  leadList?: LeadRow[];
+  syncedAt?: string | null;
+  ads?: (Row & { cpl: number | null; crmLeads: number })[];
+  funnel?: { leads: number; contacted: number; replied: number; calls: number; proposals: number; won: number; lost: number; noStore: number; underFive: number };
   states: Row[];
   platforms: Row[];
   audience: (Row & { age: string; gender: string })[];
@@ -50,6 +60,11 @@ export default function AdsReport() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [leadStatus, setLeadStatus] = useState('all');
+  const [leadAd, setLeadAd] = useState('all');
+  const [leadQ, setLeadQ] = useState('');
+  const [showAllLeads, setShowAllLeads] = useState(false);
   const sheet = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -114,6 +129,21 @@ export default function AdsReport() {
   };
 
   const setPreset = (p: typeof PRESETS[number]) => { setFrom(p.from()); setTo(p.to()); };
+  // Pull the range again from Meta (capped at 120 days back), then re-read.
+  const refresh = async () => {
+    setSyncing(true);
+    try {
+      const back = Math.min(120, Math.max(3, Math.ceil((Date.now() - new Date(from).getTime()) / 86400_000) + 1));
+      const res = await fetch(`/api/admin/money/sync-ads?days=${back}`, { method: 'POST' });
+      if (!res.ok) setErr((await res.json().catch(() => ({})))?.error || `Meta refresh failed (${res.status})`);
+      await load();
+    } finally { setSyncing(false); }
+  };
+  const filteredLeads = useMemo(() => (r?.leadList || []).filter((l) =>
+    (leadStatus === 'all' || (leadStatus === 'open' ? !/closed|disqualified/.test(l.status) : l.status === leadStatus)) &&
+    (leadAd === 'all' || (l.ad || 'unattributed') === leadAd) &&
+    (!leadQ || `${l.name} ${l.email} ${l.phone || ''} ${l.store || ''} ${l.place || ''}`.toLowerCase().includes(leadQ.toLowerCase()))
+  ), [r, leadStatus, leadAd, leadQ]);
 
   return (
     <div>
@@ -134,7 +164,11 @@ export default function AdsReport() {
               style={{ fontSize: 12.5, padding: '7px 11px' }} onClick={() => setPreset(p)}>{p.label}</button>
           ))}
         </div>
-        <button type="button" className="admin-btn admin-btn-primary" style={{ marginLeft: 'auto' }}
+        <button type="button" className="admin-btn admin-btn-secondary" style={{ marginLeft: 'auto', fontSize: 12.5, padding: '7px 11px' }} disabled={syncing || loading} onClick={refresh}>
+          {syncing ? 'Pulling from Meta…' : '↻ Refresh from Meta'}
+        </button>
+        {r?.syncedAt && <span style={{ fontSize: 11.5, color: 'var(--text-muted)', alignSelf: 'center' }}>Data as of {new Date(r.syncedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST · auto-pulls hourly</span>}
+        <button type="button" className="admin-btn admin-btn-primary"
           disabled={exporting || loading || !r} onClick={exportPng}>
           {exporting ? 'Building image…' : '⇩ Export as image'}
         </button>
@@ -172,6 +206,32 @@ export default function AdsReport() {
               <Tile k="Net position" v={inr(r.revenue.netVsSpend)} n="banked − spend − GST"
                 bad={r.revenue.netVsSpend < 0} />
             </div>
+
+            {r.funnel && r.funnel.leads > 0 && (<>
+              <H>What happened to the leads</H>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 20 }}>
+                <Tile k="Leads in CRM" v={String(r.funnel.leads)} n="from these ads, this range" />
+                <Tile k="Contacted" v={String(r.funnel.contacted)} n={`${r.funnel.leads - r.funnel.contacted} untouched`} bad={r.funnel.leads - r.funnel.contacted > 0} />
+                <Tile k="Replied" v={String(r.funnel.replied)} n={r.funnel.contacted ? `${Math.round((r.funnel.replied / r.funnel.contacted) * 100)}% of contacted` : '—'} />
+                <Tile k="Calls" v={String(r.funnel.calls)} n="booked or held" />
+                <Tile k="Proposals" v={String(r.funnel.proposals)} n="sent" />
+                <Tile k="Won" v={String(r.funnel.won)} n={`${r.funnel.lost} closed lost`} />
+                <Tile k="No usable store link" v={String(r.funnel.noStore)} n="blank, 'I don't know', 'will share'" bad={r.funnel.noStore > 0} />
+                <Tile k="Under $5k ad spend" v={String(r.funnel.underFive)} n="by their own answer" />
+              </div>
+            </>)}
+
+            {(r.ads?.length || 0) > 0 && (<>
+              <H>Each ad and its numbers</H>
+              <Card pad="4px 16px 0">
+                <Table head={['Ad', 'Spend', 'Impressions', 'CPM', 'Clicks', 'CTR', 'Leads (Meta)', 'Cost / lead', 'In CRM']}
+                  rows={(r.ads || []).filter((a) => a.spend > 0.5).map((a) => [a.key, inr(a.spend), num(a.impressions), inr(a.cpm), num(a.clicks), pct(a.ctr), a.leads ? String(a.leads) : '—', inr(a.cpl), a.crmLeads ? String(a.crmLeads) : '—'])}
+                  okCol={6} limit={5} />
+              </Card>
+              <p style={{ fontSize: 12, color: MUT, margin: '-10px 0 20px' }}>
+                Leads (Meta) is what Meta counts on the ad; In CRM is how many of our lead records carry that ad name. They differ when a lead was attributed later or a form submit never reached the webhook.
+              </p>
+            </>)}
 
             <H>Daily spend</H>
             <Card>
@@ -227,8 +287,8 @@ export default function AdsReport() {
               <H>Cost and return by state</H>
               <Card pad="4px 16px 0">
                 <Table head={['State', 'Spend', 'Impressions', 'CPM', 'Leads']}
-                  rows={r.states.slice(0, 8).map((s) => [s.key, inr(s.spend), num(s.impressions), inr(s.cpm), s.leads ? String(s.leads) : '—'])}
-                  okCol={4} />
+                  rows={r.states.map((s) => [s.key, inr(s.spend), num(s.impressions), inr(s.cpm), s.leads ? String(s.leads) : '—'])}
+                  okCol={4} limit={5} />
               </Card>
             </>)}
 
@@ -236,8 +296,8 @@ export default function AdsReport() {
             <Card pad="4px 16px 0">
               {r.topUps.length === 0 ? <Empty>No top-ups in this range.</Empty> : (() => {
                 let run = 0;
-                return <Table head={['Date', 'Amount', 'Method', 'Running total']}
-                  rows={r.topUps.map((t) => { run += t.amount; return [`${dlabel(t.date)} 2026`, inr(t.amount), t.method, inr(run)]; })} />;
+                const rows = r.topUps.map((t) => { run += t.amount; return [`${dlabel(t.date)} 2026`, inr(t.amount), t.method, inr(run)]; });
+                return <Table head={['Date', 'Amount', 'Method', 'Running total']} rows={rows.reverse()} limit={5} />;
               })()}
             </Card>
             <p style={{ fontSize: 12, color: MUT, margin: '-10px 0 20px' }}>
@@ -265,12 +325,62 @@ export default function AdsReport() {
               Payments are counted whenever they landed, so a lead from August that pays in October still counts here.
             </p>
 
+            {(r.leadList?.length || 0) > 0 && (<>
+              <H>Every lead, latest first</H>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                <select value={leadStatus} onChange={(e) => setLeadStatus(e.target.value)} style={{ padding: '6px 9px', border: `1px solid ${LINE}`, borderRadius: 8, fontSize: 12.5, background: '#fff' }}>
+                  <option value="all">All statuses</option>
+                  <option value="open">Open (not closed)</option>
+                  {[...new Set((r.leadList || []).map((l) => l.status))].map((st) => <option key={st} value={st}>{st.replace(/_/g, ' ')}</option>)}
+                </select>
+                <select value={leadAd} onChange={(e) => setLeadAd(e.target.value)} style={{ padding: '6px 9px', border: `1px solid ${LINE}`, borderRadius: 8, fontSize: 12.5, background: '#fff', maxWidth: 260 }}>
+                  <option value="all">All ads</option>
+                  {[...new Set((r.leadList || []).map((l) => l.ad || 'unattributed'))].map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+                <input value={leadQ} onChange={(e) => setLeadQ(e.target.value)} placeholder="Search name, store, place…" style={{ padding: '6px 9px', border: `1px solid ${LINE}`, borderRadius: 8, fontSize: 12.5, minWidth: 200 }} />
+                <span style={{ fontSize: 12, color: MUT, alignSelf: 'center' }}>{filteredLeads.length} of {r.leadList?.length}</span>
+              </div>
+              <Card pad="4px 16px 0">
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+                    <thead><tr>{['Lead', 'Came in', 'Ad · platform', 'Store', 'Their answers', 'Device · where', 'Status', 'Last touch'].map((h, i) => (
+                      <th key={h} style={{ textAlign: 'left', padding: '7px 8px', borderBottom: `1px solid ${LINE}`, color: MUT, fontWeight: 600, fontSize: 11.5, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}</tr></thead>
+                    <tbody>{filteredLeads.slice(0, showAllLeads ? undefined : 5).map((l) => {
+                      const st = l.status.replace(/_/g, ' ');
+                      const tone = l.status === 'closed_won' ? '#0C8F6B' : l.status === 'closed_lost' || l.status === 'disqualified' ? BAD : /proposal|showed|call/.test(l.status) ? INK : MUT;
+                      const d = new Date(l.createdAt);
+                      return (
+                        <tr key={l.id}>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', minWidth: 150 }}>
+                            <div style={{ fontWeight: 600, color: INK }}>{l.name}</div>
+                            <div style={{ fontSize: 11, color: MUT }}>{l.phone || l.email}</div>
+                          </td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{dlabel(d.toISOString().slice(0, 10))} {d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })}<div style={{ fontSize: 11, color: MUT }}>IST</div></td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', minWidth: 140 }}>{l.ad || <span style={{ color: MUT }}>unattributed</span>}<div style={{ fontSize: 11, color: MUT }}>{l.platform === 'ig' ? 'Instagram' : l.platform === 'fb' ? 'Facebook' : l.platform || ''}{l.form ? ` · ${/v2/i.test(l.form) ? 'form v2' : 'old form'}` : ''}</div></td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', maxWidth: 170, wordBreak: 'break-all' }}>{l.store ? l.store.replace(/^https?:\/\/(www\.)?/, '') : <span style={{ color: BAD }}>none</span>}</td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', whiteSpace: 'nowrap' }}>{l.adSpend ? l.adSpend.replace(/_/g, ' ').replace('less than', '<') : '—'}<div style={{ fontSize: 11, color: MUT }}>{l.conversion ? l.conversion.replace(/_/g, ' ').replace('conversion rate', 'CR').replace('less than', '<').replace('more than', '>') : ''}</div></td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', minWidth: 130 }}>{l.device || <span style={{ color: MUT }}>no visit yet</span>}<div style={{ fontSize: 11, color: MUT }}>{l.place || ''}{l.visits ? ` · ${l.visits} visit${l.visits === 1 ? '' : 's'}` : ''}</div></td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', whiteSpace: 'nowrap' }}><span style={{ color: tone, fontWeight: 600 }}>{st}</span>{l.subStatus ? <div style={{ fontSize: 11, color: MUT }}>{l.subStatus}</div> : null}<div style={{ fontSize: 11, color: MUT }}>{l.touches} touch{l.touches === 1 ? '' : 'es'}{l.replied ? ' · replied' : ''}{l.callAt ? ` · call ${dlabel(l.callAt.slice(0, 10))}` : ''}{l.proposal ? ` · ${l.proposal}` : ''}{l.paid ? ' · paid' : ''}</div></td>
+                          <td style={{ padding: '8px', borderBottom: `1px solid ${LINE}`, verticalAlign: 'top', minWidth: 260, maxWidth: 360, whiteSpace: 'normal', fontSize: 11.5, color: '#273B33' }}>{(l.lastTouch || l.lastNote) ? <>{(l.lastTouch || l.lastNote)!.text}<div style={{ fontSize: 10.5, color: MUT }}>{dlabel((l.lastTouch || l.lastNote)!.at.slice(0, 10))}</div></> : <span style={{ color: BAD }}>never contacted</span>}</td>
+                        </tr>
+                      );
+                    })}</tbody>
+                  </table>
+                </div>
+                {filteredLeads.length > 5 && <MoreBtn open={showAllLeads} n={filteredLeads.length} onClick={() => setShowAllLeads((v) => !v)} />}
+              </Card>
+              <p style={{ fontSize: 12, color: MUT, margin: '-10px 0 20px' }}>
+                Leads are the ones the CRM attributes to Meta ads and that arrived inside the date range. Device and location come from the lead opening one of our links (Meta does not share them per lead); "no visit yet" means they have not opened a link. Ad attribution is Meta's per-ad lead count matched by submit hour.
+              </p>
+            </>)}
+
             {r.audience.length > 0 && (<>
               <H>Who saw it</H>
               <Card pad="4px 16px 0">
                 <Table head={['Age', 'Gender', 'Spend', 'Impressions', 'CPM', 'Leads']}
                   rows={r.audience.filter((a) => a.gender !== 'Unknown').map((a) => [a.age, a.gender, inr(a.spend), num(a.impressions), inr(a.cpm), a.leads ? String(a.leads) : '—'])}
-                  okCol={5} />
+                  okCol={5} limit={5} />
               </Card>
             </>)}
 
@@ -279,7 +389,7 @@ export default function AdsReport() {
               <Card pad="4px 16px 0">
                 <Table head={['Device', 'Spend', 'Impressions', 'CPM', 'Clicks', 'Leads']}
                   rows={(r.devices || []).filter((d) => d.spend > 0.5).map((d) => [d.key, inr(d.spend), num(d.impressions), inr(d.cpm), num(d.clicks), d.leads ? String(d.leads) : '—'])}
-                  okCol={5} />
+                  okCol={5} limit={5} />
               </Card>
             </>)}
 
@@ -288,16 +398,16 @@ export default function AdsReport() {
               <Card pad="4px 16px 0">
                 <Table head={['Placement', 'Spend', 'Impressions', 'CPM', 'Clicks', 'Leads']}
                   rows={(r.placements || []).filter((d) => d.spend > 0.5).sort((x, y) => y.spend - x.spend).map((d) => [d.key, inr(d.spend), num(d.impressions), inr(d.cpm), num(d.clicks), d.leads ? String(d.leads) : '—'])}
-                  okCol={5} />
+                  okCol={5} limit={5} />
               </Card>
             </>)}
 
             {(r.hours?.length || 0) > 0 && (<>
-              <H>By hour of day (IST, account time)</H>
+              <H>By hour of day (IST, account time) — hours with leads first</H>
               <Card pad="4px 16px 0">
                 <Table head={['Hour', 'Spend', 'Impressions', 'Clicks', 'Leads']}
-                  rows={(r.hours || []).filter((d) => d.spend > 0.5).map((d) => [`${d.key}:00`, inr(d.spend), num(d.impressions), num(d.clicks), d.leads ? String(d.leads) : '—'])}
-                  okCol={4} />
+                  rows={(r.hours || []).filter((d) => d.spend > 0.5).slice().sort((x, y) => (y.leads - x.leads) || (y.spend - x.spend)).map((d) => [`${d.key}:00`, inr(d.spend), num(d.impressions), num(d.clicks), d.leads ? String(d.leads) : '—'])}
+                  okCol={4} limit={5} />
               </Card>
             </>)}
 
@@ -350,19 +460,31 @@ function BarList<T>({ rows, label, value, right, tone, caption }: {
     </div>
   );
 }
-function Table({ head, rows, okCol }: { head: string[]; rows: string[][]; okCol?: number }) {
+function MoreBtn({ open, n, onClick }: { open: boolean; n: number; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      style={{ display: 'block', width: '100%', padding: '9px 0 11px', background: 'none', border: 0, borderTop: `1px solid ${LINE}`, color: INK, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+      {open ? 'Show first 5 only' : `View all ${n}`}
+    </button>
+  );
+}
+function Table({ head, rows, okCol, limit }: { head: string[]; rows: string[][]; okCol?: number; limit?: number }) {
+  const [open, setOpen] = useState(false);
+  const shown = limit && !open ? rows.slice(0, limit) : rows;
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, fontVariantNumeric: 'tabular-nums' }}>
         <thead><tr>{head.map((h, i) => (
           <th key={h} style={{ textAlign: i === 0 ? 'left' : 'right', padding: '7px 8px', borderBottom: `1px solid ${LINE}`, color: MUT, fontWeight: 600, fontSize: 11.5, whiteSpace: 'nowrap' }}>{h}</th>
         ))}</tr></thead>
-        <tbody>{rows.map((r, i) => (
+        <tbody>{shown.map((r, i) => (
           <tr key={i}>{r.map((c, j) => (
             <td key={j} style={{ textAlign: j === 0 ? 'left' : 'right', padding: '7px 8px', borderBottom: `1px solid ${LINE}`, whiteSpace: 'nowrap', color: okCol === j && c !== '—' ? '#0C8F6B' : INK, fontWeight: okCol === j && c !== '—' ? 600 : 400 }}>{c}</td>
           ))}</tr>
         ))}</tbody>
       </table>
+      {limit && rows.length > limit && <MoreBtn open={open} n={rows.length} onClick={() => setOpen((v) => !v)} />}
+
     </div>
   );
 }
